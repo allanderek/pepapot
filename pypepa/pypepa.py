@@ -3,15 +3,23 @@
 import argparse
 import pyparsing
 
-identifier_grammar = pyparsing.Word(pyparsing.alphas)
+identifier = pyparsing.Word(pyparsing.alphanums)
+
+expr = identifier
+
+rate_grammar = expr
+
+prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + identifier
+process_grammar = prefix_grammar
+process_definition = identifier + "=" + process_grammar + ";"
 
 
 def parse_model(model_string):
-    return identifier_grammar.parseString(model_string)
+    return process_definition.parseString(model_string)
 
 def parse_file(filename):
-    with open(filename, "r") as biopepa_file:
-        model_string = biopepa_file.read()
+    with open(filename, "r") as pepa_file:
+        model_string = pepa_file.read()
         parse_results = parse_model(model_string)
         print (parse_results)
 

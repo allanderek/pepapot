@@ -2,6 +2,7 @@
 
 import argparse
 import pyparsing
+from pyparsing import OneOrMore, Or
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
@@ -9,13 +10,22 @@ expr = identifier
 
 rate_grammar = expr
 
-prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + identifier
-process_grammar = prefix_grammar
+process_grammar = pyparsing.Forward()
+class PrefixNode(object):
+    def __init__(self, tokens):
+        self.action = tokens[1]
+        self.rate = tokens[3]
+        self.successor = tokens[6]
+prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_grammar
+prefix_grammar.setParseAction(PrefixNode)
+
+process_grammar << Or([prefix_grammar, identifier])
 process_definition = identifier + "=" + process_grammar + ";"
 
+model_grammar = OneOrMore(pyparsing.Group(process_definition))
 
 def parse_model(model_string):
-    return process_definition.parseString(model_string)
+    return model_grammar.parseString(model_string)
 
 def parse_file(filename):
     with open(filename, "r") as pepa_file:

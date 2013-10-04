@@ -16,10 +16,22 @@ class PrefixNode(object):
         self.action = tokens[1]
         self.rate = tokens[3]
         self.successor = tokens[6]
+
+    def get_used_process_names(self):
+        return self.successor.get_used_process_names()
 prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_grammar
 prefix_grammar.setParseAction(PrefixNode)
 
-process_grammar << Or([prefix_grammar, identifier])
+class ProcessIdentifier(object):
+    def __init__(self, tokens):
+        self.name = tokens[0]
+
+    def get_used_process_names(self):
+        return [ self.name ]
+process_identifier = identifier.copy()
+process_identifier.setParseAction(ProcessIdentifier)
+
+process_grammar << Or([prefix_grammar, process_identifier])
 process_definition = identifier + "=" + process_grammar + ";"
 
 model_grammar = OneOrMore(pyparsing.Group(process_definition))
@@ -27,11 +39,30 @@ model_grammar = OneOrMore(pyparsing.Group(process_definition))
 def parse_model(model_string):
     return model_grammar.parseString(model_string)
 
+def defined_process_names(model):
+    """From a parsed model, return the list of defined process names"""
+    return [definition[0] for definition in model ]
+
+def used_process_names(model):
+    used_names = set()
+    for definition in model:
+        process = definition[2]
+        for name in process.get_used_process_names():
+            used_names.add(name)
+    return used_names
+
 def parse_file(filename):
     with open(filename, "r") as pepa_file:
         model_string = pepa_file.read()
-        parse_results = parse_model(model_string)
-        print (parse_results)
+        model = parse_model(model_string)
+        # TODO: All of this should go to a log, not the stdout
+        print (model)
+        print ("Defined process names:")
+        for name in defined_process_names(model):
+            print ("    " + name)
+        print ("Referenced process names:")
+        for name in used_process_names(model):
+            print ("    " + name)
 
 def run ():
     """perform the banalities of command-line argument processing 

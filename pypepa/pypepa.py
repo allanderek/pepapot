@@ -4,7 +4,7 @@ import argparse
 import logging
 
 import pyparsing
-from pyparsing import OneOrMore, Or
+from pyparsing import OneOrMore, Or, Group
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
@@ -34,21 +34,34 @@ process_identifier = identifier.copy()
 process_identifier.setParseAction(ProcessIdentifier)
 
 process_grammar << Or([prefix_grammar, process_identifier])
-process_definition = identifier + "=" + process_grammar + ";"
+class ProcessDefinition(object):
+    def __init__(self, tokens):
+        self.lhs = tokens[0]
+        self.rhs = tokens[2]
+process_definition_grammar = identifier + "=" + process_grammar + ";"
+process_definition_grammar.setParseAction(ProcessDefinition)
+process_definitions_grammar = Group(OneOrMore(process_definition_grammar))
 
-model_grammar = OneOrMore(pyparsing.Group(process_definition))
+system_equation_grammar = process_identifier
+
+class ParsedModel(object):
+    def __init__(self, tokens):
+        self.process_definitions = tokens[0]
+        self.system_equation = tokens[1]
+model_grammar = process_definitions_grammar + system_equation_grammar
+model_grammar.setParseAction(ParsedModel)
 
 def parse_model(model_string):
-    return model_grammar.parseString(model_string)
+    return model_grammar.parseString(model_string)[0]
 
 def defined_process_names(model):
     """From a parsed model, return the list of defined process names"""
-    return [definition[0] for definition in model ]
+    return [definition.lhs for definition in model.process_definitions ]
 
 def used_process_names(model):
     used_names = set()
-    for definition in model:
-        process = definition[2]
+    for definition in model.process_definitions:
+        process = definition.rhs
         for name in process.get_used_process_names():
             used_names.add(name)
     return used_names

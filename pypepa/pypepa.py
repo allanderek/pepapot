@@ -4,7 +4,7 @@ import argparse
 import logging
 
 import pyparsing
-from pyparsing import OneOrMore, Or, Group
+from pyparsing import OneOrMore, Or, Group, Optional
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
@@ -42,7 +42,17 @@ process_definition_grammar = identifier + "=" + process_grammar + ";"
 process_definition_grammar.setParseAction(ProcessDefinition)
 process_definitions_grammar = Group(OneOrMore(process_definition_grammar))
 
-system_equation_grammar = process_identifier
+
+system_equation_grammar = pyparsing.Forward()
+class ParsedSystemComponent(object):
+    def __init__(self, tokens):
+        if len(tokens) > 1:
+            self.lhs = tokens[0]
+            self.rhs = tokens[2]
+        else:
+            self.identifier = tokens[0]
+system_equation_grammar = process_identifier + Optional("||" + system_equation_grammar)
+system_equation_grammar.setParseAction(ParsedSystemComponent)
 
 class ParsedModel(object):
     def __init__(self, tokens):

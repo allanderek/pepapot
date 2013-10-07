@@ -66,7 +66,7 @@ def parse_model(model_string):
 
 def defined_process_names(model):
     """From a parsed model, return the list of defined process names"""
-    return [definition.lhs for definition in model.process_definitions ]
+    return set([definition.lhs for definition in model.process_definitions ])
 
 def used_process_names(model):
     used_names = set()
@@ -76,41 +76,22 @@ def used_process_names(model):
             used_names.add(name)
     return used_names
 
-def parse_file(filename):
+def analyse_model(model_string):
+    model = parse_model(model_string)
+
+    logging.debug (model)
+    logging.debug ("Defined process names:")
+    for name in defined_process_names(model):
+        logging.debug ("    " + name)
+    logging.debug ("Referenced process names:")
+    for name in used_process_names(model):
+        logging.debug ("    " + name)
+            
+def analyse_pepa_file(filename):
     with open(filename, "r") as pepa_file:
         model_string = pepa_file.read()
-        model = parse_model(model_string)
+        analyse_model(model_string)
 
-        logging.debug (model)
-        logging.info ("Defined process names:")
-        for name in defined_process_names(model):
-            logging.info ("    " + name)
-        logging.info ("Referenced process names:")
-        for name in used_process_names(model):
-            logging.info ("    " + name)
-
-def initialise_logger(arguments):
-  """Initialise the logging system, depending on the arguments
-     which may set the log level and a log file"""
-  log_level = arguments.loglevel
-  if log_level:
-    numeric_level = getattr(logging, log_level.upper(), None)
-    if not isinstance(numeric_level, int):
-      print ("The log level must be one of the following:")
-      print ("    debug, info, warning, error, critical")
-      print ("Exiting")
-      sys.exit(1) 
-  else:
-    numeric_level = logging.INFO
-
-  # We could also change the format of the logging messages to
-  # something like: format='%(levelname)s:%(message)s'
-
-  log_file = arguments.logfile
-  if log_file:
-    logging.basicConfig(filename=log_file, level=numeric_level)
-  else:
-    logging.basicConfig(level=numeric_level)
 
 def run ():
     """perform the banalities of command-line argument processing 
@@ -146,7 +127,7 @@ def run ():
 
     for filename in arguments.filenames:
         if arguments.command == "parse":
-            parse_file(filename)
+            analyse_pepa_file(filename)
 
 
 if __name__ == "__main__":

@@ -42,6 +42,14 @@ process_definition_grammar = identifier + "=" + process_grammar + ";"
 process_definition_grammar.setParseAction(ProcessDefinition)
 process_definitions_grammar = Group(OneOrMore(process_definition_grammar))
 
+activity_list_grammar = "<" + pyparsing.delimitedList(identifier, ",") + ">"
+cooperation_set_grammar =Or([pyparsing.Literal("||"), activity_list_grammar])
+def get_action_set(tokens):
+    # It's a double list because otherwise the system_equation_parser will
+    # assume the list returned is a set of tokens and concatenate it in with
+    # the other tokens.
+    return [[ x for x in tokens if x not in [ "||", "<", ">"] ]]
+cooperation_set_grammar.setParseAction(get_action_set)
 
 system_equation_grammar = pyparsing.Forward()
 class ParsedSystemComponent(object):
@@ -51,6 +59,7 @@ class ParsedSystemComponent(object):
             # Then the left hand side will always be a simple identifier, but
             # this won't be true if we allow for parentheses.
             self.lhs = ParsedSystemComponent(tokens[0])
+            self.cooperation_set = tokens[1]
             self.rhs = tokens[2]
             self.identifier = None
         else:
@@ -66,8 +75,9 @@ class ParsedSystemComponent(object):
             rhs = self.rhs.get_used_names()
             return lhs.union(rhs)
 
-
-system_equation_grammar << identifier + Optional("||" + system_equation_grammar)
+system_equation_grammar << (identifier + 
+                            Optional(cooperation_set_grammar + 
+                                     system_equation_grammar))
 system_equation_grammar.setParseAction(ParsedSystemComponent)
 
 class ParsedModel(object):

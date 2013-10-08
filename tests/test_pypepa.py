@@ -22,6 +22,7 @@ Q1 = (b, r).Q;
 """
 simple_no_coop = simple_components + "\nP || Q"
 simple_single_coop = simple_components + "\nP < a > Q"
+simple_double_coop = simple_components + "\nP <a,b> Q"
 
 
 class TestPypepa(unittest.TestCase):
@@ -42,9 +43,14 @@ class TestPypepa(unittest.TestCase):
         defined_names = pypepa.defined_process_names(model)
         expected = set(["P", "P1", "Q", "Q1"])
         self.assertEqual(defined_names, expected)
-    def test_parser(self):
+
+    def test_cooperation_parser(self):
         model = pypepa.parse_model(simple_single_coop)
         self.assertEqual(model.system_equation.cooperation_set, ["a"])
+        model = pypepa.parse_model(simple_no_coop)
+        self.assertEqual(model.system_equation.cooperation_set, [])
+        model = pypepa.parse_model(simple_double_coop)
+        self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

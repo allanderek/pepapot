@@ -86,11 +86,17 @@ class ParsedModel(object):
                                    if x.lhs == name ][0]
                 name_queue.update(definition.rhs.get_used_process_names())
         return used_names
+
+# Note, this parser does not insist on the end of the input text. Which means
+# in theory you could have something *after* the model text, which might indeed
+# be what you are wishing for. See parse_model for a whole input parser
 model_grammar = process_definitions_grammar + system_equation_grammar
 model_grammar.setParseAction(ParsedModel)
 
 def parse_model(model_string):
-    return model_grammar.parseString(model_string)[0]
+    # Parses a model and also ensures that we have consumed the entire input
+    whole_input_parser = model_grammar + pyparsing.StringEnd()
+    return whole_input_parser.parseString(model_string)[0]
 
 def defined_process_names(model):
     """From a parsed model, return the list of defined process names"""

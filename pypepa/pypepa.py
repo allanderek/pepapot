@@ -47,17 +47,45 @@ system_equation_grammar = pyparsing.Forward()
 class ParsedSystemComponent(object):
     def __init__(self, tokens):
         if len(tokens) > 1:
-            self.lhs = tokens[0]
+            # Assuming the grammar below of "identifer + Optional (...)
+            # Then the left hand side will always be a simple identifier, but
+            # this won't be true if we allow for parentheses.
+            self.lhs = ParsedSystemComponent(tokens[0])
             self.rhs = tokens[2]
+            self.identifier = None
         else:
+            self.lhs = None
+            self.rhs = None
             self.identifier = tokens[0]
-system_equation_grammar = process_identifier + Optional("||" + system_equation_grammar)
+
+    def get_used_names(self):
+        if self.identifier:
+            return set(self.identifier)
+        else:
+            lhs = self.lhs.get_used_names()
+            rhs = self.rhs.get_used_names()
+            return lhs.union(rhs)
+
+
+system_equation_grammar << identifier + Optional("||" + system_equation_grammar)
 system_equation_grammar.setParseAction(ParsedSystemComponent)
 
 class ParsedModel(object):
     def __init__(self, tokens):
         self.process_definitions = tokens[0]
         self.system_equation = tokens[1]
+
+    def used_process_names(self):
+        name_queue = self.system_equation.get_used_names()
+        used_names = set ()
+        while name_queue:
+            name = name_queue.pop()
+            if name not in used_names:
+                used_names.add(name)
+                definition = [ x for x in self.process_definitions
+                                   if x.lhs == name ][0]
+                name_queue.update(definition.rhs.get_used_process_names())
+        return used_names
 model_grammar = process_definitions_grammar + system_equation_grammar
 model_grammar.setParseAction(ParsedModel)
 
@@ -67,14 +95,6 @@ def parse_model(model_string):
 def defined_process_names(model):
     """From a parsed model, return the list of defined process names"""
     return set([definition.lhs for definition in model.process_definitions ])
-
-def used_process_names(model):
-    used_names = set()
-    for definition in model.process_definitions:
-        process = definition.rhs
-        for name in process.get_used_process_names():
-            used_names.add(name)
-    return used_names
 
 def analyse_model(model_string):
     model = parse_model(model_string)

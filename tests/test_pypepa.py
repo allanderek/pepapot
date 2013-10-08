@@ -26,7 +26,7 @@ P || Q
 class TestPypepa(unittest.TestCase):
     def test_used_names(self):
         model = pypepa.parse_model(simple_source)
-        used_names = pypepa.used_process_names(model)
+        used_names = model.used_process_names()
         expected = set(["P", "P1", "Q", "Q1"])
         self.assertEqual(used_names, expected)
         

@@ -12,7 +12,8 @@ expr = identifier
 
 rate_grammar = expr
 
-process_grammar = pyparsing.Forward()
+process_leaf = pyparsing.Forward()
+
 class PrefixNode(object):
     def __init__(self, tokens):
         self.action = tokens[1]
@@ -24,8 +25,24 @@ class PrefixNode(object):
 
     def get_possible_actions(self):
         return [ self.action ]
-prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_grammar
+prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
 prefix_grammar.setParseAction(PrefixNode)
+
+class ChoiceNode(object):
+    def __init__(self, tokens):
+        self.lhs = tokens[0]
+        self.rhs = tokens[2]
+
+    def get_possible_actions(self):
+        left_actions  = self.lhs.get_possible_actions()
+        right_actions = self.rhs.get_possible_actions()
+        # Because we are not using sets here it is possible that we have
+        # duplicates, this is interesting, I'm not sure what to make of, for
+        # examples "P = (a,r).P1 + (a,r).P1", should it occur at twice the rate?
+        # We could detect duplicates at this stage and double the rate. In fact
+        # they would not need to be duplicates, simply sum the rates, eg:
+        # "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
+        return left_actions + right_actions
 
 class ProcessIdentifier(object):
     def __init__(self, tokens):
@@ -37,7 +54,20 @@ class ProcessIdentifier(object):
 process_identifier = identifier.copy()
 process_identifier.setParseAction(ProcessIdentifier)
 
-process_grammar << Or([prefix_grammar, process_identifier])
+
+process_leaf << Or([prefix_grammar, process_identifier])
+process_grammar = pyparsing.Forward()
+process_grammar << process_leaf + Optional ("+" + process_grammar)
+def create_process (tokens):
+    if len(tokens) == 3:
+        print (tokens)
+        return ChoiceNode(tokens)
+    else:
+        return tokens
+process_grammar.setParseAction(create_process)
+
+
+
 class ProcessDefinition(object):
     def __init__(self, tokens):
         self.lhs = tokens[0]

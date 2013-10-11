@@ -12,6 +12,15 @@ expr = identifier
 
 rate_grammar = expr
 
+class ProcessIdentifier(object):
+    def __init__(self, tokens):
+        self.name = tokens[0]
+
+    def get_used_process_names(self):
+        return [ self.name ]
+process_identifier = identifier.copy()
+process_identifier.setParseAction(ProcessIdentifier)
+
 process_leaf = pyparsing.Forward()
 
 class PrefixNode(object):
@@ -43,17 +52,6 @@ class ChoiceNode(object):
         # they would not need to be duplicates, simply sum the rates, eg:
         # "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         return left_actions + right_actions
-
-class ProcessIdentifier(object):
-    def __init__(self, tokens):
-        self.name = tokens[0]
-
-    def get_used_process_names(self):
-        return [ self.name ]
-
-process_identifier = identifier.copy()
-process_identifier.setParseAction(ProcessIdentifier)
-
 
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()

@@ -25,7 +25,7 @@ simple_single_coop = simple_components + "\nP < a > Q"
 simple_double_coop = simple_components + "\nP <a,b> Q"
 
 choice_component = """
-P  (a, r).P1 + (b, r).P2;
+P = (a, r).P1 + (b, r).P2;
 P1 = (b, r).P;
 P2 = (c, r).P;
 

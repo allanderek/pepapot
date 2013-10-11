@@ -24,7 +24,20 @@ simple_no_coop = simple_components + "\nP || Q"
 simple_single_coop = simple_components + "\nP < a > Q"
 simple_double_coop = simple_components + "\nP <a,b> Q"
 
+choice_component = """
+P  (a, r).P1 + (b, r).P2;
+P1 = (b, r).P;
+P2 = (c, r).P;
 
+P
+"""
+
+def create_expected_action_test(model, process, expected_actions):
+    model = pypepa.parse_model(model)
+    action_dictionary = model.get_process_actions()
+    actual_actions = action_dictionary[process]
+    self.assertEqual(actual_actions, expected_actions)
+    
 class TestPypepa(unittest.TestCase):
     def test_used_names(self):
         model = pypepa.parse_model(simple_no_coop)
@@ -53,20 +66,16 @@ class TestPypepa(unittest.TestCase):
         self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
     def test_actions(self):
-        model = pypepa.parse_model(simple_single_coop)
-        action_dictionary = model.get_process_actions()
-        p_actions = action_dictionary["P"]
-        expected  = [ "a" ]
-        self.assertEqual(p_actions, expected)
+        create_expected_action_test(simple_single_coop, "P", ["a"])
+
+    def test_choice(self):
+        create_expected_action_test(simple_single_coop, "P", ["a", "b"])
 
 class ExpectedFailureTestCase(unittest.TestCase):
     @unittest.expectedFailure
     def test_aliases(self):
         model = "A = P;\n" + simple_no_coop
-        action_dictionary = model.get_process_actions()
-        a_actions = action_dictionary["P"]
-        expected  = [ "a" ]
-        self.assertEqual(a_actions, expected)
+        create_expected_action_test(model, "A", "a")
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

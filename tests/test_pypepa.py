@@ -69,7 +69,7 @@ class TestPypepa(unittest.TestCase):
         create_expected_action_test(self, simple_single_coop, "P", ["a"])
 
     def test_choice(self):
-        create_expected_action_test(self, simple_single_coop, "P", ["a", "b"])
+        create_expected_action_test(self, choice_component, "P", ["a", "b"])
 
 class ExpectedFailureTestCase(unittest.TestCase):
     @unittest.expectedFailure

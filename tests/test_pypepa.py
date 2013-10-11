@@ -59,6 +59,15 @@ class TestPypepa(unittest.TestCase):
         expected  = [ "a" ]
         self.assertEqual(p_actions, expected)
 
+class ExpectedFailureTestCase(unittest.TestCase):
+    @unittest.expectedFailure
+    def test_aliases(self):
+        model = "A = P;\n" + simple_no_coop
+        action_dictionary = model.get_process_actions()
+        a_actions = action_dictionary["P"]
+        expected  = [ "a" ]
+        self.assertEqual(a_actions, expected)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

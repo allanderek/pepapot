@@ -32,12 +32,12 @@ P2 = (c, r).P;
 P
 """
 
-def create_expected_action_test(model, process, expected_actions):
+def create_expected_action_test(testcase, model, process, expected_actions):
     model = pypepa.parse_model(model)
     action_dictionary = model.get_process_actions()
     actual_actions = action_dictionary[process]
-    self.assertEqual(actual_actions, expected_actions)
-    
+    testcase.assertEqual(actual_actions, expected_actions)
+
 class TestPypepa(unittest.TestCase):
     def test_used_names(self):
         model = pypepa.parse_model(simple_no_coop)
@@ -66,16 +66,16 @@ class TestPypepa(unittest.TestCase):
         self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
     def test_actions(self):
-        create_expected_action_test(simple_single_coop, "P", ["a"])
+        create_expected_action_test(self, simple_single_coop, "P", ["a"])
 
     def test_choice(self):
-        create_expected_action_test(simple_single_coop, "P", ["a", "b"])
+        create_expected_action_test(self, simple_single_coop, "P", ["a", "b"])
 
 class ExpectedFailureTestCase(unittest.TestCase):
     @unittest.expectedFailure
     def test_aliases(self):
         model = "A = P;\n" + simple_no_coop
-        create_expected_action_test(model, "A", "a")
+        create_expected_action_test(self, model, "A", "a")
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

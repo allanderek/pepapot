@@ -52,6 +52,13 @@ class TestPypepa(unittest.TestCase):
         model = pypepa.parse_model(simple_double_coop)
         self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
+    def test_actions(self):
+        model = pypepa.parse_model(simple_single_coop)
+        action_dictionary = model.get_process_actions()
+        p_actions = action_dictionary["P"]
+        expected  = [ "a" ]
+        self.assertEqual(p_actions, expected)
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

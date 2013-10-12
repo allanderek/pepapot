@@ -38,6 +38,12 @@ def create_expected_action_test(testcase, model, process, expected_actions):
     actual_actions = action_dictionary[process]
     testcase.assertEqual(actual_actions, expected_actions)
 
+def create_successors_test(testcase, model, process, expected_successors):
+    model = pypepa.parse_model(model)
+    successor_dictionary = model.get_successors()
+    actual_sucesssors = successors_dictionary[process]
+    testcase.assertEqual(actual_sucessors, expected_sucesssors)
+
 class TestPypepa(unittest.TestCase):
     def test_used_names(self):
         model = pypepa.parse_model(simple_no_coop)
@@ -70,6 +76,9 @@ class TestPypepa(unittest.TestCase):
 
     def test_choice(self):
         create_expected_action_test(self, choice_component, "P", ["a", "b"])
+
+    def test_successors(self):
+        create_successors_test(self, simple_no_coop, "P", [ "P1" ])
 
 class ExpectedFailureTestCase(unittest.TestCase):
     @unittest.expectedFailure

@@ -89,9 +89,6 @@ class TestSimpleDoubleCoop(TestModelBase):
         self.model = pypepa.parse_model(self.model_source)
 
 class TestSimpleAlias(TestModelBase):
-    # TODO: Find out a way to still use @unittest.expectedFailure
-    # I think I can just override each expected failure case but still call
-    # the super version of it.
     def setUp(self):
         # Similar to the above case we're only using super here because we can
         # and so many of th expected results are the same.
@@ -103,6 +100,18 @@ class TestSimpleAlias(TestModelBase):
     
         self.expected_actions_dictionary["A"] = self.expected_actions_dictionary["P"]
         self.expected_successors_dictionary["A"] = self.expected_successors_dictionary["P"] 
+
+    # Note, if you expect everything to fail, you can decorate the class with
+    # unittest.expectedFailure, however I prefer this as if you decorate the
+    # entire class, then it is essentially the same as skipping the tests, that
+    # is no report is given saying how many expected failures there were.
+    @unittest.expectedFailure
+    def test_actions(self):
+        super(TestSimpleAlias, self).test_actions()
+
+    @unittest.expectedFailure
+    def test_successors(self):
+        super(TestSimpleAlias, self).test_successors()
 
 class TestSimpleChoice(TestModelBase):
     def setUp(self):

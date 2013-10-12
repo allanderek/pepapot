@@ -16,6 +16,9 @@ class ProcessIdentifier(object):
     def __init__(self, tokens):
         self.name = tokens[0]
 
+    def __str__(self):
+        return self.name
+
     def get_used_process_names(self):
         return [ self.name ]
 process_identifier = identifier.copy()
@@ -34,6 +37,9 @@ class PrefixNode(object):
 
     def get_possible_actions(self):
         return [ self.action ]
+
+    def get_successors(self):
+        return [ str(self.successor) ]
 prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
 prefix_grammar.setParseAction(PrefixNode)
 
@@ -134,6 +140,13 @@ class ParsedModel(object):
             actions = definition.rhs.get_possible_actions()
             actions_dictionary[definition.lhs] = actions
         return actions_dictionary
+
+    def get_successors(self):
+        successors_dictionary = dict()
+        for definition in self.process_definitions:
+            successors = definition.rhs.get_successors()
+            successors_dictionary[definition.lhs] = successors
+        return successors_dictionary
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed

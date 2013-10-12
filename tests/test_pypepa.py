@@ -27,16 +27,6 @@ P1 = (c, r).P;
 P2 = (d, r).P;
 """
 
-def create_expected_action_test(testcase, model, expected_actions):
-    model = pypepa.parse_model(model)
-    actual_actions = model.get_process_actions()
-    testcase.assertEqual(actual_actions, expected_actions)
-
-def create_successors_test(testcase, model, expected_successors):
-    model = pypepa.parse_model(model)
-    actual_successors = model.get_successors()
-    testcase.assertEqual(actual_successors, expected_successors)
-
 class TestModelBase(unittest.TestCase):
     """A simple couple of definitions with a system equation involving no
        cooperation. This also acts as a good base class to inherit from for
@@ -98,6 +88,22 @@ class TestSimpleDoubleCoop(TestModelBase):
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
 
+class TestSimpleAlias(TestModelBase):
+    # TODO: Find out a way to still use @unittest.expectedFailure
+    # I think I can just override each expected failure case but still call
+    # the super version of it.
+    def setUp(self):
+        # Similar to the above case we're only using super here because we can
+        # and so many of th expected results are the same.
+        super(TestSimpleAlias, self).setUp()
+        self.model_source = "A = P;\n" + simple_components + "\nP || Q"
+        self.model = pypepa.parse_model(self.model_source)
+
+        self.expected_defined_process_names.add("A")
+    
+        self.expected_actions_dictionary["A"] = self.expected_actions_dictionary["P"]
+        self.expected_successors_dictionary["A"] = self.expected_successors_dictionary["P"] 
+
 class TestSimpleChoice(TestModelBase):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"
@@ -131,12 +137,6 @@ class TestPypepa(unittest.TestCase):
         model_source = simple_components + "\nP <a,b>Q"
         model = pypepa.parse_model(model_source)
         self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
-
-class ExpectedFailureTestCase(unittest.TestCase):
-    @unittest.expectedFailure
-    def test_aliases(self):
-        model = "A = P;\n" + simple_no_coop
-        create_expected_action_test(self, model, "A", "a")
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

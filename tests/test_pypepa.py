@@ -40,9 +40,9 @@ def create_expected_action_test(testcase, model, process, expected_actions):
 
 def create_successors_test(testcase, model, process, expected_successors):
     model = pypepa.parse_model(model)
-    successor_dictionary = model.get_successors()
-    actual_sucesssors = successors_dictionary[process]
-    testcase.assertEqual(actual_sucessors, expected_sucesssors)
+    successors_dictionary = model.get_successors()
+    actual_successors = successors_dictionary[process]
+    testcase.assertEqual(actual_successors, expected_successors)
 
 class TestPypepa(unittest.TestCase):
     def test_used_names(self):

@@ -58,7 +58,6 @@ process_grammar = pyparsing.Forward()
 process_grammar << process_leaf + Optional ("+" + process_grammar)
 def create_process (tokens):
     if len(tokens) == 3:
-        print (tokens)
         return ChoiceNode(tokens)
     else:
         return tokens

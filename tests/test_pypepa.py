@@ -26,16 +26,15 @@ simple_double_coop = simple_components + "\nP <a,b> Q"
 
 choice_component = """
 P = (a, r).P1 + (b, r).P2;
-P1 = (b, r).P;
-P2 = (c, r).P;
+P1 = (c, r).P;
+P2 = (d, r).P;
 
 P
 """
 
-def create_expected_action_test(testcase, model, process, expected_actions):
+def create_expected_action_test(testcase, model, expected_actions):
     model = pypepa.parse_model(model)
-    action_dictionary = model.get_process_actions()
-    actual_actions = action_dictionary[process]
+    actual_actions = model.get_process_actions()
     testcase.assertEqual(actual_actions, expected_actions)
 
 def create_successors_test(testcase, model, expected_successors):
@@ -71,10 +70,19 @@ class TestPypepa(unittest.TestCase):
         self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
     def test_actions(self):
-        create_expected_action_test(self, simple_single_coop, "P", ["a"])
+        actions = dict()
+        actions["P"] = [ "a" ]
+        actions["P1" ] = [ "b" ]
+        actions["Q" ] = [ "a" ]
+        actions["Q1" ] = [ "b" ]
+        create_expected_action_test(self, simple_single_coop, actions)
 
     def test_choice(self):
-        create_expected_action_test(self, choice_component, "P", ["a", "b"])
+        actions = dict()
+        actions["P"] = [ "a", "b" ]
+        actions["P1" ] = [ "c" ]
+        actions["P2" ] = [ "d" ]
+        create_expected_action_test(self, choice_component, actions)
 
     def test_successors(self):
         successors = dict()

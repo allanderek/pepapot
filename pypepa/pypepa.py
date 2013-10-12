@@ -20,7 +20,7 @@ class ProcessIdentifier(object):
         return self.name
 
     def get_used_process_names(self):
-        return [ self.name ]
+        return set([ self.name ])
 process_identifier = identifier.copy()
 process_identifier.setParseAction(ProcessIdentifier)
 
@@ -58,6 +58,16 @@ class ChoiceNode(object):
         # they would not need to be duplicates, simply sum the rates, eg:
         # "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         return left_actions + right_actions
+
+    def get_used_process_names(self):
+        lhs = self.lhs.get_used_process_names()
+        rhs = self.rhs.get_used_process_names()
+        return lhs.union(rhs)
+
+    def get_successors(self):
+        lhs = self.lhs.get_successors()
+        rhs = self.rhs.get_successors()
+        return lhs + rhs
 
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()
@@ -104,12 +114,12 @@ class ParsedSystemComponent(object):
             self.rhs = None
             self.identifier = tokens[0]
 
-    def get_used_names(self):
+    def get_used_process_names(self):
         if self.identifier:
             return set(self.identifier)
         else:
-            lhs = self.lhs.get_used_names()
-            rhs = self.rhs.get_used_names()
+            lhs = self.lhs.get_used_process_names()
+            rhs = self.rhs.get_used_process_names()
             return lhs.union(rhs)
 
 system_equation_grammar << (identifier + 
@@ -123,7 +133,7 @@ class ParsedModel(object):
         self.system_equation = tokens[1]
 
     def used_process_names(self):
-        name_queue = self.system_equation.get_used_names()
+        name_queue = self.system_equation.get_used_process_names()
         used_names = set ()
         while name_queue:
             name = name_queue.pop()

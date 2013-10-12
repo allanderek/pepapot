@@ -98,6 +98,23 @@ class TestSimpleDoubleCoop(TestModelBase):
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
 
+class TestSimpleChoice(TestModelBase):
+    def setUp(self):
+        self.model_source = simple_choice_component + "\nP"
+        self.model = pypepa.parse_model(self.model_source)
+
+        self.expected_used_process_names = set(["P", "P1", "P2"])
+        self.expected_defined_process_names = self.expected_used_process_names
+    
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [ "a", "b" ]
+        self.expected_actions_dictionary["P1" ] = [ "c" ]
+        self.expected_actions_dictionary["P2" ] = [ "d" ]
+    
+        self.expected_successors_dictionary = dict()
+        self.expected_successors_dictionary["P"] = [ "P1", "P2" ]
+        self.expected_successors_dictionary["P1"] = [ "P" ]
+        self.expected_successors_dictionary["P2"] = [ "P" ]
 
 class TestPypepa(unittest.TestCase):
     """A simple test only because I'm not sure how to generically test the

@@ -131,6 +131,39 @@ class TestSimpleChoice(TestModelBase):
         self.expected_successors_dictionary["P1"] = [ "P" ]
         self.expected_successors_dictionary["P2"] = [ "P" ]
 
+class TestChoiceAlias(TestModelBase):
+    def setUp(self):
+        self.model_source = """P = P1 + P2;
+                               P1 = (a, r).P3;
+                               P2 = (b, r).P3;
+                               P3 = (c, r).P;
+                               P
+                            """
+        self.model = pypepa.parse_model(self.model_source)
+
+        self.expected_used_process_names = set(["P", "P1", "P2", "P3"])
+        self.expected_defined_process_names = self.expected_used_process_names
+    
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [ "a", "b" ]
+        self.expected_actions_dictionary["P1" ] = [ "a" ]
+        self.expected_actions_dictionary["P2" ] = [ "b" ]
+        self.expected_actions_dictionary["P3" ] = [ "c" ]
+    
+        self.expected_successors_dictionary = dict()
+        self.expected_successors_dictionary["P"] = [ "P3" ]
+        self.expected_successors_dictionary["P1"] = [ "P3" ]
+        self.expected_successors_dictionary["P2"] = [ "P3" ]
+        self.expected_successors_dictionary["P3"] = [ "P" ]
+
+    @unittest.expectedFailure
+    def test_actions(self):
+        super(TestChoiceAlias, self).test_actions()
+
+    @unittest.expectedFailure
+    def test_successors(self):
+        super(TestChoiceAlias, self).test_successors()
+
 class TestPypepa(unittest.TestCase):
     """A simple test only because I'm not sure how to generically test the
        parsing of the system equation. Once I figure that out I can move this

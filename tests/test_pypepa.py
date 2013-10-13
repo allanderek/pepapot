@@ -12,6 +12,7 @@ import unittest
 import logging
 
 from pypepa import pypepa
+Action = pypepa.Action
 
 simple_components = """
 P = (a,r).P1;
@@ -42,10 +43,10 @@ class TestModelBase(unittest.TestCase):
         self.expected_defined_process_names = set(["P", "P1", "Q", "Q1"])
     
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [ "a" ]
-        self.expected_actions_dictionary["P1" ] = [ "b" ]
-        self.expected_actions_dictionary["Q" ] = [ "a" ]
-        self.expected_actions_dictionary["Q1" ] = [ "b" ]
+        self.expected_actions_dictionary["P"] = [ Action("a", "r", "P1") ]
+        self.expected_actions_dictionary["P1" ] = [ Action ("b", "r", "P") ]
+        self.expected_actions_dictionary["Q" ] = [ Action("a", "r", "Q1") ]
+        self.expected_actions_dictionary["Q1" ] = [ Action("b", "r", "Q") ]
     
         self.expected_successors_dictionary = dict()
         self.expected_successors_dictionary["P"] = [ "P1" ]
@@ -76,7 +77,7 @@ class TestModelBase(unittest.TestCase):
 
     def test_initial_state(self):
         initial_state = self.model.get_initial_state()
-        self.assertEqual(initial_state, self.expected_initial_state)
+        self.assertEqual(initial_state.local_states, self.expected_initial_state)
 
     def test_state_space_size(self):
         state_space = pypepa.build_state_space(self.model)
@@ -134,9 +135,10 @@ class TestSimpleChoice(TestModelBase):
         self.expected_defined_process_names = self.expected_used_process_names
     
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [ "a", "b" ]
-        self.expected_actions_dictionary["P1" ] = [ "c" ]
-        self.expected_actions_dictionary["P2" ] = [ "d" ]
+        self.expected_actions_dictionary["P"] = [ Action("a", "r", "P1"),
+                                                  Action("b", "r", "P2") ]
+        self.expected_actions_dictionary["P1" ] = [ Action("c", "r", "P") ]
+        self.expected_actions_dictionary["P2" ] = [ Action("d", "r", "P") ]
     
         self.expected_successors_dictionary = dict()
         self.expected_successors_dictionary["P"] = [ "P1", "P2" ]
@@ -160,10 +162,11 @@ class TestChoiceAlias(TestModelBase):
         self.expected_defined_process_names = self.expected_used_process_names
     
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [ "a", "b" ]
-        self.expected_actions_dictionary["P1" ] = [ "a" ]
-        self.expected_actions_dictionary["P2" ] = [ "b" ]
-        self.expected_actions_dictionary["P3" ] = [ "c" ]
+        self.expected_actions_dictionary["P"] = [ Action("a", "r", "P3"),
+                                                  Action("b", "r", "P3") ]
+        self.expected_actions_dictionary["P1" ] = [ Action("a", "r", "P3") ]
+        self.expected_actions_dictionary["P2" ] = [ Action("b", "r", "P3") ]
+        self.expected_actions_dictionary["P3" ] = [ Action("c", "r", "P") ]
     
         self.expected_successors_dictionary = dict()
         self.expected_successors_dictionary["P"] = [ "P3" ]

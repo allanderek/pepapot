@@ -3,8 +3,12 @@
 import argparse
 import logging
 
+from collections import namedtuple
+
 import pyparsing
 from pyparsing import OneOrMore, Or, Group, Optional
+
+Action = namedtuple('Action', ["action", "rate", "successor" ])
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
@@ -36,7 +40,7 @@ class PrefixNode(object):
         return self.successor.get_used_process_names()
 
     def get_possible_actions(self):
-        return [ self.action ]
+        return [ Action(self.action, self.rate, str(self.successor)) ]
 
     def get_successors(self):
         return [ str(self.successor) ]
@@ -105,7 +109,7 @@ class ParsedNamedComponent(object):
     def get_used_process_names(self):
         return set(self.identifier)
     def get_initial_state(self):
-        return [ self.identifier ]
+        return LocalState(self.identifier)
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
         # Assuming the grammar below of "identifer + Optional (...)
@@ -121,7 +125,9 @@ class ParsedSystemCooperation(object):
         return lhs.union(rhs)
 
     def get_initial_state(self):
-        return self.lhs.get_initial_state() + self.rhs.get_initial_state()
+        return CoopState(self.lhs.get_initial_state(),
+                         self.cooperation_set,
+                         self.rhs.get_initial_state())
 
 def create_system_component(tokens):
     if len(tokens) > 1:
@@ -147,7 +153,10 @@ class ParsedModel(object):
                 used_names.add(name)
                 definition = [ x for x in self.process_definitions
                                    if x.lhs == name ][0]
-                name_queue.update(definition.rhs.get_used_process_names())
+                new_names = definition.rhs.get_used_process_names()
+                # Do not forget to *not* add the current name to the queue
+                # since we have just popped it.
+                name_queue.update([ x for x in new_names if x != name])
         return used_names
 
     def get_process_actions(self):
@@ -181,6 +190,57 @@ def parse_model(model_string):
 def defined_process_names(model):
     """From a parsed model, return the list of defined process names"""
     return set([definition.lhs for definition in model.process_definitions ])
+
+Transition = namedtuple('Transition', ["action", "rate", "successor"])
+class LocalState(object):
+    def __init__(self, identifier):
+        self.identifier = identifier
+        self.local_states = [ identifier ]
+    def get_transitions(self, actions_dictionary):
+        return [ Transition(t.action, t.rate, LocalState(t.successor))
+                    for t in actions_dictionary[self.identifier] ]
+
+class CoopState(object):
+    def __init__(self, lhs, coop_set, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+        self.coop_set = coop_set
+        self.local_states = lhs.local_states + rhs.local_states
+
+    def get_transitions(self, actions_dictionary):
+        # TODO: This isn't doing the right thing if the action is in the
+        # cooperation set.
+        transitions = []
+        left_actions  = self.lhs.get_transitions(actions_dictionary)
+        right_actions = self.rhs.get_transitions(actions_dictionary)
+        for transition in left_transitions:
+            if transition.action not in self.coop_set:
+                new_state = CoopState(transition.successor, 
+                                      self.coop_set, self.rhs)
+                new_transition = Transition(transition.action, transition.rate, 
+                                            new_state)
+                transitions.append(new_transition)
+
+    
+
+
+class PepaStateSpace(object):
+    def __init__(self, model):
+        self.model = model
+
+    def build_state_space(self):
+        initial_state = model.get_initial_state()
+        explore_queue = set([initial_state])
+        explored = set([])
+        while (explore_queue):
+            current_state = explore_queue.pop()
+            successor_states = current_state.get_successor_states()
+            for new_state in successor_states:
+                if new_state != current_state and new_state not in explored:
+                    explore_queue.add(new_state)
+        return explored
+            
+
 
 def analyse_model(model_string):
     model = parse_model(model_string)

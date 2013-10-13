@@ -99,33 +99,33 @@ def get_action_set(tokens):
 cooperation_set_grammar.setParseAction(get_action_set)
 
 system_equation_grammar = pyparsing.Forward()
-class ParsedSystemComponent(object):
+class ParsedNamedComponent(object):
     def __init__(self, tokens):
-        if len(tokens) > 1:
-            # Assuming the grammar below of "identifer + Optional (...)
-            # Then the left hand side will always be a simple identifier, but
-            # this won't be true if we allow for parentheses.
-            self.lhs = ParsedSystemComponent(tokens[0])
-            self.cooperation_set = tokens[1]
-            self.rhs = tokens[2]
-            self.identifier = None
-        else:
-            self.lhs = None
-            self.rhs = None
-            self.identifier = tokens[0]
+        self.identifier = tokens[0]
+    def get_used_process_names(self):
+        return set(self.identifier)
+class ParsedSystemCooperation(object):
+    def __init__(self, tokens):
+        # Assuming the grammar below of "identifer + Optional (...)
+        # Then the left hand side will always be a simple identifier, but
+        # this won't be true if we allow for parentheses.
+        self.lhs = ParsedNamedComponent(tokens[0])
+        self.cooperation_set = tokens[1]
+        self.rhs = tokens[2]
 
     def get_used_process_names(self):
-        if self.identifier:
-            return set(self.identifier)
-        else:
-            lhs = self.lhs.get_used_process_names()
-            rhs = self.rhs.get_used_process_names()
-            return lhs.union(rhs)
-
+        lhs = self.lhs.get_used_process_names()
+        rhs = self.rhs.get_used_process_names()
+        return lhs.union(rhs)
+def create_system_component(tokens):
+    if len(tokens) > 1:
+        return ParsedSystemCooperation(tokens)
+    else:
+        return ParsedNamedComponent(tokens)
 system_equation_grammar << (identifier + 
                             Optional(cooperation_set_grammar + 
                                      system_equation_grammar))
-system_equation_grammar.setParseAction(ParsedSystemComponent)
+system_equation_grammar.setParseAction(create_system_component)
 
 class ParsedModel(object):
     def __init__(self, tokens):

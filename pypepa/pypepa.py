@@ -104,6 +104,8 @@ class ParsedNamedComponent(object):
         self.identifier = tokens[0]
     def get_used_process_names(self):
         return set(self.identifier)
+    def get_initial_state(self):
+        return [ self.identifier ]
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
         # Assuming the grammar below of "identifer + Optional (...)
@@ -117,6 +119,10 @@ class ParsedSystemCooperation(object):
         lhs = self.lhs.get_used_process_names()
         rhs = self.rhs.get_used_process_names()
         return lhs.union(rhs)
+
+    def get_initial_state(self):
+        return self.lhs.get_initial_state() + self.rhs.get_initial_state()
+
 def create_system_component(tokens):
     if len(tokens) > 1:
         return ParsedSystemCooperation(tokens)
@@ -157,6 +163,9 @@ class ParsedModel(object):
             successors = definition.rhs.get_successors()
             successors_dictionary[definition.lhs] = successors
         return successors_dictionary
+
+    def get_initial_state(self):
+        return self.system_equation.get_initial_state()
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed

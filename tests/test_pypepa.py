@@ -81,7 +81,7 @@ class TestModelBase(unittest.TestCase):
 
     def test_state_space_size(self):
         state_space = pypepa.build_state_space(self.model)
-        self.assertEqual(state_space.size, self.expected_state_space_size)
+        self.assertEqual(len(state_space), self.expected_state_space_size)
 
 class TestSimpleSingleCoop(TestModelBase):
     def setUp(self):
@@ -125,6 +125,10 @@ class TestSimpleAlias(TestModelBase):
     @unittest.expectedFailure
     def test_successors(self):
         super(TestSimpleAlias, self).test_successors()
+
+    @unittest.expectedFailure
+    def test_state_space_size(self):
+        super(TestSimpleAlias, self).test_state_space_size()
 
 class TestSimpleChoice(TestModelBase):
     def setUp(self):
@@ -184,6 +188,10 @@ class TestChoiceAlias(TestModelBase):
     @unittest.expectedFailure
     def test_successors(self):
         super(TestChoiceAlias, self).test_successors()
+
+    @unittest.expectedFailure
+    def test_state_space_size(self):
+        super(TestChoiceAlias, self).test_state_space_size()
 
 class TestPypepa(unittest.TestCase):
     """A simple test only because I'm not sure how to generically test the

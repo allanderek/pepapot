@@ -196,6 +196,14 @@ class LocalState(object):
     def __init__(self, identifier):
         self.identifier = identifier
         self.local_states = [ identifier ]
+        self.__hashnumber__ = hash(",".join(self.local_states))
+
+    def __hash__(self):
+        return self.__hashnumber__
+
+    def __eq__(self, rhs):
+        return self.__hashnumber__ == hash(rhs)
+
     def get_transitions(self, actions_dictionary):
         return [ Transition(t.action, t.rate, LocalState(t.successor))
                     for t in actions_dictionary[self.identifier] ]
@@ -206,13 +214,23 @@ class CoopState(object):
         self.rhs = rhs
         self.coop_set = coop_set
         self.local_states = lhs.local_states + rhs.local_states
+        self.__hashnumber__ = hash(",".join(self.local_states))
 
+    def __hash__(self):
+        return self.__hashnumber__
+
+    def __eq__(self, rhs):
+        return self.__hashnumber__ == hash(rhs)
+
+    # Probably transitions should be a property, so that once we have worked
+    # out the successor states for once, we can then simply inspect that
+    # attribute.
     def get_transitions(self, actions_dictionary):
         # TODO: This isn't doing the right thing if the action is in the
         # cooperation set.
         transitions = []
-        left_actions  = self.lhs.get_transitions(actions_dictionary)
-        right_actions = self.rhs.get_transitions(actions_dictionary)
+        left_transitions  = self.lhs.get_transitions(actions_dictionary)
+        right_transitions = self.rhs.get_transitions(actions_dictionary)
         for transition in left_transitions:
             if transition.action not in self.coop_set:
                 new_state = CoopState(transition.successor, 
@@ -220,25 +238,45 @@ class CoopState(object):
                 new_transition = Transition(transition.action, transition.rate, 
                                             new_state)
                 transitions.append(new_transition)
+        for transition in right_transitions:
+            if transition.action not in self.coop_set:
+                new_state = CoopState(self.lhs, 
+                                      self.coop_set, transition.successor)
+                new_transition = Transition(transition.action, transition.rate, 
+                                            new_state)
+                transitions.append(new_transition)
+        for l_trans in left_transitions:
+            if l_trans.action in self.coop_set:
+                for r_trans in right_transitions:
+                     # TODO: Clearly the rate here is incorrect
+                     new_state = CoopState(l_trans.successor, self.coop_set,
+                                           r_trans.successor)
+                     new_transition = Transition(l_trans.action, l_trans.rate,
+                                                 new_state)
+                     transitions.append(new_transition)
+        return transitions
 
-    
 
-
-class PepaStateSpace(object):
-    def __init__(self, model):
-        self.model = model
-
-    def build_state_space(self):
-        initial_state = model.get_initial_state()
-        explore_queue = set([initial_state])
-        explored = set([])
-        while (explore_queue):
-            current_state = explore_queue.pop()
-            successor_states = current_state.get_successor_states()
-            for new_state in successor_states:
-                if new_state != current_state and new_state not in explored:
-                    explore_queue.add(new_state)
-        return explored
+def build_state_space(model):
+    initial_state = model.get_initial_state()
+    actions_dictionary = model.get_process_actions()
+    explore_queue = set([initial_state])
+    explored = set()
+    limit = 10
+    while (explore_queue and limit):
+        limit -= 1
+        current_state = explore_queue.pop()
+        transitions = current_state.get_transitions(actions_dictionary)
+        successor_states = [ t.successor for t in transitions ]
+        explored.add(current_state)
+        for new_state in successor_states:
+            # Note that we should be careful if the new_state is the same as
+            # the current state. We won't put it in the explore_queue since
+            # the current state should be in explored. However it will mean we
+            # have a self-loop, and we should probably flag that at some point.
+            if new_state not in explored and new_state != current_state:
+                explore_queue.add(new_state)
+    return explored
             
 
 

@@ -53,6 +53,8 @@ class TestModelBase(unittest.TestCase):
         self.expected_successors_dictionary["Q"] = [ "Q1" ]
         self.expected_successors_dictionary["Q1"] = [ "Q" ]
 
+        self.expected_initial_state = [ "P", "Q" ]
+
     def test_used_names(self):
         used_names = self.model.used_process_names()
         self.assertEqual(used_names, self.expected_used_process_names)
@@ -70,6 +72,10 @@ class TestModelBase(unittest.TestCase):
     def test_successors(self):
         actual_successors = self.model.get_successors()
         self.assertEqual(actual_successors, self.expected_successors_dictionary)
+
+    def test_initial_state(self):
+        initial_state = self.model.get_initial_state()
+        self.assertEqual(initial_state, self.expected_initial_state)
 
 class TestSimpleSingleCoop(TestModelBase):
     def setUp(self):
@@ -131,6 +137,8 @@ class TestSimpleChoice(TestModelBase):
         self.expected_successors_dictionary["P1"] = [ "P" ]
         self.expected_successors_dictionary["P2"] = [ "P" ]
 
+        self.expected_initial_state = [ "P" ]
+
 class TestChoiceAlias(TestModelBase):
     def setUp(self):
         self.model_source = """P = P1 + P2;
@@ -155,6 +163,8 @@ class TestChoiceAlias(TestModelBase):
         self.expected_successors_dictionary["P1"] = [ "P3" ]
         self.expected_successors_dictionary["P2"] = [ "P3" ]
         self.expected_successors_dictionary["P3"] = [ "P" ]
+
+        self.expected_initial_state = [ "P" ]
 
     @unittest.expectedFailure
     def test_actions(self):

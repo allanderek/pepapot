@@ -54,6 +54,7 @@ class TestModelBase(unittest.TestCase):
         self.expected_successors_dictionary["Q1"] = [ "Q" ]
 
         self.expected_initial_state = [ "P", "Q" ]
+        self.expected_state_space_size = 4
 
     def test_used_names(self):
         used_names = self.model.used_process_names()
@@ -77,6 +78,10 @@ class TestModelBase(unittest.TestCase):
         initial_state = self.model.get_initial_state()
         self.assertEqual(initial_state, self.expected_initial_state)
 
+    def test_state_space_size(self):
+        state_space = pypepa.build_state_space(self.model)
+        self.assertEqual(state_space.size, self.expected_state_space_size)
+
 class TestSimpleSingleCoop(TestModelBase):
     def setUp(self):
         # This model has most of the same results as the base test case
@@ -93,6 +98,7 @@ class TestSimpleDoubleCoop(TestModelBase):
         super(TestSimpleDoubleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
+        self.expected_state_space_size = 2
 
 class TestSimpleAlias(TestModelBase):
     def setUp(self):
@@ -138,6 +144,7 @@ class TestSimpleChoice(TestModelBase):
         self.expected_successors_dictionary["P2"] = [ "P" ]
 
         self.expected_initial_state = [ "P" ]
+        self.expected_state_space_size = 3
 
 class TestChoiceAlias(TestModelBase):
     def setUp(self):
@@ -165,6 +172,7 @@ class TestChoiceAlias(TestModelBase):
         self.expected_successors_dictionary["P3"] = [ "P" ]
 
         self.expected_initial_state = [ "P" ]
+        self.expected_state_space_size = 4
 
     @unittest.expectedFailure
     def test_actions(self):

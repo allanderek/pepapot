@@ -159,6 +159,10 @@ class ParsedModel(object):
             actions_dictionary[definition.lhs] = actions
         return actions_dictionary
 
+    def defined_process_names(self):
+        """Return the list of defined process names"""
+        return set([definition.lhs for definition in self.process_definitions ])
+
     def get_initial_state(self):
         return self.system_equation.get_initial_state()
 
@@ -173,9 +177,6 @@ def parse_model(model_string):
     whole_input_parser = model_grammar + pyparsing.StringEnd()
     return whole_input_parser.parseString(model_string)[0]
 
-def defined_process_names(model):
-    """From a parsed model, return the list of defined process names"""
-    return set([definition.lhs for definition in model.process_definitions ])
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 class LocalState(object):

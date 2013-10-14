@@ -56,7 +56,7 @@ class TestModelBase(unittest.TestCase):
         self.assertEqual(used_names, self.expected_used_process_names)
 
     def test_defined_names(self):
-        defined_names = pypepa.defined_process_names(self.model)
+        defined_names = self.model.defined_process_names()
         self.assertEqual(defined_names, self.expected_defined_process_names)
 
     # TODO: Somehow test the correct parsing of coopertions (system equation)

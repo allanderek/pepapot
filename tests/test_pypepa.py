@@ -11,6 +11,8 @@ Tests for `pypepa` module.
 import unittest
 import logging
 
+import numpy
+
 from pypepa import pypepa
 Action = pypepa.Action
 
@@ -72,6 +74,33 @@ class TestModelBase(unittest.TestCase):
     def test_state_space_size(self):
         state_space = pypepa.build_state_space(self.model)
         self.assertEqual(len(state_space), self.expected_state_space_size)
+
+class TestGenMatrix(unittest.TestCase):
+    def setUp(self):
+        self.model_source = simple_components + "\nP || Q"
+    def test_build_matrix(self):
+        expected_gen_matrix = numpy.zeros((4,4), dtype=numpy.float64)
+
+        expected_gen_matrix[0,1] = 1.0
+        expected_gen_matrix[0,2] = 1.0
+        expected_gen_matrix[0,0] = -2.0
+
+        expected_gen_matrix[1,0] = 1.0
+        expected_gen_matrix[1,3] = 1.0
+        expected_gen_matrix[1,1] = -2.0
+
+        expected_gen_matrix[2,0] = 1.0
+        expected_gen_matrix[2,3] = 1.0
+        expected_gen_matrix[2,2] = -2.0
+
+        expected_gen_matrix[3,1] = 1.0
+        expected_gen_matrix[3,2] = 1.0
+        expected_gen_matrix[3,3] = -2.0
+
+        self.model = pypepa.parse_model(self.model_source)
+        state_space = pypepa.build_state_space(self.model)
+        gen_matrix  = pypepa.get_generator_matrix(state_space)
+        self.assertEqual(expected_gen_matrix, gen_matrix)
 
 class TestSimpleSingleCoop(TestModelBase):
     def setUp(self):

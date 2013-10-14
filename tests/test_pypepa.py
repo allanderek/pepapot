@@ -41,18 +41,12 @@ class TestModelBase(unittest.TestCase):
         self.model = pypepa.parse_model(self.model_source)
         self.expected_used_process_names = set(["P", "P1", "Q", "Q1"])
         self.expected_defined_process_names = set(["P", "P1", "Q", "Q1"])
-    
+
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [ Action("a", "r", "P1") ]
         self.expected_actions_dictionary["P1" ] = [ Action ("b", "r", "P") ]
         self.expected_actions_dictionary["Q" ] = [ Action("a", "r", "Q1") ]
         self.expected_actions_dictionary["Q1" ] = [ Action("b", "r", "Q") ]
-    
-        self.expected_successors_dictionary = dict()
-        self.expected_successors_dictionary["P"] = [ "P1" ]
-        self.expected_successors_dictionary["P1"] = [ "P" ]
-        self.expected_successors_dictionary["Q"] = [ "Q1" ]
-        self.expected_successors_dictionary["Q1"] = [ "Q" ]
 
         self.expected_initial_state = [ "P", "Q" ]
         self.expected_state_space_size = 4
@@ -70,10 +64,6 @@ class TestModelBase(unittest.TestCase):
     def test_actions(self):
         actual_actions = self.model.get_process_actions()
         self.assertEqual(actual_actions, self.expected_actions_dictionary)
-
-    def test_successors(self):
-        actual_successors = self.model.get_successors()
-        self.assertEqual(actual_successors, self.expected_successors_dictionary)
 
     def test_initial_state(self):
         initial_state = self.model.get_initial_state()
@@ -112,7 +102,6 @@ class TestSimpleAlias(TestModelBase):
         self.expected_defined_process_names.add("A")
     
         self.expected_actions_dictionary["A"] = self.expected_actions_dictionary["P"]
-        self.expected_successors_dictionary["A"] = self.expected_successors_dictionary["P"] 
 
     # Note, if you expect everything to fail, you can decorate the class with
     # unittest.expectedFailure, however I prefer this as if you decorate the
@@ -121,10 +110,6 @@ class TestSimpleAlias(TestModelBase):
     @unittest.expectedFailure
     def test_actions(self):
         super(TestSimpleAlias, self).test_actions()
-
-    @unittest.expectedFailure
-    def test_successors(self):
-        super(TestSimpleAlias, self).test_successors()
 
     @unittest.expectedFailure
     def test_state_space_size(self):
@@ -137,17 +122,12 @@ class TestSimpleChoice(TestModelBase):
 
         self.expected_used_process_names = set(["P", "P1", "P2"])
         self.expected_defined_process_names = self.expected_used_process_names
-    
+
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [ Action("a", "r", "P1"),
                                                   Action("b", "r", "P2") ]
         self.expected_actions_dictionary["P1" ] = [ Action("c", "r", "P") ]
         self.expected_actions_dictionary["P2" ] = [ Action("d", "r", "P") ]
-    
-        self.expected_successors_dictionary = dict()
-        self.expected_successors_dictionary["P"] = [ "P1", "P2" ]
-        self.expected_successors_dictionary["P1"] = [ "P" ]
-        self.expected_successors_dictionary["P2"] = [ "P" ]
 
         self.expected_initial_state = [ "P" ]
         self.expected_state_space_size = 3
@@ -171,12 +151,6 @@ class TestChoiceAlias(TestModelBase):
         self.expected_actions_dictionary["P1" ] = [ Action("a", "r", "P3") ]
         self.expected_actions_dictionary["P2" ] = [ Action("b", "r", "P3") ]
         self.expected_actions_dictionary["P3" ] = [ Action("c", "r", "P") ]
-    
-        self.expected_successors_dictionary = dict()
-        self.expected_successors_dictionary["P"] = [ "P3" ]
-        self.expected_successors_dictionary["P1"] = [ "P3" ]
-        self.expected_successors_dictionary["P2"] = [ "P3" ]
-        self.expected_successors_dictionary["P3"] = [ "P" ]
 
         self.expected_initial_state = [ "P" ]
         self.expected_state_space_size = 4
@@ -184,10 +158,6 @@ class TestChoiceAlias(TestModelBase):
     @unittest.expectedFailure
     def test_actions(self):
         super(TestChoiceAlias, self).test_actions()
-
-    @unittest.expectedFailure
-    def test_successors(self):
-        super(TestChoiceAlias, self).test_successors()
 
     @unittest.expectedFailure
     def test_state_space_size(self):

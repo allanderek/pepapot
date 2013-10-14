@@ -42,8 +42,6 @@ class PrefixNode(object):
     def get_possible_actions(self):
         return [ Action(self.action, self.rate, str(self.successor)) ]
 
-    def get_successors(self):
-        return [ str(self.successor) ]
 prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
 prefix_grammar.setParseAction(PrefixNode)
 
@@ -67,11 +65,6 @@ class ChoiceNode(object):
         lhs = self.lhs.get_used_process_names()
         rhs = self.rhs.get_used_process_names()
         return lhs.union(rhs)
-
-    def get_successors(self):
-        lhs = self.lhs.get_successors()
-        rhs = self.rhs.get_successors()
-        return lhs + rhs
 
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()
@@ -165,13 +158,6 @@ class ParsedModel(object):
             actions = definition.rhs.get_possible_actions()
             actions_dictionary[definition.lhs] = actions
         return actions_dictionary
-
-    def get_successors(self):
-        successors_dictionary = dict()
-        for definition in self.process_definitions:
-            successors = definition.rhs.get_successors()
-            successors_dictionary[definition.lhs] = successors
-        return successors_dictionary
 
     def get_initial_state(self):
         return self.system_equation.get_initial_state()

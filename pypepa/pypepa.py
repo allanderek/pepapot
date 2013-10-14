@@ -213,6 +213,7 @@ class CoopState(object):
         self.coop_set = coop_set
         self.local_states = lhs.local_states + rhs.local_states
         self.__hashnumber__ = hash(",".join(self.local_states))
+        self.__transitions__ = None
 
     def __hash__(self):
         return self.__hashnumber__
@@ -224,8 +225,10 @@ class CoopState(object):
     # out the successor states for once, we can then simply inspect that
     # attribute.
     def get_transitions(self, actions_dictionary):
-        # TODO: This isn't doing the right thing if the action is in the
-        # cooperation set.
+        if self.__transitions__ is None:
+            self.__calculate_transitions__(actions_dictionary)
+        return self.__transitions__
+    def __calculate_transitions__(self, actions_dictionary):
         transitions = []
         left_transitions  = self.lhs.get_transitions(actions_dictionary)
         right_transitions = self.rhs.get_transitions(actions_dictionary)
@@ -252,7 +255,7 @@ class CoopState(object):
                      new_transition = Transition(l_trans.action, l_trans.rate,
                                                  new_state)
                      transitions.append(new_transition)
-        return transitions
+        self.__transitions__ = transitions
 
 
 def build_state_space(model):

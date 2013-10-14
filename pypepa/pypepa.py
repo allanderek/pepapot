@@ -190,44 +190,51 @@ def parse_model(model_string):
 
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
-class LocalState(object):
-    def __init__(self, identifier):
-        self.identifier = identifier
-        self.local_states = [ identifier ]
+class AbstractState(object):
+    """A parent class intended to capture the common functionality between a
+       local state and a cooperation state
+    """
+    def __init__(self):
+        # Note that self.local_states is not set here, so any subclass should
+        # set that before calling this super(.., self).__init__()
         self.__hashnumber__ = hash(",".join(self.local_states))
-
+        self.__transitions__ = None
     def __hash__(self):
         return self.__hashnumber__
 
-    def __eq__(self, rhs):
-        return self.__hashnumber__ == hash(rhs)
+    def __eq__(self, other):
+        return self.__hashnumber__ == hash(other)
 
     def get_transitions(self, actions_dictionary):
-        return [ Transition(t.action, t.rate, LocalState(t.successor))
-                    for t in actions_dictionary[self.identifier] ]
+        """A simple method to return any transitions which have been already
+           calculated or to calculate and return them if they have not yet been
+           calculated. Obviously non-abstract subclasses need to implement
+           the '__calculate_transitions__' method.
+        """
+        if self.__transitions__ is None:
+            self.__calculate_transitions__(actions_dictionary)
+        return self.__transitions__
 
-class CoopState(object):
+
+class LocalState(AbstractState):
+    def __init__(self, identifier):
+        self.identifier = identifier
+        self.local_states = [ identifier ]
+        super(LocalState, self).__init__()
+
+    def __calculate_transitions__(self, actions_dictionary):
+        trans = [ Transition(t.action, t.rate,  LocalState(t.successor))
+                    for t in actions_dictionary[self.identifier] ]
+        self.__transitions__ = trans
+
+class CoopState(AbstractState):
     def __init__(self, lhs, coop_set, rhs):
         self.lhs = lhs
         self.rhs = rhs
         self.coop_set = coop_set
         self.local_states = lhs.local_states + rhs.local_states
-        self.__hashnumber__ = hash(",".join(self.local_states))
-        self.__transitions__ = None
+        super(CoopState, self).__init__()
 
-    def __hash__(self):
-        return self.__hashnumber__
-
-    def __eq__(self, rhs):
-        return self.__hashnumber__ == hash(rhs)
-
-    # Probably transitions should be a property, so that once we have worked
-    # out the successor states for once, we can then simply inspect that
-    # attribute.
-    def get_transitions(self, actions_dictionary):
-        if self.__transitions__ is None:
-            self.__calculate_transitions__(actions_dictionary)
-        return self.__transitions__
     def __calculate_transitions__(self, actions_dictionary):
         transitions = []
         left_transitions  = self.lhs.get_transitions(actions_dictionary)

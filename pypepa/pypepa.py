@@ -6,13 +6,24 @@ import logging
 from collections import namedtuple
 
 import pyparsing
-from pyparsing import OneOrMore, Or, Group, Optional
+from pyparsing import Combine, OneOrMore, Or, Group, Optional
 
 Action = namedtuple('Action', ["action", "rate", "successor" ])
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
-expr = identifier
+# TODO: There is a fairly good calculator parsing example which includes
+# identifiers as expressions. It can be found at:
+# http://pyparsing.wikispaces.com/file/view/SimpleCalc.py/30112812/SimpleCalc.py
+plusorminus = pyparsing.Literal('+') | pyparsing.Literal('-')
+number = pyparsing.Word(pyparsing.nums) 
+integer = Combine( Optional(plusorminus) + number )
+floatnumber = Combine( integer + 
+                       Optional( pyparsing.Literal('.') + number ) +
+                       Optional( pyparsing.CaselessLiteral('E') + integer )
+                     )
+expr = floatnumber.copy()
+expr.setParseAction(lambda tokens: float(tokens[0]))
 
 rate_grammar = expr
 

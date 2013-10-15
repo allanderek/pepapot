@@ -84,8 +84,8 @@ class TestSimpleNoCoop(unittest.TestCase):
     def test_generator_matrix(self):
         state_space = pypepa.build_state_space(self.model)
         gen_matrix  = pypepa.get_generator_matrix(state_space)
-        self.assertEqual(expected_gen_matrix.size, gen_matrix.size)
-        for (left, right) in zip(gen_matrix.flat, expected_gen_matrix.flat):
+        self.assertEqual(self.expected_gen_matrix.size, gen_matrix.size)
+        for (left, right) in zip(gen_matrix.flat, self.expected_gen_matrix.flat):
             self.assertEqual(left, right)
 
 class TestSimpleSingleCoop(TestSimpleNoCoop):
@@ -101,6 +101,11 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
         self.model = pypepa.parse_model(self.model_source)
+        self.expected_gen_matrix = numpy.array([[-2.0, 0.0, 0.0, 1.0],
+                                                [1.0, -2.0, 0.0, 1.0],
+                                                [1.0, 0.0, -2.0, 1.0],
+                                                [0.0, 1.0, 1.0, -2.0] ],
+                                                dtype=numpy.float64)
 
 
 class TestSimpleDoubleCoop(TestSimpleNoCoop):
@@ -158,6 +163,11 @@ class TestSimpleChoice(TestSimpleNoCoop):
 
         self.expected_initial_state = [ "P" ]
         self.expected_state_space_size = 3
+
+        self.expected_gen_matrix = numpy.array([[-2.0, 1.0, 1.0],
+                                                [1.0, -1.0, 0.0],
+                                                [1.0, 0.0, -1.0] ],
+                                                dtype=numpy.float64)
 
 class TestChoiceAlias(TestSimpleNoCoop):
     def setUp(self):

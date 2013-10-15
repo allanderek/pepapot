@@ -101,10 +101,10 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
         self.model = pypepa.parse_model(self.model_source)
-        self.expected_gen_matrix = numpy.array([[-2.0, 0.0, 0.0, 1.0],
-                                                [1.0, -2.0, 0.0, 1.0],
-                                                [1.0, 0.0, -2.0, 1.0],
-                                                [0.0, 1.0, 1.0, -2.0] ],
+        self.expected_gen_matrix = numpy.array([[-1.0, 1.0, 0.0, 0.0],
+                                                [0.0, -2.0, 1.0, 1.0],
+                                                [1.0, 0.0, -1.0, 0.0],
+                                                [1.0, 0.0, 0.0, -1.0] ],
                                                 dtype=numpy.float64)
 
 
@@ -117,6 +117,9 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
         self.expected_state_space_size = 2
+        self.expected_gen_matrix = numpy.array([[-1.0,  1.0],
+                                                [ 1.0, -1.0 ]],
+                                                dtype=numpy.float64)
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

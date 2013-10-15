@@ -30,11 +30,11 @@ P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
 
-class TestModelBase(unittest.TestCase):
-    """A simple couple of definitions with a system equation involving no
-       cooperation. This also acts as a good base class to inherit from for
-       testing a model. One needs only to override the model definition and
-       the expected answers.
+class TestSimpleNoCoop(unittest.TestCase):
+    """This tests a very simple test model. It also serves as a base class from
+       which all other cases testing particular models should derive.
+       A subclass should re-write the setup method populating all of the
+       expected values with appropriate ones.
     """
     def setUp(self):
         self.model_source = simple_components + "\nP || Q"
@@ -52,6 +52,12 @@ class TestModelBase(unittest.TestCase):
 
         self.expected_initial_state = [ "P", "Q" ]
         self.expected_state_space_size = 4
+
+        self.expected_gen_matrix = numpy.array([[-2.0, 1.0, 1.0, 0.0],
+                                                [1.0, -2.0, 0.0, 1.0],
+                                                [1.0, 0.0, -2.0, 1.0],
+                                                [0.0, 1.0, 1.0, -2.0] ],
+                                                dtype=numpy.float64)
 
     def test_used_names(self):
         used_names = self.model.used_process_names()
@@ -75,45 +81,43 @@ class TestModelBase(unittest.TestCase):
         state_space = pypepa.build_state_space(self.model)
         self.assertEqual(len(state_space), self.expected_state_space_size)
 
-class TestGenMatrix(unittest.TestCase):
-    def setUp(self):
-        self.model_source = simple_components + "\nP || Q"
-    def test_build_matrix(self):
-        expected_gen_matrix = numpy.array([[-2.0, 1.0, 1.0, 0.0],
-                                           [1.0, -2.0, 0.0, 1.0],
-                                           [1.0, 0.0, -2.0, 1.0],
-                                           [0.0, 1.0, 1.0, -2.0] ],
-                                           dtype=numpy.float64)
-
-        self.model = pypepa.parse_model(self.model_source)
+    def test_generator_matrix(self):
         state_space = pypepa.build_state_space(self.model)
         gen_matrix  = pypepa.get_generator_matrix(state_space)
         self.assertEqual(expected_gen_matrix.size, gen_matrix.size)
         for (left, right) in zip(gen_matrix.flat, expected_gen_matrix.flat):
             self.assertEqual(left, right)
 
-class TestSimpleSingleCoop(TestModelBase):
+class TestSimpleSingleCoop(TestSimpleNoCoop):
+    """This model has most of the same results as the model without any
+       cooperation so we inherit from that and then change the model rather
+       than from the base test model class.
+    """
     def setUp(self):
-        # This model has most of the same results as the base test case
+        # This model has most of the same results as the model without
+        # any cooperation so we inhebase test case
         # So I'll just call super here rather than copy and paste, but in
         # general it shouldn't be necessary to call super here.
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
         self.model = pypepa.parse_model(self.model_source)
 
-class TestSimpleDoubleCoop(TestModelBase):
+
+class TestSimpleDoubleCoop(TestSimpleNoCoop):
+    """Similar to the above case we're only using super here because we can
+       and so many of th expected results are the same.
+    """
     def setUp(self):
-        # Similar to the above case we're only using super here because we can
-        # and so many of th expected results are the same.
         super(TestSimpleDoubleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
         self.expected_state_space_size = 2
 
-class TestSimpleAlias(TestModelBase):
+class TestSimpleAlias(TestSimpleNoCoop):
+    """Similar to the above case we're only using super here because we can
+       and so many of the expected results are the same.
+    """
     def setUp(self):
-        # Similar to the above case we're only using super here because we can
-        # and so many of th expected results are the same.
         super(TestSimpleAlias, self).setUp()
         self.model_source = "A = P;\n" + simple_components + "\nP || Q"
         self.model = pypepa.parse_model(self.model_source)
@@ -134,7 +138,11 @@ class TestSimpleAlias(TestModelBase):
     def test_state_space_size(self):
         super(TestSimpleAlias, self).test_state_space_size()
 
-class TestSimpleChoice(TestModelBase):
+    @unittest.expectedFailure
+    def test_generator_matrix(self):
+        super(TestChoiceAlias, self).test_generator_matrix()
+
+class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"
         self.model = pypepa.parse_model(self.model_source)
@@ -151,7 +159,7 @@ class TestSimpleChoice(TestModelBase):
         self.expected_initial_state = [ "P" ]
         self.expected_state_space_size = 3
 
-class TestChoiceAlias(TestModelBase):
+class TestChoiceAlias(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = """P = P1 + P2;
                                P1 = (a, 1.0).P3;
@@ -182,10 +190,14 @@ class TestChoiceAlias(TestModelBase):
     def test_state_space_size(self):
         super(TestChoiceAlias, self).test_state_space_size()
 
+    @unittest.expectedFailure
+    def test_generator_matrix(self):
+        super(TestChoiceAlias, self).test_generator_matrix()
+
 class TestPypepa(unittest.TestCase):
     """A simple test only because I'm not sure how to generically test the
        parsing of the system equation. Once I figure that out I can move this
-       into TestModelBase
+       into TestSimpleNoCoop
     """
     def test_cooperation_parser(self):
         model_source = simple_components + "\n P <a> P"

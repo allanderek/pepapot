@@ -7,6 +7,7 @@ from collections import namedtuple
 
 import pyparsing
 from pyparsing import Combine, OneOrMore, Or, Group, Optional
+import numpy
 
 Action = namedtuple('Action', ["action", "rate", "successor" ])
 
@@ -285,8 +286,38 @@ def build_state_space(model):
             if new_state not in explored and new_state != current_state:
                 explore_queue.add(new_state)
     return explored
-            
 
+
+def get_generator_matrix(state_space):
+    # I need the dictionary because the above state space builder will have
+    # separate state objects for the targets of transitions to those in the
+    # actual explored state space. Hence if we wish to find out the state space
+    # number of the target space we must look up the state space object
+    # associated with that state. Here we just record the number.
+    # TODO: I think we must be able to do this more elegantly, the above state
+    # space builder should some how not build new objects for existing states
+    # but I can't quite workout how to do that.
+    state_dictionary = dict()
+    for (x, state) in enumerate(state_space):
+        state.state_number = x
+        state_dictionary[state] = x
+
+    size = len(state_space)
+    gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
+    for state in state_space:
+        # For the current state we can obtain the set of transitions.
+        # This should be known as we would have done this during state_space
+        # exploration hence we can given None as the actions dictionary
+        total_out_rate = 0.0
+        for transition in state.get_transitions(None):
+            target_state = transition.successor
+            target_state_number = state_dictionary[target_state]
+            # It is += since there may be more than one transition to the same
+            # target state from the current state.
+            gen_matrix[state.state_number, target_state_number] += transition.rate
+            total_out_rate += transition.rate
+        gen_matrix[state.state_number, state.state_number] = -total_out_rate
+    return gen_matrix
 
 def analyse_model(model_string):
     model = parse_model(model_string)

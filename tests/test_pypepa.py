@@ -100,7 +100,9 @@ class TestGenMatrix(unittest.TestCase):
         self.model = pypepa.parse_model(self.model_source)
         state_space = pypepa.build_state_space(self.model)
         gen_matrix  = pypepa.get_generator_matrix(state_space)
-        self.assertEqual(expected_gen_matrix, gen_matrix)
+        self.assertEqual(expected_gen_matrix.size, gen_matrix.size)
+        for (left, right) in zip(gen_matrix.flat, expected_gen_matrix.flat):
+            self.assertEqual(left, right)
 
 class TestSimpleSingleCoop(TestModelBase):
     def setUp(self):

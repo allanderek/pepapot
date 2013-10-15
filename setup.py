@@ -30,8 +30,7 @@ setup(
     ],
     package_dir={'pypepa': 'pypepa'},
     include_package_data=True,
-    install_requires=[ "pyparsing"
-    ],
+    install_requires=[ "pyparsing", "numpy" ],
     license="BSD",
     zip_safe=False,
     keywords='pypepa',

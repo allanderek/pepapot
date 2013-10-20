@@ -50,13 +50,13 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.expected_actions_dictionary["Q" ] = [ Action("a", 1.0, "Q1") ]
         self.expected_actions_dictionary["Q1" ] = [ Action("b", 1.0, "Q") ]
 
-        self.expected_initial_state = [ "P", "Q" ]
+        self.expected_initial_state = ("P", "Q")
         self.expected_state_space_size = 4
 
-        self.expected_gen_matrix = numpy.array([[-2.0, 1.0, 1.0, 0.0],
-                                                [1.0, -2.0, 0.0, 1.0],
-                                                [1.0, 0.0, -2.0, 1.0],
-                                                [0.0, 1.0, 1.0, -2.0] ],
+        self.expected_gen_matrix = numpy.array([[-2.0, 1.0, 0.0, 1.0],
+                                                [1.0, -2.0, 1.0, 0.0],
+                                                [0.0, 1.0, -2.0, 1.0],
+                                                [1.0, 0.0, 1.0, -2.0] ],
                                                 dtype=numpy.float64)
 
     def test_used_names(self):
@@ -75,7 +75,7 @@ class TestSimpleNoCoop(unittest.TestCase):
 
     def test_initial_state(self):
         initial_state = self.model.get_initial_state()
-        self.assertEqual(initial_state.local_states, self.expected_initial_state)
+        self.assertEqual(initial_state, self.expected_initial_state)
 
     def test_state_space_size(self):
         state_space = pypepa.build_state_space(self.model)
@@ -164,7 +164,7 @@ class TestSimpleChoice(TestSimpleNoCoop):
         self.expected_actions_dictionary["P1" ] = [ Action("c", 1.0, "P") ]
         self.expected_actions_dictionary["P2" ] = [ Action("d", 1.0, "P") ]
 
-        self.expected_initial_state = [ "P" ]
+        self.expected_initial_state = "P"
         self.expected_state_space_size = 3
 
         self.expected_gen_matrix = numpy.array([[-2.0, 1.0, 1.0],
@@ -192,7 +192,7 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_actions_dictionary["P2" ] = [ Action("b", 1.0, "P3") ]
         self.expected_actions_dictionary["P3" ] = [ Action("c", 1.0, "P") ]
 
-        self.expected_initial_state = [ "P" ]
+        self.expected_initial_state = "P"
         self.expected_state_space_size = 4
 
     @unittest.expectedFailure

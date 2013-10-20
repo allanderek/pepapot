@@ -114,7 +114,10 @@ class ParsedNamedComponent(object):
     def get_used_process_names(self):
         return set(self.identifier)
     def get_initial_state(self):
-        return LocalState(self.identifier)
+        return self.identifier
+    def get_state_builder(self):
+        return LeafBuilder()
+
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
         # Assuming the grammar below of "identifer + Optional (...)
@@ -130,9 +133,11 @@ class ParsedSystemCooperation(object):
         return lhs.union(rhs)
 
     def get_initial_state(self):
-        return CoopState(self.lhs.get_initial_state(),
-                         self.cooperation_set,
-                         self.rhs.get_initial_state())
+        return (self.lhs.get_initial_state(), self.rhs.get_initial_state())
+    def get_state_builder(self):
+        return CoopBuilder(self.lhs.get_state_builder(),
+                           self.cooperation_set,
+                           self.rhs.get_state_builder())
 
 def create_system_component(tokens):
     if len(tokens) > 1:
@@ -177,6 +182,8 @@ class ParsedModel(object):
 
     def get_initial_state(self):
         return self.system_equation.get_initial_state()
+    def get_state_builder(self):
+        return self.system_equation.get_state_builder()
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed
@@ -265,17 +272,70 @@ class CoopState(AbstractState):
                      transitions.append(new_transition)
         self.__transitions__ = transitions
 
+class LeafBuilder(object):
+    def __init__(self):
+        self.leaves = 1
+        self.state_dictionary = dict()
+        self.number_of_states = 0
+    def get_transitions(self, state, actions_dictionary):
+        actions = actions_dictionary[state]
+        transitions = [ Transition(a.action, a.rate, a.successor) 
+                        for a in actions ]
+        self.state_dictionary[state] = (self.number_of_states, transitions)
+        self.number_of_states += 1
+        return transitions
+
+class CoopBuilder(object):
+    def __init__(self, lhs, coop_set, rhs):
+        self.lhs = lhs
+        self.coop_set = coop_set
+        self.rhs = rhs
+        self.number_of_states = 0
+        self.state_dictionary = dict()
+        self.leaves = lhs.leaves + rhs.leaves
+
+    def get_transitions(self, state, actions_dictionary):
+        state_information = self.state_dictionary.get(state, None)
+        if state_information:
+            return state_information
+        left_state, right_state = state
+        left_transitions = self.lhs.get_transitions(left_state, actions_dictionary)
+        right_transitions = self.rhs.get_transitions(right_state, actions_dictionary)
+        transitions = []
+        for transition in left_transitions:
+            if transition.action not in self.coop_set:
+                new_state = (transition.successor, right_state)
+                new_transition = Transition(transition.action, transition.rate,  new_state)
+                transitions.append(new_transition)
+        for transition in right_transitions:
+            if transition.action not in self.coop_set:
+                new_state = (left_state, transition.successor)
+                new_transition = Transition(transition.action, transition.rate,  new_state)
+                transitions.append(new_transition)
+        for l_trans in left_transitions:
+            if l_trans.action in self.coop_set:
+                for r_trans in right_transitions:
+                    if r_trans.action == l_trans.action:
+                        # TODO: Clearly the rate here is incorrect
+                        new_state = (l_trans.successor, r_trans.successor)
+                        new_transition = Transition(l_trans.action, l_trans.rate, new_state)
+                        transitions.append(new_transition)
+
+        state_information = (self.number_of_states, transitions)
+        self.state_dictionary[state] = state_information
+        self.number_of_states += 1
+        return transitions
 
 def build_state_space(model):
-    initial_state = model.get_initial_state()
+    state_builder = model.get_state_builder()
     actions_dictionary = model.get_process_actions()
-    explore_queue = set([initial_state])
+    explore_queue = set([model.get_initial_state()])
     explored = set()
     limit = 10
     while (explore_queue and limit):
         limit -= 1
         current_state = explore_queue.pop()
-        transitions = current_state.get_transitions(actions_dictionary)
+        transitions = state_builder.get_transitions(current_state, actions_dictionary)
         successor_states = [ t.successor for t in transitions ]
         explored.add(current_state)
         for new_state in successor_states:
@@ -285,7 +345,7 @@ def build_state_space(model):
             # have a self-loop, and we should probably flag that at some point.
             if new_state not in explored and new_state != current_state:
                 explore_queue.add(new_state)
-    return explored
+    return state_builder.state_dictionary
 
 
 def get_generator_matrix(state_space):
@@ -297,26 +357,23 @@ def get_generator_matrix(state_space):
     # TODO: I think we must be able to do this more elegantly, the above state
     # space builder should some how not build new objects for existing states
     # but I can't quite workout how to do that.
-    state_dictionary = dict()
-    for (x, state) in enumerate(state_space):
-        state.state_number = x
-        state_dictionary[state] = x
+    state_dictionary = state_space
 
     size = len(state_space)
     gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
-    for state in state_space:
+    for state_number, transitions in state_space.values():
         # For the current state we can obtain the set of transitions.
         # This should be known as we would have done this during state_space
         # exploration hence we can given None as the actions dictionary
         total_out_rate = 0.0
-        for transition in state.get_transitions(None):
+        for transition in transitions:
             target_state = transition.successor
-            target_state_number = state_dictionary[target_state]
+            target_state_number = (state_dictionary[target_state])[0]
             # It is += since there may be more than one transition to the same
             # target state from the current state.
-            gen_matrix[state.state_number, target_state_number] += transition.rate
+            gen_matrix[state_number, target_state_number] += transition.rate
             total_out_rate += transition.rate
-        gen_matrix[state.state_number, state.state_number] = -total_out_rate
+        gen_matrix[state_number, state_number] = -total_out_rate
     return gen_matrix
 
 def analyse_model(model_string):

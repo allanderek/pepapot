@@ -115,8 +115,8 @@ class ParsedNamedComponent(object):
         return set(self.identifier)
     def get_initial_state(self):
         return self.identifier
-    def get_state_builder(self):
-        return LeafBuilder()
+    def get_state_builder(self, actions_dictionary):
+        return LeafBuilder(actions_dictionary)
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -134,10 +134,10 @@ class ParsedSystemCooperation(object):
 
     def get_initial_state(self):
         return (self.lhs.get_initial_state(), self.rhs.get_initial_state())
-    def get_state_builder(self):
-        return CoopBuilder(self.lhs.get_state_builder(),
+    def get_state_builder(self, actions_dictionary):
+        return CoopBuilder(self.lhs.get_state_builder(actions_dictionary),
                            self.cooperation_set,
-                           self.rhs.get_state_builder())
+                           self.rhs.get_state_builder(actions_dictionary))
 
 def create_system_component(tokens):
     if len(tokens) > 1:
@@ -183,7 +183,8 @@ class ParsedModel(object):
     def get_initial_state(self):
         return self.system_equation.get_initial_state()
     def get_state_builder(self):
-        return self.system_equation.get_state_builder()
+        actions_dictionary = self.get_process_actions()
+        return self.system_equation.get_state_builder(actions_dictionary)
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed
@@ -199,12 +200,13 @@ def parse_model(model_string):
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 class LeafBuilder(object):
-    def __init__(self):
+    def __init__(self, actions_dictionary):
         self.leaves = 1
         self.state_dictionary = dict()
+        self.actions_dictionary = actions_dictionary
         self.number_of_states = 0
-    def get_transitions(self, state, actions_dictionary):
-        actions = actions_dictionary[state]
+    def get_transitions(self, state):
+        actions = self.actions_dictionary[state]
         transitions = [ Transition(a.action, a.rate, a.successor) 
                         for a in actions ]
         self.state_dictionary[state] = (self.number_of_states, transitions)
@@ -220,13 +222,13 @@ class CoopBuilder(object):
         self.state_dictionary = dict()
         self.leaves = lhs.leaves + rhs.leaves
 
-    def get_transitions(self, state, actions_dictionary):
+    def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)
         if state_information:
             return state_information
         left_state, right_state = state
-        left_transitions = self.lhs.get_transitions(left_state, actions_dictionary)
-        right_transitions = self.rhs.get_transitions(right_state, actions_dictionary)
+        left_transitions = self.lhs.get_transitions(left_state)
+        right_transitions = self.rhs.get_transitions(right_state)
         transitions = []
         for transition in left_transitions:
             if transition.action not in self.coop_set:
@@ -254,14 +256,13 @@ class CoopBuilder(object):
 
 def build_state_space(model):
     state_builder = model.get_state_builder()
-    actions_dictionary = model.get_process_actions()
     explore_queue = set([model.get_initial_state()])
     explored = set()
     limit = 10
     while (explore_queue and limit):
         limit -= 1
         current_state = explore_queue.pop()
-        transitions = state_builder.get_transitions(current_state, actions_dictionary)
+        transitions = state_builder.get_transitions(current_state)
         successor_states = [ t.successor for t in transitions ]
         explored.add(current_state)
         for new_state in successor_states:

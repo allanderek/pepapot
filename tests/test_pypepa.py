@@ -190,7 +190,16 @@ R = (a, 1.0).R1;
 R1 = (b, 10.0).R;
 
 R <b> (P || Q)
-"""
+        """
+        self.expected_shared_actions = set(["b"])
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [ Action("a", 1.0, "P1") ]
+        self.expected_actions_dictionary["P1" ] = [ Action ("b", 1.0, "P") ]
+        self.expected_actions_dictionary["Q" ] = [ Action("a", 1.0, "Q1") ]
+        self.expected_actions_dictionary["Q1" ] = [ Action("b", 2.0, "Q") ]
+        self.expected_actions_dictionary["R" ] = [ Action("a", 1.0, "R1") ]
+        self.expected_actions_dictionary["R1" ] = [ Action("b", 10.0, "R") ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

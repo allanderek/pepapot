@@ -107,7 +107,7 @@ def get_action_set(tokens):
     return [[ x for x in tokens if x not in [ "||", "<", ">"] ]]
 cooperation_set_grammar.setParseAction(get_action_set)
 
-system_equation_grammar = pyparsing.Forward()
+
 class ParsedNamedComponent(object):
     def __init__(self, tokens):
         self.identifier = tokens[0]
@@ -124,10 +124,7 @@ class ParsedNamedComponent(object):
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
-        # Assuming the grammar below of "identifer + Optional (...)
-        # Then the left hand side will always be a simple identifier, but
-        # this won't be true if we allow for parentheses.
-        self.lhs = ParsedNamedComponent(tokens[0])
+        self.lhs = tokens[0]
         self.cooperation_set = tokens[1]
         self.rhs = tokens[2]
 
@@ -151,12 +148,20 @@ class ParsedSystemCooperation(object):
                            self.cooperation_set,
                            self.rhs.get_state_builder(actions_dictionary))
 
+system_equation_grammar = pyparsing.Forward()
+system_equation_ident = identifier.copy()
+system_equation_ident.setParseAction(ParsedNamedComponent)
+system_equation_paren = "(" + system_equation_grammar + ")"
+system_equation_paren.setParseAction(lambda x: x[1])
+system_equation_atom = Or ([system_equation_ident,
+                            system_equation_paren])
+
 def create_system_component(tokens):
     if len(tokens) > 1:
         return ParsedSystemCooperation(tokens)
     else:
-        return ParsedNamedComponent(tokens)
-system_equation_grammar << (identifier + 
+        return tokens
+system_equation_grammar << (system_equation_atom +
                             Optional(cooperation_set_grammar + 
                                      system_equation_grammar))
 system_equation_grammar.setParseAction(create_system_component)

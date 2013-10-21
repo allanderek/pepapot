@@ -53,6 +53,12 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.expected_initial_state = ("P", "Q")
         self.expected_state_space_size = 4
 
+        self.expected_solution = [ (("P", "Q"), 0.25),
+                                   (("P1", "Q"), 0.25),
+                                   (("P", "Q1"), 0.25),
+                                   (("P1", "Q1"), 0.25)
+                                 ]
+
 
     def test_used_names(self):
         used_names = self.model.used_process_names()
@@ -87,8 +93,14 @@ class TestSimpleNoCoop(unittest.TestCase):
         state_space = pypepa.build_state_space(self.model)
         gen_matrix = pypepa.get_generator_matrix(state_space)
         solution = pypepa.solve_generator_matrix(gen_matrix)
-        for value in solution:
-            self.assertEqual(value, 0.25)
+        for (state, probability) in self.expected_solution:
+            state_number, transitions = state_space[state]
+            # You can search a little for testing floating point numbers
+            # for equality and conceivably we could do so with respect to an
+            # absolute tolerance and a relative tolerance, for now I believe
+            # this is sufficient.
+            difference = abs(probability - solution[state_number])
+            self.assertTrue(difference < 1e-8)
 
 class TestSimpleSingleCoop(TestSimpleNoCoop):
     """This model has most of the same results as the model without any
@@ -103,6 +115,11 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
         self.model = pypepa.parse_model(self.model_source)
+        self.expected_solution = [ (("P", "Q"), 0.4),
+                                   (("P1", "Q"), 0.2),
+                                   (("P", "Q1"), 0.2),
+                                   (("P1", "Q1"), 0.2)
+                                 ]
 
 class TestSimpleDoubleCoop(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
@@ -113,6 +130,9 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
         self.model_source = simple_components + "\nP <a, b> Q"
         self.model = pypepa.parse_model(self.model_source)
         self.expected_state_space_size = 2
+        self.expected_solution = [ (("P", "Q"), 0.5),
+                                   (("P1", "Q1"), 0.5)
+                                 ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
@@ -141,7 +161,11 @@ class TestSimpleAlias(TestSimpleNoCoop):
 
     @unittest.expectedFailure
     def test_generator_matrix(self):
-        super(TestChoiceAlias, self).test_generator_matrix()
+        super(TestSimpleAlias, self).test_generator_matrix()
+
+    @unittest.expectedFailure
+    def test_generator_matrix(self):
+        super(TestSimpleAlias, self).test_steady_state_solve()
 
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
@@ -194,6 +218,10 @@ class TestChoiceAlias(TestSimpleNoCoop):
     @unittest.expectedFailure
     def test_generator_matrix(self):
         super(TestChoiceAlias, self).test_generator_matrix()
+
+    @unittest.expectedFailure
+    def test_generator_matrix(self):
+        super(TestChoiceAlias, self).test_steady_state_solve()
 
 class TestPypepa(unittest.TestCase):
     """A simple test only because I'm not sure how to generically test the

@@ -82,9 +82,22 @@ class TestSimpleNoCoop(unittest.TestCase):
             self._steady_solution = pypepa.solve_generator_matrix(self.gen_matrix)
         return self._steady_solution
 
+    def assertAlmostEqual(self, a, b):
+        """A helper method to assert that two values are approximately equal.
+           This is useful since floating point operations often do not end in
+           exactly correct answers. There is scope here for adding in an
+           absolute and relative tolerance, but for now we'll assume that we're
+           interested in a fixed level of accuracy. The scipy assertall method
+           has something a bit more sophisticated than this including atol and
+           rtol, if this becomes necessary. The scipy method works over arrays
+           and we likely wish to work over single values but we could easily
+           adapt the code.
+        """
+        self.assertTrue((abs(a - b)) < 1e-8)
+
     def test_parse_model(self):
         shared_actions = self.model.system_equation.get_shared_actions()
-        self.assertEqual(self.expected_shared_actions, shared_actions)
+        self.assertEqual(shared_actions, self.expected_shared_actions)
 
     def test_used_names(self):
         used_names = self.model.used_process_names()
@@ -117,8 +130,8 @@ class TestSimpleNoCoop(unittest.TestCase):
             # for equality and conceivably we could do so with respect to an
             # absolute tolerance and a relative tolerance, for now I believe
             # this is sufficient.
-            difference = abs(probability - self.steady_solution[state_number])
-            self.assertTrue(difference < 1e-8)
+            expected_probability = self.steady_solution[state_number]
+            self.assertAlmostEqual(probability, expected_probability)
 
 class TestSimpleSingleCoop(TestSimpleNoCoop):
     """This model has most of the same results as the model without any

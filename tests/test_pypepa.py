@@ -184,6 +184,11 @@ class TestSimpleChoice(TestSimpleNoCoop):
         self.expected_initial_state = "P"
         self.expected_state_space_size = 3
 
+        self.expected_solution = [ ("P", 1.0 / 3.0),
+                                   ("P1", 1.0 / 3.0),
+                                   ("P2", 1.0 / 3.0)
+                                 ]
+
 class TestChoiceAlias(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = """P = P1 + P2;

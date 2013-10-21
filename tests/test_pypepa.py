@@ -83,6 +83,13 @@ class TestSimpleNoCoop(unittest.TestCase):
             self.assertEqual(0.0, sum(row))
             self.assertTrue(row[row_number] < 0.0)
 
+    def test_steady_state_solve(self):
+        state_space = pypepa.build_state_space(self.model)
+        gen_matrix = pypepa.get_generator_matrix(state_space)
+        solution = pypepa.solve_generator_matrix(gen_matrix)
+        for value in solution:
+            value = 0.25
+
 class TestSimpleSingleCoop(TestSimpleNoCoop):
     """This model has most of the same results as the model without any
        cooperation so we inherit from that and then change the model rather

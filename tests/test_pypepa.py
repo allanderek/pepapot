@@ -38,9 +38,6 @@ class TestSimpleNoCoop(unittest.TestCase):
     """
     def setUp(self):
         self.model_source = simple_components + "\nP || Q"
-        # It would be nice to actually test the parsing but that doesn't
-        # seem to be possible.
-        self.model = pypepa.parse_model(self.model_source)
         self.expected_used_process_names = set(["P", "P1", "Q", "Q1"])
         self.expected_defined_process_names = set(["P", "P1", "Q", "Q1"])
 
@@ -59,6 +56,11 @@ class TestSimpleNoCoop(unittest.TestCase):
                                    (("P1", "Q1"), 0.25)
                                  ]
 
+    @property
+    def model(self):
+        if getattr(self, "_model", None) is None:
+            self._model = pypepa.parse_model(self.model_source)
+        return self._model
 
     def test_used_names(self):
         used_names = self.model.used_process_names()
@@ -114,7 +116,6 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
         # general it shouldn't be necessary to call super here.
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
-        self.model = pypepa.parse_model(self.model_source)
         self.expected_solution = [ (("P", "Q"), 0.4),
                                    (("P1", "Q"), 0.2),
                                    (("P", "Q1"), 0.2),
@@ -128,7 +129,6 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
     def setUp(self):
         super(TestSimpleDoubleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a, b> Q"
-        self.model = pypepa.parse_model(self.model_source)
         self.expected_state_space_size = 2
         self.expected_solution = [ (("P", "Q"), 0.5),
                                    (("P1", "Q1"), 0.5)
@@ -141,10 +141,7 @@ class TestSimpleAlias(TestSimpleNoCoop):
     def setUp(self):
         super(TestSimpleAlias, self).setUp()
         self.model_source = "A = P;\n" + simple_components + "\nP || Q"
-        self.model = pypepa.parse_model(self.model_source)
-
         self.expected_defined_process_names.add("A")
-    
         self.expected_actions_dictionary["A"] = self.expected_actions_dictionary["P"]
 
     # Note, if you expect everything to fail, you can decorate the class with
@@ -170,7 +167,6 @@ class TestSimpleAlias(TestSimpleNoCoop):
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"
-        self.model = pypepa.parse_model(self.model_source)
 
         self.expected_used_process_names = set(["P", "P1", "P2"])
         self.expected_defined_process_names = self.expected_used_process_names
@@ -197,11 +193,10 @@ class TestChoiceAlias(TestSimpleNoCoop):
                                P3 = (c, 1.0).P;
                                P
                             """
-        self.model = pypepa.parse_model(self.model_source)
 
         self.expected_used_process_names = set(["P", "P1", "P2", "P3"])
         self.expected_defined_process_names = self.expected_used_process_names
-    
+
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [ Action("a", 1.0, "P3"),
                                                   Action("b", 1.0, "P3") ]

@@ -58,6 +58,12 @@ class TestSimpleNoCoop(unittest.TestCase):
                                    (("P1", "Q1"), 0.25)
                                  ]
 
+        self.expected_utilisations = [ dict([ ("P", 0.5),
+                                              ("P1", 0.5) ]),
+                                       dict([ ("Q", 0.5),
+                                              ("Q1", 0.5) ])
+                                     ]
+
     @property
     def model(self):
         if getattr(self, "_model", None) is None:
@@ -81,6 +87,15 @@ class TestSimpleNoCoop(unittest.TestCase):
         if getattr(self, "_steady_solution", None) is None:
             self._steady_solution = pypepa.solve_generator_matrix(self.gen_matrix)
         return self._steady_solution
+
+    @property
+    def steady_utilisations(self):
+        if getattr(self, "_steady_utilisations", None) is None:
+            initial_state = self.model.get_initial_state()
+            self._steady_utilisations = pypepa.get_utilisations(initial_state,
+                                                                self.state_space,
+                                                                self.steady_solution)
+        return self._steady_utilisations
 
     def assertAlmostEqual(self, a, b):
         """A helper method to assert that two values are approximately equal.
@@ -133,6 +148,12 @@ class TestSimpleNoCoop(unittest.TestCase):
             expected_probability = self.steady_solution[state_number]
             self.assertAlmostEqual(probability, expected_probability)
 
+    def test_utilisations(self):
+        for actual_utils, expected_utils in zip(self.steady_utilisations,
+                                                self.expected_utilisations):
+            for process, utilisation in expected_utils.items():
+                self.assertAlmostEqual(actual_utils[process], utilisation)
+
 class TestSimpleSingleCoop(TestSimpleNoCoop):
     """This model has most of the same results as the model without any
        cooperation so we inherit from that and then change the model rather
@@ -151,6 +172,11 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
                                    (("P", "Q1"), 0.2),
                                    (("P1", "Q1"), 0.2)
                                  ]
+        self.expected_utilisations = [ dict([ ("P", 0.6),
+                                              ("P1", 0.4) ]),
+                                       dict([ ("Q", 0.6),
+                                              ("Q1", 0.4) ])
+                                     ]
 
 class TestSimpleDoubleCoop(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
@@ -164,6 +190,11 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
         self.expected_solution = [ (("P", "Q"), 0.5),
                                    (("P1", "Q1"), 0.5)
                                  ]
+        self.expected_utilisations = [ dict([ ("P", 0.5),
+                                              ("P1", 0.5) ]),
+                                       dict([ ("Q", 0.5),
+                                              ("Q1", 0.5) ])
+                                     ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
@@ -195,6 +226,10 @@ class TestSimpleAlias(TestSimpleNoCoop):
     def test_steady_state_solve(self):
         super(TestSimpleAlias, self).test_steady_state_solve()
 
+    @unittest.expectedFailure
+    def test_utilisations(self):
+        super(TestSimpleAlias, self).test_utilisations()
+
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"
@@ -217,6 +252,8 @@ class TestSimpleChoice(TestSimpleNoCoop):
                                    ("P1", 1.0 / 3.0),
                                    ("P2", 1.0 / 3.0)
                                  ]
+
+        self.expected_utilisations = [ dict(self.expected_solution) ]
 
 class TestChoiceAlias(TestSimpleNoCoop):
     def setUp(self):
@@ -257,6 +294,10 @@ class TestChoiceAlias(TestSimpleNoCoop):
     @unittest.expectedFailure
     def test_steady_state_solve(self):
         super(TestChoiceAlias, self).test_steady_state_solve()
+
+    @unittest.expectedFailure
+    def test_utilisations(self):
+        super(TestChoiceAlias, self).test_utilisations()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

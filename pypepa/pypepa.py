@@ -296,7 +296,6 @@ def get_generator_matrix(state_space):
     # state space build to give a number to each state as it is discovered,
     # which in turn would require that it still stores some set/lookup of the
     # state representation to the state number.
-
     size = len(state_space)
     gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
     for state_number, transitions in state_space.values():
@@ -321,6 +320,21 @@ def solve_generator_matrix(gen_matrix):
     gen_matrix[:,0] = 1
     result = numpy.linalg.solve(gen_matrix.transpose(),b)
     return result
+
+def get_utilisations(initial_state, state_space, steady_solution):
+    def flatten_state(state):
+        if isinstance(state, str):
+            return [ state ]
+        else:
+            left, right = state
+            return flatten_state(left) + flatten_state(right)
+    dictionaries = [ dict() for x in flatten_state(initial_state) ]
+    for (state, (state_number, transitions)) in state_space.items():
+        probability = steady_solution[state_number]
+        local_states = flatten_state(state)
+        for dictionary, process_name in zip(dictionaries, local_states):
+            dictionary[process_name] = probability + dictionary.get(process_name, 0.0)
+    return dictionaries
 
 def analyse_model(model_string):
     model = parse_model(model_string)

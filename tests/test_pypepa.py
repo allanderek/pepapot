@@ -88,7 +88,7 @@ class TestSimpleNoCoop(unittest.TestCase):
         gen_matrix = pypepa.get_generator_matrix(state_space)
         solution = pypepa.solve_generator_matrix(gen_matrix)
         for value in solution:
-            value = 0.25
+            self.assertEqual(value, 0.25)
 
 class TestSimpleSingleCoop(TestSimpleNoCoop):
     """This model has most of the same results as the model without any

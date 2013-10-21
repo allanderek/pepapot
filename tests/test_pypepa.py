@@ -164,7 +164,7 @@ class TestSimpleAlias(TestSimpleNoCoop):
         super(TestSimpleAlias, self).test_generator_matrix()
 
     @unittest.expectedFailure
-    def test_generator_matrix(self):
+    def test_steady_state_solve(self):
         super(TestSimpleAlias, self).test_steady_state_solve()
 
 class TestSimpleChoice(TestSimpleNoCoop):
@@ -225,7 +225,7 @@ class TestChoiceAlias(TestSimpleNoCoop):
         super(TestChoiceAlias, self).test_generator_matrix()
 
     @unittest.expectedFailure
-    def test_generator_matrix(self):
+    def test_steady_state_solve(self):
         super(TestChoiceAlias, self).test_steady_state_solve()
 
 class TestPypepa(unittest.TestCase):

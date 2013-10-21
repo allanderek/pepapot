@@ -64,6 +64,24 @@ class TestSimpleNoCoop(unittest.TestCase):
             self._model = pypepa.parse_model(self.model_source)
         return self._model
 
+    @property
+    def state_space(self):
+        if getattr(self, "_state_space", None) is None:
+            self._state_space = pypepa.build_state_space(self.model)
+        return self._state_space
+
+    @property
+    def gen_matrix(self):
+        if getattr(self, "_gen_matrix", None) is None:
+            self._gen_matrix = pypepa.get_generator_matrix(self.state_space)
+        return self._gen_matrix
+
+    @property
+    def steady_solution(self):
+        if getattr(self, "_steady_solution", None) is None:
+            self._steady_solution = pypepa.solve_generator_matrix(self.gen_matrix)
+        return self._steady_solution
+
     def test_parse_model(self):
         shared_actions = self.model.system_equation.get_shared_actions()
         self.assertEqual(self.expected_shared_actions, shared_actions)
@@ -85,27 +103,21 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.assertEqual(initial_state, self.expected_initial_state)
 
     def test_state_space_size(self):
-        state_space = pypepa.build_state_space(self.model)
-        self.assertEqual(len(state_space), self.expected_state_space_size)
+        self.assertEqual(len(self.state_space), self.expected_state_space_size)
 
     def test_generator_matrix(self):
-        state_space = pypepa.build_state_space(self.model)
-        gen_matrix  = pypepa.get_generator_matrix(state_space)
-        for (row_number, row) in enumerate(gen_matrix):
+        for (row_number, row) in enumerate(self.gen_matrix):
             self.assertEqual(0.0, sum(row))
             self.assertTrue(row[row_number] < 0.0)
 
     def test_steady_state_solve(self):
-        state_space = pypepa.build_state_space(self.model)
-        gen_matrix = pypepa.get_generator_matrix(state_space)
-        solution = pypepa.solve_generator_matrix(gen_matrix)
         for (state, probability) in self.expected_solution:
-            state_number, transitions = state_space[state]
+            state_number, transitions = self.state_space[state]
             # You can search a little for testing floating point numbers
             # for equality and conceivably we could do so with respect to an
             # absolute tolerance and a relative tolerance, for now I believe
             # this is sufficient.
-            difference = abs(probability - solution[state_number])
+            difference = abs(probability - self.steady_solution[state_number])
             self.assertTrue(difference < 1e-8)
 
 class TestSimpleSingleCoop(TestSimpleNoCoop):

@@ -276,15 +276,14 @@ def build_state_space(model):
 
 
 def get_generator_matrix(state_space):
-    # I need the dictionary because the above state space builder will have
-    # separate state objects for the targets of transitions to those in the
-    # actual explored state space. Hence if we wish to find out the state space
-    # number of the target space we must look up the state space object
-    # associated with that state. Here we just record the number.
-    # TODO: I think we must be able to do this more elegantly, the above state
-    # space builder should some how not build new objects for existing states
-    # but I can't quite workout how to do that.
-    state_dictionary = state_space
+    # State space is a dictionary which maps a state representation to
+    # information about that state. Crucially, the state number and the outgoing
+    # transitions. We could possibly store the state number together with the
+    # state itself, which would be useful because then the transitions would not
+    # need to look up the target states' numbers. This would require the
+    # state space build to give a number to each state as it is discovered,
+    # which in turn would require that it still stores some set/lookup of the
+    # state representation to the state number.
 
     size = len(state_space)
     gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
@@ -295,7 +294,7 @@ def get_generator_matrix(state_space):
         total_out_rate = 0.0
         for transition in transitions:
             target_state = transition.successor
-            target_state_number = (state_dictionary[target_state])[0]
+            target_state_number = (state_space[target_state])[0]
             # It is += since there may be more than one transition to the same
             # target state from the current state.
             gen_matrix[state_number, target_state_number] += transition.rate

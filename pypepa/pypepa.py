@@ -113,6 +113,10 @@ class ParsedNamedComponent(object):
         self.identifier = tokens[0]
     def get_used_process_names(self):
         return set(self.identifier)
+    def get_shared_actions(self):
+        """Mostly for testing purposes we return all activities shared
+           at least once"""
+        return set()
     def get_initial_state(self):
         return self.identifier
     def get_state_builder(self, actions_dictionary):
@@ -131,6 +135,14 @@ class ParsedSystemCooperation(object):
         lhs = self.lhs.get_used_process_names()
         rhs = self.rhs.get_used_process_names()
         return lhs.union(rhs)
+
+    def get_shared_actions(self):
+        """Mostly for testing purposes we return all activities shared
+           at least once"""
+        left = self.lhs.get_shared_actions()
+        right = self.rhs.get_shared_actions()
+        these = set(self.cooperation_set)
+        return these.union(left).union(right)
 
     def get_initial_state(self):
         return (self.lhs.get_initial_state(), self.rhs.get_initial_state())

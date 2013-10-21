@@ -47,6 +47,8 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.expected_actions_dictionary["Q" ] = [ Action("a", 1.0, "Q1") ]
         self.expected_actions_dictionary["Q1" ] = [ Action("b", 1.0, "Q") ]
 
+        self.expected_shared_actions = set()
+
         self.expected_initial_state = ("P", "Q")
         self.expected_state_space_size = 4
 
@@ -62,6 +64,10 @@ class TestSimpleNoCoop(unittest.TestCase):
             self._model = pypepa.parse_model(self.model_source)
         return self._model
 
+    def test_parse_model(self):
+        shared_actions = self.model.system_equation.get_shared_actions()
+        self.assertEqual(self.expected_shared_actions, shared_actions)
+
     def test_used_names(self):
         used_names = self.model.used_process_names()
         self.assertEqual(used_names, self.expected_used_process_names)
@@ -69,8 +75,6 @@ class TestSimpleNoCoop(unittest.TestCase):
     def test_defined_names(self):
         defined_names = self.model.defined_process_names()
         self.assertEqual(defined_names, self.expected_defined_process_names)
-
-    # TODO: Somehow test the correct parsing of coopertions (system equation)
 
     def test_actions(self):
         actual_actions = self.model.get_process_actions()
@@ -116,6 +120,7 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
         # general it shouldn't be necessary to call super here.
         super(TestSimpleSingleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a> Q"
+        self.expected_shared_actions = set(["a"])
         self.expected_solution = [ (("P", "Q"), 0.4),
                                    (("P1", "Q"), 0.2),
                                    (("P", "Q1"), 0.2),
@@ -129,6 +134,7 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
     def setUp(self):
         super(TestSimpleDoubleCoop, self).setUp()
         self.model_source = simple_components + "\nP <a, b> Q"
+        self.expected_shared_actions = set(["a", "b"])
         self.expected_state_space_size = 2
         self.expected_solution = [ (("P", "Q"), 0.5),
                                    (("P1", "Q1"), 0.5)
@@ -177,6 +183,8 @@ class TestSimpleChoice(TestSimpleNoCoop):
         self.expected_actions_dictionary["P1" ] = [ Action("c", 1.0, "P") ]
         self.expected_actions_dictionary["P2" ] = [ Action("d", 1.0, "P") ]
 
+        self.expected_shared_actions = set()
+
         self.expected_initial_state = "P"
         self.expected_state_space_size = 3
 
@@ -196,6 +204,8 @@ class TestChoiceAlias(TestSimpleNoCoop):
 
         self.expected_used_process_names = set(["P", "P1", "P2", "P3"])
         self.expected_defined_process_names = self.expected_used_process_names
+
+        self.expected_shared_actions = set()
 
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [ Action("a", 1.0, "P3"),
@@ -222,22 +232,6 @@ class TestChoiceAlias(TestSimpleNoCoop):
     @unittest.expectedFailure
     def test_steady_state_solve(self):
         super(TestChoiceAlias, self).test_steady_state_solve()
-
-class TestPypepa(unittest.TestCase):
-    """A simple test only because I'm not sure how to generically test the
-       parsing of the system equation. Once I figure that out I can move this
-       into TestSimpleNoCoop
-    """
-    def test_cooperation_parser(self):
-        model_source = simple_components + "\n P <a> P"
-        model = pypepa.parse_model(model_source)
-        self.assertEqual(model.system_equation.cooperation_set, ["a"])
-        model_source = simple_components + "\nP || Q"
-        model = pypepa.parse_model(model_source)
-        self.assertEqual(model.system_equation.cooperation_set, [])
-        model_source = simple_components + "\nP <a,b>Q"
-        model = pypepa.parse_model(model_source)
-        self.assertEqual(model.system_equation.cooperation_set, ["a", "b"])
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

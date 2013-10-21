@@ -71,31 +71,10 @@ class TestSimpleNoCoop(unittest.TestCase):
         return self._model
 
     @property
-    def state_space(self):
-        if getattr(self, "_state_space", None) is None:
-            self._state_space = pypepa.build_state_space(self.model)
-        return self._state_space
-
-    @property
-    def gen_matrix(self):
-        if getattr(self, "_gen_matrix", None) is None:
-            self._gen_matrix = pypepa.get_generator_matrix(self.state_space)
-        return self._gen_matrix
-
-    @property
-    def steady_solution(self):
-        if getattr(self, "_steady_solution", None) is None:
-            self._steady_solution = pypepa.solve_generator_matrix(self.gen_matrix)
-        return self._steady_solution
-
-    @property
-    def steady_utilisations(self):
-        if getattr(self, "_steady_utilisations", None) is None:
-            initial_state = self.model.get_initial_state()
-            self._steady_utilisations = pypepa.get_utilisations(initial_state,
-                                                                self.state_space,
-                                                                self.steady_solution)
-        return self._steady_utilisations
+    def model_solver(self):
+        if getattr(self, "_model_solver", None) is None:
+            self._model_solver = pypepa.ModelSolver(self.model)
+        return self._model_solver
 
     def assertAlmostEqual(self, a, b):
         """A helper method to assert that two values are approximately equal.
@@ -127,29 +106,30 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.assertEqual(actual_actions, self.expected_actions_dictionary)
 
     def test_initial_state(self):
-        initial_state = self.model.get_initial_state()
-        self.assertEqual(initial_state, self.expected_initial_state)
+        self.assertEqual(self.model_solver.initial_state,
+                         self.expected_initial_state)
 
     def test_state_space_size(self):
-        self.assertEqual(len(self.state_space), self.expected_state_space_size)
+        self.assertEqual(len(self.model_solver.state_space), 
+                         self.expected_state_space_size)
 
     def test_generator_matrix(self):
-        for (row_number, row) in enumerate(self.gen_matrix):
+        for (row_number, row) in enumerate(self.model_solver.gen_matrix):
             self.assertEqual(0.0, sum(row))
             self.assertTrue(row[row_number] < 0.0)
 
     def test_steady_state_solve(self):
-        for (state, probability) in self.expected_solution:
-            state_number, transitions = self.state_space[state]
-            # You can search a little for testing floating point numbers
-            # for equality and conceivably we could do so with respect to an
-            # absolute tolerance and a relative tolerance, for now I believe
-            # this is sufficient.
-            expected_probability = self.steady_solution[state_number]
+        state_space = self.model_solver.state_space
+        steady_solution = self.model_solver.steady_solution
+        for (state, expected_probability) in self.expected_solution:
+            state_number, transitions = state_space[state]
+            probability = steady_solution[state_number]
             self.assertAlmostEqual(probability, expected_probability)
 
     def test_utilisations(self):
-        for actual_utils, expected_utils in zip(self.steady_utilisations,
+        steady_utilisations = self.model_solver.steady_utilisations
+        
+        for actual_utils, expected_utils in zip(steady_utilisations,
                                                 self.expected_utilisations):
             for process, utilisation in expected_utils.items():
                 self.assertAlmostEqual(actual_utils[process], utilisation)

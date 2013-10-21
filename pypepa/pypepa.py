@@ -266,75 +266,119 @@ class CoopBuilder(object):
         self.number_of_states += 1
         return transitions
 
-def build_state_space(model):
-    state_builder = model.get_state_builder()
-    explore_queue = set([model.get_initial_state()])
-    explored = set()
-    limit = 10
-    while (explore_queue and limit):
-        limit -= 1
-        current_state = explore_queue.pop()
-        transitions = state_builder.get_transitions(current_state)
-        successor_states = [ t.successor for t in transitions ]
-        explored.add(current_state)
-        for new_state in successor_states:
-            # Note that we should be careful if the new_state is the same as
-            # the current state. We won't put it in the explore_queue since
-            # the current state should be in explored. However it will mean we
-            # have a self-loop, and we should probably flag that at some point.
-            if new_state not in explored and new_state != current_state:
-                explore_queue.add(new_state)
-    return state_builder.state_dictionary
+class ModelSolver(object):
+    """A full state space exploring model solver. This solver builds the
+       entire state-space of the model and from that derives a CTMC which is
+       then solved.
+    """
+    def __init__(self, model):
+        self.model = model
+
+    @property
+    def initial_state(self):
+        if getattr(self, "_initial_state", None) is None:
+            self._initial_state = self.model.get_initial_state()
+        return self._initial_state
+
+    @property
+    def state_space(self):
+        if getattr(self, "_state_space", None) is None:
+            self._state_space = self.build_state_space()
+        return self._state_space
+
+    @property
+    def gen_matrix(self):
+        if getattr(self, "_gen_matrix", None) is None:
+            self._gen_matrix = self.get_generator_matrix()
+        return self._gen_matrix
+
+    @property
+    def steady_solution(self):
+        if getattr(self, "_steady_solution", None) is None:
+            self._steady_solution = self.solve_generator_matrix()
+        return self._steady_solution
+
+    @property
+    def steady_utilisations(self):
+        if getattr(self, "_steady_utilisations", None) is None:
+            initial_state = self.model.get_initial_state()
+            self._steady_utilisations = self.get_utilisations()
+        return self._steady_utilisations
+
+    def build_state_space(self):
+        state_builder = self.model.get_state_builder()
+        explore_queue = set([self.initial_state])
+        explored = set()
+        while (explore_queue):
+            current_state = explore_queue.pop()
+            transitions = state_builder.get_transitions(current_state)
+            successor_states = [ t.successor for t in transitions ]
+            explored.add(current_state)
+            for new_state in successor_states:
+                # Note that we should be careful if the new_state is the same as
+                # the current state. We won't put it in the explore_queue since
+                # the current state should be in explored. However it will mean 
+                # we have a self-loop, and we should probably flag that at some
+                # point.
+                if new_state not in explored and new_state != current_state:
+                    explore_queue.add(new_state)
+        return state_builder.state_dictionary
 
 
-def get_generator_matrix(state_space):
-    # State space is a dictionary which maps a state representation to
-    # information about that state. Crucially, the state number and the outgoing
-    # transitions. We could possibly store the state number together with the
-    # state itself, which would be useful because then the transitions would not
-    # need to look up the target states' numbers. This would require the
-    # state space build to give a number to each state as it is discovered,
-    # which in turn would require that it still stores some set/lookup of the
-    # state representation to the state number.
-    size = len(state_space)
-    gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
-    for state_number, transitions in state_space.values():
-        # For the current state we can obtain the set of transitions.
-        # This should be known as we would have done this during state_space
-        # exploration hence we can given None as the actions dictionary
-        total_out_rate = 0.0
-        for transition in transitions:
-            target_state = transition.successor
-            target_state_number = (state_space[target_state])[0]
-            # It is += since there may be more than one transition to the same
-            # target state from the current state.
-            gen_matrix[state_number, target_state_number] += transition.rate
-            total_out_rate += transition.rate
-        gen_matrix[state_number, state_number] = -total_out_rate
-    return gen_matrix
+    def get_generator_matrix(self):
+        # State space is a dictionary which maps a state representation to
+        # information about that state. Crucially, the state number and the
+        # outgoing transitions. We could possibly store the state number
+        # together with the state itself, which would be useful because then the
+        # transitions would not need to look up the target states' numbers.
+        # This would require the state space build to give a number to each
+        # state as it is discovered, which in turn would require that it still
+        # stores some set/lookup of the state representation to the state number.
+        size = len(self.state_space)
+        gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
+        for state_number, transitions in self.state_space.values():
+            # For the current state we can obtain the set of transitions.
+            # This should be known as we would have done this during state_space
+            # exploration hence we can given None as the actions dictionary
+            total_out_rate = 0.0
+            for transition in transitions:
+                target_state = transition.successor
+                target_state_number = (self.state_space[target_state])[0]
+                # It is += since there may be more than one transition to the same
+                # target state from the current state.
+                gen_matrix[state_number, target_state_number] += transition.rate
+                total_out_rate += transition.rate
+            gen_matrix[state_number, state_number] = -total_out_rate
+        return gen_matrix
 
-def solve_generator_matrix(gen_matrix):
-    b = numpy.zeros(len(gen_matrix), dtype=numpy.float64)
-    b[0] = 1
-    # This is the normalisation bit
-    gen_matrix[:,0] = 1
-    result = numpy.linalg.solve(gen_matrix.transpose(),b)
-    return result
+    def solve_generator_matrix(self):
+        solution_vector = numpy.zeros(len(self.gen_matrix), dtype=numpy.float64)
+        solution_vector[0] = 1
+        # This is the normalisation bit
+        self.gen_matrix[:,0] = 1
+        # Note that here we must transpose the matrix, but arguably we could
+        # just build it in the transposed form, since we never use the
+        # transposed-form. This would include the above normalisation line.
+        result = numpy.linalg.solve(self.gen_matrix.transpose(), solution_vector)
+        return result
 
-def get_utilisations(initial_state, state_space, steady_solution):
-    def flatten_state(state):
-        if isinstance(state, str):
-            return [ state ]
-        else:
-            left, right = state
-            return flatten_state(left) + flatten_state(right)
-    dictionaries = [ dict() for x in flatten_state(initial_state) ]
-    for (state, (state_number, transitions)) in state_space.items():
-        probability = steady_solution[state_number]
-        local_states = flatten_state(state)
-        for dictionary, process_name in zip(dictionaries, local_states):
-            dictionary[process_name] = probability + dictionary.get(process_name, 0.0)
-    return dictionaries
+    def get_utilisations(self):
+        def flatten_state(state):
+            if isinstance(state, str):
+                return [ state ]
+            else:
+                left, right = state
+                return flatten_state(left) + flatten_state(right)
+        # The flattening of the initial state here just lets us know how many
+        # dictionaries we are going to return.
+        dictionaries = [ dict() for x in flatten_state(self.initial_state) ]
+        for (state, (state_number, transitions)) in self.state_space.items():
+            probability = self.steady_solution[state_number]
+            local_states = flatten_state(state)
+            for dictionary, process_name in zip(dictionaries, local_states):
+                current_probability = dictionary.get(process_name, 0.0)
+                dictionary[process_name] = probability + current_probability
+        return dictionaries
 
 def analyse_model(model_string):
     model = parse_model(model_string)

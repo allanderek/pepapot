@@ -176,6 +176,22 @@ class TestSimpleDoubleCoop(TestSimpleNoCoop):
                                               ("Q1", 0.5) ])
                                      ]
 
+class TestApparentRate(TestSimpleNoCoop):
+    """A test designed to test the computation of a simple apparent rate"""
+    def setUp(self):
+        self.model_source = """
+P = (a, 1.0).P1;
+P1 = (b, 1.0).P;
+
+Q = (a, 1.0).Q1;
+Q1 = (b, 2.0).Q;
+
+R = (a, 1.0).R1;
+R1 = (b, 10.0).R;
+
+R <b> (P || Q)
+"""
+
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
        and so many of the expected results are the same.

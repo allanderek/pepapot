@@ -308,7 +308,6 @@ def solve_generator_matrix(gen_matrix):
     # This is the normalisation bit
     gen_matrix[:,0] = 1
     result = numpy.linalg.solve(gen_matrix.transpose(),b)
-    print(result)
     return result
 
 def analyse_model(model_string):

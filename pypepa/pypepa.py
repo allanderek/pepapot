@@ -302,6 +302,15 @@ def get_generator_matrix(state_space):
         gen_matrix[state_number, state_number] = -total_out_rate
     return gen_matrix
 
+def solve_generator_matrix(gen_matrix):
+    b = numpy.zeros(len(gen_matrix), dtype=numpy.float64)
+    b[0] = 1
+    # This is the normalisation bit
+    gen_matrix[:,0] = 1
+    result = numpy.linalg.solve(gen_matrix.transpose(),b)
+    print(result)
+    return result
+
 def analyse_model(model_string):
     model = parse_model(model_string)
 

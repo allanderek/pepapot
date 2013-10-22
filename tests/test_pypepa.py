@@ -205,6 +205,7 @@ R <b> (P || Q)
         self.expected_actions_dictionary["R1" ] = [ Action("b", 10.0, "R") ]
 
         self.expected_initial_state = ("R", ("P", "Q"))
+        self.expected_state_space_size = 8
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

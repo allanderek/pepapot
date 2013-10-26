@@ -267,7 +267,8 @@ class CoopBuilder(object):
                         new_transition = Transition(l_trans.action, l_trans.rate, new_state)
                         transitions.append(new_transition)
 
-        state_information = StateInfo(self.number_of_states, transitions)
+        state_number = self.number_of_states
+        state_information = StateInfo(state_number, transitions)
         self.state_dictionary[state] = state_information
         self.number_of_states += 1
         return transitions

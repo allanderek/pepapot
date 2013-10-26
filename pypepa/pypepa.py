@@ -216,6 +216,7 @@ def parse_model(model_string):
 
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
+StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
 class LeafBuilder(object):
     def __init__(self, actions_dictionary):
         self.leaves = 1
@@ -226,7 +227,7 @@ class LeafBuilder(object):
         actions = self.actions_dictionary[state]
         transitions = [ Transition(a.action, a.rate, a.successor) 
                         for a in actions ]
-        self.state_dictionary[state] = (self.number_of_states, transitions)
+        self.state_dictionary[state] = StateInfo(self.number_of_states, transitions)
         self.number_of_states += 1
         return transitions
 
@@ -242,7 +243,7 @@ class CoopBuilder(object):
     def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)
         if state_information:
-            return state_information
+            return state_information.transitions
         left_state, right_state = state
         left_transitions = self.lhs.get_transitions(left_state)
         right_transitions = self.rhs.get_transitions(right_state)
@@ -266,7 +267,7 @@ class CoopBuilder(object):
                         new_transition = Transition(l_trans.action, l_trans.rate, new_state)
                         transitions.append(new_transition)
 
-        state_information = (self.number_of_states, transitions)
+        state_information = StateInfo(self.number_of_states, transitions)
         self.state_dictionary[state] = state_information
         self.number_of_states += 1
         return transitions
@@ -348,7 +349,8 @@ class ModelSolver(object):
             total_out_rate = 0.0
             for transition in transitions:
                 target_state = transition.successor
-                target_state_number = (self.state_space[target_state])[0]
+                target_info = self.state_space[target_state]
+                target_state_number = target_info.state_number
                 # It is += since there may be more than one transition to the same
                 # target state from the current state.
                 gen_matrix[state_number, target_state_number] += transition.rate

@@ -76,7 +76,7 @@ class TestSimpleNoCoop(unittest.TestCase):
             self._model_solver = pypepa.ModelSolver(self.model)
         return self._model_solver
 
-    def assertAlmostEqual(self, a, b):
+    def assertAlmostEqual(self, a, b, msg=None):
         """A helper method to assert that two values are approximately equal.
            This is useful since floating point operations often do not end in
            exactly correct answers. There is scope here for adding in an
@@ -88,6 +88,8 @@ class TestSimpleNoCoop(unittest.TestCase):
            adapt the code.
         """
         message = str(a) + " is not approximately " + str(b)
+        if msg is not None:
+            message = msg + "\n   " + message
         self.assertTrue((abs(a - b)) < 1e-8, msg=message)
 
     def test_parse_model(self):
@@ -122,10 +124,13 @@ class TestSimpleNoCoop(unittest.TestCase):
     def test_steady_state_solve(self):
         state_space = self.model_solver.state_space
         steady_solution = self.model_solver.steady_solution
+        self.assertAlmostEqual(sum(steady_solution), 1.0,
+                               msg="Probabilities do not add up to one")
         for (state, expected_probability) in self.expected_solution:
             state_number, transitions = state_space[state]
             probability = steady_solution[state_number]
-            self.assertAlmostEqual(probability, expected_probability)
+            message = str(steady_solution) + " is not the same as + " + str(self.expected_solution)
+            self.assertAlmostEqual(probability, expected_probability, msg=message)
 
     def test_utilisations(self):
         steady_utilisations = self.model_solver.steady_utilisations
@@ -219,12 +224,12 @@ R <b> (P || Q)
                                    ( ("R1", ("P1", "Q1")), 0.25)
                                  ]
 
-        self.expected_utilisations = [ dict([ ("P", 0.5),
+        self.expected_utilisations = [ dict([ ("R", 0.5),
+                                              ("R1", 0.5) ]),
+                                       dict([ ("P", 0.5),
                                               ("P1", 0.5) ]),
-                                       dict([ ("Q", 0.5),
-                                              ("Q1", 0.5) ]),
-                                       dict([ ("R", 0.6),
-                                              ("R1", 0.6) ])
+                                       dict([ ("Q", 0.6),
+                                              ("Q1", 0.6) ])
                                      ]
 
 class TestSimpleAlias(TestSimpleNoCoop):

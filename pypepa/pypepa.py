@@ -258,14 +258,17 @@ class CoopBuilder(object):
                 new_state = (left_state, transition.successor)
                 new_transition = Transition(transition.action, transition.rate,  new_state)
                 transitions.append(new_transition)
-        for l_trans in left_transitions:
-            if l_trans.action in self.coop_set:
-                for r_trans in right_transitions:
-                    if r_trans.action == l_trans.action:
-                        # TODO: Clearly the rate here is incorrect
-                        new_state = (l_trans.successor, r_trans.successor)
-                        new_transition = Transition(l_trans.action, l_trans.rate, new_state)
-                        transitions.append(new_transition)
+        for action in self.coop_set:
+            left_shared = [ t for t in left_transitions if t.action == action]
+            right_shared = [ t for t in right_transitions if t.action == action]
+            left_rate = sum([ t.rate for t in left_transitions ])
+            right_rate = sum([t.rate for t in right_transitions])
+            governing_rate = min(left_rate, right_rate)
+            for (left, right) in [ (l, r) for l in left_shared for r in right_shared ]:
+                rate = (left.rate / left_rate) * (right.rate / right_rate) * governing_rate
+                new_state = (left.successor, right.successor)
+                new_transition = Transition(action, rate, new_state)
+                transitions.append(new_transition)
 
         state_number = self.number_of_states
         state_information = StateInfo(state_number, transitions)

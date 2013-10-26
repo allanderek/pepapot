@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -87,7 +87,8 @@ class TestSimpleNoCoop(unittest.TestCase):
            and we likely wish to work over single values but we could easily
            adapt the code.
         """
-        self.assertTrue((abs(a - b)) < 1e-8)
+        message = str(a) + " is not approximately " + str(b)
+        self.assertTrue((abs(a - b)) < 1e-8, msg=message)
 
     def test_parse_model(self):
         shared_actions = self.model.system_equation.get_shared_actions()
@@ -206,6 +207,25 @@ R <b> (P || Q)
 
         self.expected_initial_state = ("R", ("P", "Q"))
         self.expected_state_space_size = 8
+
+        self.expected_solution = [ ( ("R", ("P", "Q")), 0.25),
+                                   ( ("R", ("P1", "Q")), 0.25),
+                                   ( ("R", ("P", "Q1")), 0.25),
+                                   ( ("R", ("P1", "Q1")), 0.25),
+                                  
+                                   ( ("R1", ("P", "Q")), 0.25),
+                                   ( ("R1", ("P1", "Q")), 0.25),
+                                   ( ("R1", ("P", "Q1")), 0.25),
+                                   ( ("R1", ("P1", "Q1")), 0.25)
+                                 ]
+
+        self.expected_utilisations = [ dict([ ("P", 0.5),
+                                              ("P1", 0.5) ]),
+                                       dict([ ("Q", 0.5),
+                                              ("Q1", 0.5) ]),
+                                       dict([ ("R", 0.6),
+                                              ("R1", 0.6) ])
+                                     ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

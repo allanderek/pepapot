@@ -122,6 +122,13 @@ class ParsedNamedComponent(object):
     def get_state_builder(self, actions_dictionary):
         return LeafBuilder(actions_dictionary)
 
+class ParsedAggregation(object):
+    def __init__(self, tokens):
+        self.lhs = tokens[0]
+        self.amount = tokens[1]
+    def get_shared_actions(self):
+        return self.lhs.get_shared_actions()
+
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
         self.lhs = tokens[0]
@@ -151,9 +158,23 @@ class ParsedSystemCooperation(object):
 system_equation_grammar = pyparsing.Forward()
 system_equation_ident = identifier.copy()
 system_equation_ident.setParseAction(ParsedNamedComponent)
+# Forces this to be a non-negative integer, though could be zero. Arguably
+# we may want to allow decimals here, obviously only appropriate for
+# translation to ODEs.
+array_suffix = "[" + number + "]"
+array_suffix.setParseAction(lambda x: x[1])
+# This way means that aggregation can only be applied to a single identifier
+# such as "P[10]". We could also allow for example "(P <a> Q)[10]".
+def create_aggregation(tokens):
+    if len(tokens) > 1:
+        return ParsedAggregation(tokens)
+    else:
+        return tokens
+system_equation_aggregation = system_equation_ident + Optional(array_suffix)
+system_equation_aggregation.setParseAction(create_aggregation)
 system_equation_paren = "(" + system_equation_grammar + ")"
 system_equation_paren.setParseAction(lambda x: x[1])
-system_equation_atom = Or ([system_equation_ident,
+system_equation_atom = Or ([system_equation_aggregation,
                             system_equation_paren])
 
 def create_system_component(tokens):

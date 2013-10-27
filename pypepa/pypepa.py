@@ -126,6 +126,8 @@ class ParsedAggregation(object):
     def __init__(self, tokens):
         self.lhs = tokens[0]
         self.amount = tokens[1]
+    def get_used_process_names(self):
+        return self.lhs.get_used_process_names()
     def get_shared_actions(self):
         return self.lhs.get_shared_actions()
 

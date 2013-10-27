@@ -232,6 +232,13 @@ R <b> (P || Q)
                                               ("Q1", 0.602739726027) ])
                                      ]
 
+class TestSimpleArray(TestSimpleNoCoop):
+    def setUp(self):
+        super(TestSimpleArray, self).setUp()
+        self.model_source = simple_components + "\nP[3] <a> Q[3]"
+        self.expected_shared_actions = set(["a"])
+        self.expected_state_space_size = 64
+
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
        and so many of the expected results are the same.

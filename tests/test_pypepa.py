@@ -238,6 +238,9 @@ class TestSimpleArray(TestSimpleNoCoop):
         self.model_source = simple_components + "\nP[3] <a> Q[3]"
         self.expected_shared_actions = set(["a"])
         self.expected_state_space_size = 64
+        self.expected_initial_state = ((('P', 3), ('P1', 0)),
+                                       (('Q', 3), ('Q1', 0))
+                                      )
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

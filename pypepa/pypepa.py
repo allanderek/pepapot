@@ -117,7 +117,7 @@ class ParsedNamedComponent(object):
         """Mostly for testing purposes we return all activities shared
            at least once"""
         return set()
-    def get_initial_state(self):
+    def get_initial_state(self, _components):
         return self.identifier
     def get_state_builder(self, actions_dictionary):
         return LeafBuilder(actions_dictionary)
@@ -130,6 +130,14 @@ class ParsedAggregation(object):
         return self.lhs.get_used_process_names()
     def get_shared_actions(self):
         return self.lhs.get_shared_actions()
+    def get_initial_state(self, components):
+        # This assumes that lhs will be an identifier, which as I write this
+        # is enforced by the parser, but ultimately it would be good to allow
+        # (P <*> Q)[X]
+        lhs = self.lhs.get_initial_state(components)
+        state_names = components[lhs]
+        pairs = [(x, self.amount if x == lhs else 0) for x in state_names ]
+        return tuple(pairs)
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -150,8 +158,9 @@ class ParsedSystemCooperation(object):
         these = set(self.cooperation_set)
         return these.union(left).union(right)
 
-    def get_initial_state(self):
-        return (self.lhs.get_initial_state(), self.rhs.get_initial_state())
+    def get_initial_state(self, components):
+        return (self.lhs.get_initial_state(components),
+                self.rhs.get_initial_state(components))
     def get_state_builder(self, actions_dictionary):
         return CoopBuilder(self.lhs.get_state_builder(actions_dictionary),
                            self.cooperation_set,
@@ -164,7 +173,7 @@ system_equation_ident.setParseAction(ParsedNamedComponent)
 # we may want to allow decimals here, obviously only appropriate for
 # translation to ODEs.
 array_suffix = "[" + number + "]"
-array_suffix.setParseAction(lambda x: x[1])
+array_suffix.setParseAction(lambda x: int(x[1]))
 # This way means that aggregation can only be applied to a single identifier
 # such as "P[10]". We could also allow for example "(P <a> Q)[10]".
 def create_aggregation(tokens):
@@ -221,7 +230,21 @@ class ParsedModel(object):
         return set([definition.lhs for definition in self.process_definitions ])
 
     def get_initial_state(self):
-        return self.system_equation.get_initial_state()
+        used_processes = self.system_equation.get_used_process_names()
+        components = dict()
+        for name in used_processes:
+            closure = set()
+            name_queue = set([name])
+            while name_queue:
+                name = name_queue.pop()
+                if name not in closure:
+                    closure.add(name)
+                    definition = [ x for x in self.process_definitions
+                                   if x.lhs == name ][0]
+                    new_names = definition.rhs.get_used_process_names()
+                    name_queue.update(new_names)
+            components[name] = closure
+        return self.system_equation.get_initial_state(components)
     def get_state_builder(self):
         actions_dictionary = self.get_process_actions()
         return self.system_equation.get_state_builder(actions_dictionary)

@@ -306,15 +306,26 @@ class AggregationBuilder(object):
         # state should be a tuple mapping lhs states to numbers
         for index, (local_state, num) in enumerate(state):
             if num > 0:
-                local_states = list(state)
+                # local_states = list(state)
                 local_transitions = self.lhs.get_transitions(local_state)
                 for transition in local_transitions:
                     # The successor state equals the current state but with
                     # one fewer of the local state and one more of the
-                    # transition's target.
-                    successor = tuple([ (s, n-1) if s == local_state else
-                                          (s, n+1) if s == transition.successor else
-                                            (s, n) for (s, n) in state ])
+                    # transition's target. However, if both the current local
+                    # state and the target of the transition are the same then
+                    # we do not need to update the state.
+                    if local_state == transition.successor:
+                        successor = state
+                    else:
+                        def new_number(s, n):
+                            if s == local_state:
+                                return n - 1
+                            elif s == transition.successor:
+                                return n + 1
+                            else:
+                                return n
+                        successor = tuple([ (s, new_number(s,n)) 
+                                             for (s, n) in state ])
                     new_transition = Transition (transition.action,
                                                  transition.rate * num,
                                                  successor)

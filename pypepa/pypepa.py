@@ -277,31 +277,40 @@ def parse_model(model_string):
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
 
-        
-class LeafBuilder(object):
-    def __init__(self, actions_dictionary):
+class MemoisationBuilder(object):
+    """ A somewhat abstract builder class which memorises the states which
+        it has already seen and explored, thus remembering the transitions it
+        has already computed for sub-states of the global state space.
+    """
+    def __init__(self):
         self.state_dictionary = dict()
-        self.actions_dictionary = actions_dictionary
-        self.number_of_states = 0
-    def get_transitions(self, state):
-        actions = self.actions_dictionary[state]
-        transitions = [ Transition(a.action, a.rate, a.successor) 
-                        for a in actions ]
-        self.state_dictionary[state] = StateInfo(self.number_of_states, transitions)
-        self.number_of_states += 1
-        return transitions
-
-class AggregationBuilder(object):
-    def __init__(self, lhs):
-        self.lhs = lhs
-        self.number_of_states = 0
-        self.state_dictionary = dict()
-
+    def _compute_transitions(self, state):
+        raise Exception("Unimplemented abstract method: _compute_transitions")
     def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)
         if state_information:
             return state_information.transitions
+        transitions = self._compute_transitions(state)
+        state_information = StateInfo(len(self.state_dictionary), transitions)
+        self.state_dictionary[state] = state_information
+        return transitions
+    
+class LeafBuilder(MemoisationBuilder):
+    def __init__(self, actions_dictionary):
+        super(LeafBuilder, self).__init__()
+        self.actions_dictionary = actions_dictionary
+    def _compute_transitions(self, state):
+        actions = self.actions_dictionary[state]
+        transitions = [ Transition(a.action, a.rate, a.successor) 
+                        for a in actions ]
+        return transitions
 
+class AggregationBuilder(MemoisationBuilder):
+    def __init__(self, lhs):
+        super(AggregationBuilder, self).__init__()
+        self.lhs = lhs
+
+    def _compute_transitions(self, state):
         new_transitions = []
         # state should be a tuple mapping lhs states to numbers
         for index, (local_state, num) in enumerate(state):
@@ -329,25 +338,16 @@ class AggregationBuilder(object):
                                                  transition.rate * num,
                                                  successor)
                     new_transitions.append(new_transition)
-
-        state_number = self.number_of_states
-        state_information = StateInfo(state_number, new_transitions)
-        self.state_dictionary[state] = state_information
-        self.number_of_states += 1
         return new_transitions
 
-class CoopBuilder(object):
+class CoopBuilder(MemoisationBuilder):
     def __init__(self, lhs, coop_set, rhs):
+        super(CoopBuilder, self).__init__()
         self.lhs = lhs
         self.coop_set = coop_set
         self.rhs = rhs
-        self.number_of_states = 0
-        self.state_dictionary = dict()
 
-    def get_transitions(self, state):
-        state_information = self.state_dictionary.get(state, None)
-        if state_information:
-            return state_information.transitions
+    def _compute_transitions(self, state):
         left_state, right_state = state
         left_transitions = self.lhs.get_transitions(left_state)
         right_transitions = self.rhs.get_transitions(right_state)
@@ -374,10 +374,6 @@ class CoopBuilder(object):
                 new_transition = Transition(action, rate, new_state)
                 transitions.append(new_transition)
 
-        state_number = self.number_of_states
-        state_information = StateInfo(state_number, transitions)
-        self.state_dictionary[state] = state_information
-        self.number_of_states += 1
         return transitions
 
 class ModelSolver(object):

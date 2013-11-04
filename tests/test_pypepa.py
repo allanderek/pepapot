@@ -117,7 +117,7 @@ class TestSimpleNoCoop(unittest.TestCase):
                          self.expected_state_space_size)
     def test_generator_matrix(self):
         for (row_number, row) in enumerate(self.model_solver.gen_matrix):
-            self.assertEqual(0.0, sum(row))
+            self.assertAlmostEqual(0.0, sum(row))
             self.assertTrue(row[row_number] < 0.0)
 
     def test_steady_state_solve(self):

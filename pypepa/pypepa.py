@@ -203,33 +203,13 @@ class ParsedModel(object):
         self.process_definitions = tokens[0]
         self.system_equation = tokens[1]
 
-    def used_process_names(self):
-        name_queue = self.system_equation.get_used_process_names()
-        used_names = set ()
-        while name_queue:
-            name = name_queue.pop()
-            if name not in used_names:
-                used_names.add(name)
-                definition = [ x for x in self.process_definitions
-                                   if x.lhs == name ][0]
-                new_names = definition.rhs.get_used_process_names()
-                # Do not forget to *not* add the current name to the queue
-                # since we have just popped it.
-                name_queue.update([ x for x in new_names if x != name])
-        return used_names
-
-    def get_process_actions(self):
-        actions_dictionary = dict()
-        for definition in self.process_definitions:
-            actions = definition.rhs.get_possible_actions()
-            actions_dictionary[definition.lhs] = actions
-        return actions_dictionary
-
-    def defined_process_names(self):
-        """Return the list of defined process names"""
-        return set([definition.lhs for definition in self.process_definitions ])
-
-    def get_initial_state(self):
+    def get_components(self):
+        """Returns a dictionary mapping each name used in the system equation
+           to a list of names reachable via actions from that name.
+        """
+        # Note that we could do a bit of memoisation here, since
+        # 'get_components' is used in both 'used_process_names' and
+        # 'get_initial_state', but we do not expect this to take a long time.
         used_processes = self.system_equation.get_used_process_names()
         components = dict()
         for name in used_processes:
@@ -247,6 +227,33 @@ class ParsedModel(object):
                     new_names = definition.rhs.get_used_process_names()
                     name_queue.update(new_names)
             components[name] = closure
+        return components
+
+    def used_process_names(self):
+        # I think that it is just possible for a name to be in two separate
+        # components. If it does not link back to other names, for example
+        # P = (a, r).Stop; Here it is possible that P is in two separate
+        # components. However, it's questionable as to whether that is wrong
+        # or not.
+        components = self.get_components()
+        used_names = set()
+        for names in components.values():
+            used_names.update(set(names))
+        return used_names
+
+    def get_process_actions(self):
+        actions_dictionary = dict()
+        for definition in self.process_definitions:
+            actions = definition.rhs.get_possible_actions()
+            actions_dictionary[definition.lhs] = actions
+        return actions_dictionary
+
+    def defined_process_names(self):
+        """Return the list of defined process names"""
+        return set([definition.lhs for definition in self.process_definitions ])
+
+    def get_initial_state(self):
+        components = self.get_components()
         return self.system_equation.get_initial_state(components)
     def get_state_builder(self):
         actions_dictionary = self.get_process_actions()

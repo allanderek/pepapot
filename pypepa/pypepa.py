@@ -233,12 +233,15 @@ class ParsedModel(object):
         used_processes = self.system_equation.get_used_process_names()
         components = dict()
         for name in used_processes:
-            closure = set()
+            # Closure is a list and not a set, because we wish for the order
+            # to be deterministic. This is because it is used in building
+            # the initial state and hence would otherwise be awkward to test.
+            closure = []
             name_queue = set([name])
             while name_queue:
                 name = name_queue.pop()
                 if name not in closure:
-                    closure.add(name)
+                    closure.append(name)
                     definition = [ x for x in self.process_definitions
                                    if x.lhs == name ][0]
                     new_names = definition.rhs.get_used_process_names()

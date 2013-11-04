@@ -276,9 +276,10 @@ def parse_model(model_string):
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
+
+        
 class LeafBuilder(object):
     def __init__(self, actions_dictionary):
-        self.leaves = 1
         self.state_dictionary = dict()
         self.actions_dictionary = actions_dictionary
         self.number_of_states = 0
@@ -293,7 +294,6 @@ class LeafBuilder(object):
 class AggregationBuilder(object):
     def __init__(self, lhs):
         self.lhs = lhs
-        self.leaves = self.lhs.leaves
         self.number_of_states = 0
         self.state_dictionary = dict()
 
@@ -306,7 +306,6 @@ class AggregationBuilder(object):
         # state should be a tuple mapping lhs states to numbers
         for index, (local_state, num) in enumerate(state):
             if num > 0:
-                # local_states = list(state)
                 local_transitions = self.lhs.get_transitions(local_state)
                 for transition in local_transitions:
                     # The successor state equals the current state but with
@@ -344,7 +343,6 @@ class CoopBuilder(object):
         self.rhs = rhs
         self.number_of_states = 0
         self.state_dictionary = dict()
-        self.leaves = lhs.leaves + rhs.leaves
 
     def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)

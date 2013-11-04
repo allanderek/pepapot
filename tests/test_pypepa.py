@@ -115,7 +115,6 @@ class TestSimpleNoCoop(unittest.TestCase):
     def test_state_space_size(self):
         self.assertEqual(len(self.model_solver.state_space), 
                          self.expected_state_space_size)
-
     def test_generator_matrix(self):
         for (row_number, row) in enumerate(self.model_solver.gen_matrix):
             self.assertEqual(0.0, sum(row))
@@ -237,7 +236,7 @@ class TestSimpleArray(TestSimpleNoCoop):
         super(TestSimpleArray, self).setUp()
         self.model_source = simple_components + "\nP[3] <a> Q[3]"
         self.expected_shared_actions = set(["a"])
-        self.expected_state_space_size = 64
+        self.expected_state_space_size = 16
         self.expected_initial_state = ((('P', 3), ('P1', 0)),
                                        (('Q', 3), ('Q1', 0))
                                       )

@@ -138,6 +138,9 @@ class ParsedAggregation(object):
         state_names = components[lhs]
         pairs = [(x, self.amount if x == lhs else 0) for x in state_names ]
         return tuple(pairs)
+    def get_state_builder(self, actions_dictionary):
+        lhs = self.lhs.get_state_builder(actions_dictionary)
+        return AggregationBuilder(lhs)
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -286,6 +289,42 @@ class LeafBuilder(object):
         self.state_dictionary[state] = StateInfo(self.number_of_states, transitions)
         self.number_of_states += 1
         return transitions
+
+class AggregationBuilder(object):
+    def __init__(self, lhs):
+        self.lhs = lhs
+        self.leaves = self.lhs.leaves
+        self.number_of_states = 0
+        self.state_dictionary = dict()
+
+    def get_transitions(self, state):
+        state_information = self.state_dictionary.get(state, None)
+        if state_information:
+            return state_information.transitions
+
+        new_transitions = []
+        # state should be a tuple mapping lhs states to numbers
+        for index, (local_state, num) in enumerate(state):
+            if num > 0:
+                local_states = list(state)
+                local_transitions = self.lhs.get_transitions(local_state)
+                for transition in local_transitions:
+                    # The successor state equals the current state but with
+                    # one fewer of the local state and one more of the
+                    # transition's target.
+                    successor = tuple([ (s, n-1) if s == local_state else
+                                          (s, n+1) if s == transition.successor else
+                                            (s, n) for (s, n) in state ])
+                    new_transition = Transition (transition.action,
+                                                 transition.rate * num,
+                                                 successor)
+                    new_transitions.append(new_transition)
+
+        state_number = self.number_of_states
+        state_information = StateInfo(state_number, new_transitions)
+        self.state_dictionary[state] = state_information
+        self.number_of_states += 1
+        return new_transitions
 
 class CoopBuilder(object):
     def __init__(self, lhs, coop_set, rhs):

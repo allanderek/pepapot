@@ -128,7 +128,9 @@ class TestSimpleNoCoop(unittest.TestCase):
         for (state, expected_probability) in self.expected_solution:
             state_number, transitions = state_space[state]
             probability = steady_solution[state_number]
-            message = str(steady_solution) + " is not the same as + " + str(self.expected_solution)
+            message = ("Probability for state: " + str(state) +
+                        " is calculated as " + str(probability) +
+                        " rather than the expected " + str(expected_probability))
             self.assertAlmostEqual(probability, expected_probability, msg=message)
 
     def test_utilisations(self):
@@ -240,6 +242,39 @@ class TestSimpleArray(TestSimpleNoCoop):
         self.expected_initial_state = ((('P', 3), ('P1', 0)),
                                        (('Q', 3), ('Q1', 0))
                                       )
+        self.expected_solution = [ ( ((('P', 3), ('P1', 0)),
+                                      (('Q', 3), ('Q1', 0))), 0.05791),
+                                   ( ((('P', 2), ('P1', 1)),
+                                      (('Q', 2), ('Q1', 1))), 0.16193),
+                                   ( ((('P', 1), ('P1', 2)),
+                                      (('Q', 1), ('Q1', 2))), 0.10596),
+                                   ( ((('P', 3), ('P1', 0)),
+                                      (('Q', 2), ('Q1', 1))), 0.08686),
+                                   ( ((('P', 2), ('P1', 1)),
+                                      (('Q', 3), ('Q1', 0))), 0.08686),
+                                   ( ((('P', 0), ('P1', 3)),
+                                      (('Q', 0), ('Q1', 3))), 0.01765),
+                                   ( ((('P', 2), ('P1', 1)),
+                                      (('Q', 1), ('Q1', 2))), 0.11850),
+                                   ( ((('P', 1), ('P1', 2)),
+                                      (('Q', 1), ('Q1', 2))), 0.11850),
+                                   ( ((('P', 1), ('P1', 2)),
+                                      (('Q', 0), ('Q1', 3))), 0.03429),
+                                   ( ((('P', 0), ('P1', 3)),
+                                      (('Q', 1), ('Q1', 2))), 0.03429),
+                                   ( ((('P', 3), ('P1', 0)),
+                                      (('Q', 1), ('Q1', 2))), 0.04933),
+                                   ( ((('P', 1), ('P1', 2)),
+                                      (('Q', 0), ('Q1', 3))), 0.04933),
+                                   ( ((('P', 2), ('P1', 1)),
+                                      (('Q', 0), ('Q1', 3))), 0.02948),
+                                   ( ((('P', 0), ('P1', 3)),
+                                      (('Q', 2), ('Q1', 1))), 0.02948),
+                                   ( ((('P', 3), ('P1', 0)),
+                                      (('Q', 0), ('Q1', 3))), 0.00983),
+                                   ( ((('P', 0), ('P1', 3)),
+                                      (('Q', 3), ('Q1', 0))), 0.00983)
+                                 ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

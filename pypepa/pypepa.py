@@ -117,8 +117,6 @@ class ParsedNamedComponent(object):
         """Mostly for testing purposes we return all activities shared
            at least once"""
         return set()
-    def get_initial_state(self, _components):
-        return self.identifier
     def get_builder(self, builder_helper):
         return builder_helper.leaf(self.identifier)
 
@@ -130,14 +128,6 @@ class ParsedAggregation(object):
         return self.lhs.get_used_process_names()
     def get_shared_actions(self):
         return self.lhs.get_shared_actions()
-    def get_initial_state(self, components):
-        # This assumes that lhs will be an identifier, which as I write this
-        # is enforced by the parser, but ultimately it would be good to allow
-        # (P <*> Q)[X]
-        lhs = self.lhs.get_initial_state(components)
-        state_names = components[lhs]
-        pairs = [(x, self.amount if x == lhs else 0) for x in state_names ]
-        return tuple(pairs)
     def get_builder(self, builder_helper):
         return builder_helper.aggregation(self.lhs, self.amount)
 
@@ -160,9 +150,6 @@ class ParsedSystemCooperation(object):
         these = set(self.cooperation_set)
         return these.union(left).union(right)
 
-    def get_initial_state(self, components):
-        return (self.lhs.get_initial_state(components),
-                self.rhs.get_initial_state(components))
     def get_builder(self, builder_helper):
         return builder_helper.cooperation(self.lhs, 
                                           self.cooperation_set, 
@@ -254,9 +241,6 @@ class ParsedModel(object):
         """Return the list of defined process names"""
         return set([definition.lhs for definition in self.process_definitions ])
 
-    def get_initial_state(self):
-        components = self.get_components()
-        return self.system_equation.get_initial_state(components)
     def get_builder(self, builder_helper):
         return self.system_equation.get_builder(builder_helper)
 
@@ -274,6 +258,27 @@ def parse_model(model_string):
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
+
+class InitialStateBuilderHelper(object):
+    def __init__(self, components):
+        self.components = components
+    def leaf(self, identifier):
+        # A leaf state is simply an identifier
+        return identifier
+    def aggregation(self, lhs, amount):
+        # This assumes that lhs will be an identifier, which as I write this
+        # is enforced by the parser, but ultimately it would be good to allow
+        # (P <*> Q)[X]
+        initial_name = lhs.get_builder(self)
+        state_names = self.components[initial_name]
+        pairs = [(x, amount if x == initial_name else 0) for x in state_names]
+        # An aggregation state is a tuple consisting of pairs. Each pair is
+        # the name of a local state and the number of components in that state
+        return tuple(pairs)
+    def cooperation(self, lhs, _coop_set, rhs):
+        # A cooperation state is simply a pair consisting of the left and
+        # right sub-states
+        return (lhs.get_builder(self), rhs.get_builder(self))
 
 class MemoisationBuilder(object):
     """ A somewhat abstract builder class which memorises the states which
@@ -444,7 +449,9 @@ class ModelSolver(object):
     @property
     def initial_state(self):
         if getattr(self, "_initial_state", None) is None:
-            self._initial_state = self.model.get_initial_state()
+            components = self.model.get_components()
+            builder_helper = InitialStateBuilderHelper(components)
+            self._initial_state = self.model.get_builder(builder_helper)
         return self._initial_state
 
     @property
@@ -468,7 +475,6 @@ class ModelSolver(object):
     @property
     def steady_utilisations(self):
         if getattr(self, "_steady_utilisations", None) is None:
-            initial_state = self.model.get_initial_state()
             self._steady_utilisations = self.get_utilisations()
         return self._steady_utilisations
 

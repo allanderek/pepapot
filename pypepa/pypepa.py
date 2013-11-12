@@ -121,8 +121,6 @@ class ParsedNamedComponent(object):
         return self.identifier
     def get_builder(self, builder_helper):
         return builder_helper.leaf(self.identifier)
-    def get_utilisation_builder(self):
-        return LeafUtilisations()
 
 class ParsedAggregation(object):
     def __init__(self, tokens):
@@ -142,8 +140,6 @@ class ParsedAggregation(object):
         return tuple(pairs)
     def get_builder(self, builder_helper):
         return builder_helper.aggregation(self.lhs, self.amount)
-    def get_utilisation_builder(self):
-        return AggregationUtilisations()
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -171,9 +167,6 @@ class ParsedSystemCooperation(object):
         return builder_helper.cooperation(self.lhs, 
                                           self.cooperation_set, 
                                           self.rhs)
-    def get_utilisation_builder(self):
-        return CoopUtilisations(self.lhs.get_utilisation_builder(),
-                                self.rhs.get_utilisation_builder())
 
 system_equation_grammar = pyparsing.Forward()
 system_equation_ident = identifier.copy()
@@ -266,8 +259,6 @@ class ParsedModel(object):
         return self.system_equation.get_initial_state(components)
     def get_builder(self, builder_helper):
         return self.system_equation.get_builder(builder_helper)
-    def get_utilisation_builder(self):
-        return self.system_equation.get_utilisation_builder()
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed
@@ -432,6 +423,16 @@ class CoopUtilisations(object):
     def get_utilisations(self):
         return self.lhs.get_utilisations() + self.rhs.get_utilisations()
 
+class UtilisationsBuilderHelper(object):
+    def __init__(self):
+        pass
+    def leaf(self, _identifier):
+        return LeafUtilisations()
+    def aggregation(self, lhs, _amount):
+        return AggregationUtilisations()
+    def cooperation(self, lhs, _coop_set, rhs):
+        return CoopUtilisations(lhs.get_builder(self), rhs.get_builder(self))
+
 class ModelSolver(object):
     """A full state space exploring model solver. This solver builds the
        entire state-space of the model and from that derives a CTMC which is
@@ -539,7 +540,8 @@ class ModelSolver(object):
         return result
 
     def get_utilisations(self):
-        utilisation_builder = self.model.get_utilisation_builder()
+        builder_helper = UtilisationsBuilderHelper()
+        utilisation_builder = self.model.get_builder(builder_helper)
         for (state, (state_number, transitions)) in self.state_space.items():
             probability = self.steady_solution[state_number]
             utilisation_builder.utilise_state(state, probability)

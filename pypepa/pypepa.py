@@ -119,8 +119,8 @@ class ParsedNamedComponent(object):
         return set()
     def get_initial_state(self, _components):
         return self.identifier
-    def get_state_builder(self, actions_dictionary):
-        return LeafBuilder(actions_dictionary)
+    def get_builder(self, builder_helper):
+        return builder_helper.leaf(self.identifier)
     def get_utilisation_builder(self):
         return LeafUtilisations()
 
@@ -140,9 +140,8 @@ class ParsedAggregation(object):
         state_names = components[lhs]
         pairs = [(x, self.amount if x == lhs else 0) for x in state_names ]
         return tuple(pairs)
-    def get_state_builder(self, actions_dictionary):
-        lhs = self.lhs.get_state_builder(actions_dictionary)
-        return AggregationBuilder(lhs)
+    def get_builder(self, builder_helper):
+        return builder_helper.aggregation(self.lhs, self.amount)
     def get_utilisation_builder(self):
         return AggregationUtilisations()
 
@@ -168,10 +167,10 @@ class ParsedSystemCooperation(object):
     def get_initial_state(self, components):
         return (self.lhs.get_initial_state(components),
                 self.rhs.get_initial_state(components))
-    def get_state_builder(self, actions_dictionary):
-        return CoopBuilder(self.lhs.get_state_builder(actions_dictionary),
-                           self.cooperation_set,
-                           self.rhs.get_state_builder(actions_dictionary))
+    def get_builder(self, builder_helper):
+        return builder_helper.cooperation(self.lhs, 
+                                          self.cooperation_set, 
+                                          self.rhs)
     def get_utilisation_builder(self):
         return CoopUtilisations(self.lhs.get_utilisation_builder(),
                                 self.rhs.get_utilisation_builder())
@@ -265,9 +264,8 @@ class ParsedModel(object):
     def get_initial_state(self):
         components = self.get_components()
         return self.system_equation.get_initial_state(components)
-    def get_state_builder(self):
-        actions_dictionary = self.get_process_actions()
-        return self.system_equation.get_state_builder(actions_dictionary)
+    def get_builder(self, builder_helper):
+        return self.system_equation.get_builder(builder_helper)
     def get_utilisation_builder(self):
         return self.system_equation.get_utilisation_builder()
 
@@ -309,6 +307,7 @@ class LeafBuilder(MemoisationBuilder):
         super(LeafBuilder, self).__init__()
         self.actions_dictionary = actions_dictionary
     def _compute_transitions(self, state):
+        # Leaf states are simply names
         actions = self.actions_dictionary[state]
         transitions = [ Transition(a.action, a.rate, a.successor) 
                         for a in actions ]
@@ -321,7 +320,8 @@ class AggregationBuilder(MemoisationBuilder):
 
     def _compute_transitions(self, state):
         new_transitions = []
-        # state should be a tuple mapping lhs states to numbers
+        # An aggregation, or array state is a tuple mapping
+        # lhs states to numbers
         for index, (local_state, num) in enumerate(state):
             if num > 0:
                 local_transitions = self.lhs.get_transitions(local_state)
@@ -360,6 +360,7 @@ class CoopBuilder(MemoisationBuilder):
         self.rhs = rhs
 
     def _compute_transitions(self, state):
+        # A cooperation state is simply a pair of the left and right states
         left_state, right_state = state
         left_transitions = self.lhs.get_transitions(left_state)
         right_transitions = self.rhs.get_transitions(right_state)
@@ -387,6 +388,17 @@ class CoopBuilder(MemoisationBuilder):
                 transitions.append(new_transition)
 
         return transitions
+
+class StateBuilderHelper(object):
+    def __init__(self, actions_dictionary):
+        self.actions_dictionary = actions_dictionary
+    def leaf(self, _identifier):
+        return LeafBuilder(self.actions_dictionary)
+    def aggregation(self, lhs, _amount):
+        return AggregationBuilder(lhs.get_builder(self))
+    def cooperation(self, lhs, coop_set, rhs):
+        return CoopBuilder(lhs.get_builder(self), coop_set, 
+                           rhs.get_builder(self))
 
 class LeafUtilisations(object):
     def __init__(self):
@@ -460,7 +472,8 @@ class ModelSolver(object):
         return self._steady_utilisations
 
     def build_state_space(self):
-        state_builder = self.model.get_state_builder()
+        builder_helper = StateBuilderHelper(self.model.get_process_actions())
+        state_builder = self.model.get_builder(builder_helper)
         explore_queue = set([self.initial_state])
         explored = set()
         while (explore_queue):

@@ -334,8 +334,11 @@ class AggregationBuilder(MemoisationBuilder):
                                 return n
                         successor = tuple([ (s, new_number(s,n)) 
                                              for (s, n) in state ])
+                    # I'm not 100% this always correct. Should we rather add
+                    # a number of new transitions (ie. num) where each
+                    # transition has the original rate?
                     new_transition = Transition (transition.action,
-                                                 transition.rate * num,
+                                                 num * transition.rate,
                                                  successor)
                     new_transitions.append(new_transition)
         return new_transitions
@@ -365,8 +368,8 @@ class CoopBuilder(MemoisationBuilder):
         for action in self.coop_set:
             left_shared = [ t for t in left_transitions if t.action == action]
             right_shared = [ t for t in right_transitions if t.action == action]
-            left_rate = sum([ t.rate for t in left_transitions ])
-            right_rate = sum([t.rate for t in right_transitions])
+            left_rate = sum([ t.rate for t in left_shared ])
+            right_rate = sum([t.rate for t in right_shared])
             governing_rate = min(left_rate, right_rate)
             for (left, right) in [ (l, r) for l in left_shared for r in right_shared ]:
                 rate = (left.rate / left_rate) * (right.rate / right_rate) * governing_rate
@@ -434,6 +437,14 @@ class ModelSolver(object):
                     explore_queue.add(new_state)
         return state_builder.state_dictionary
 
+    def print_state_space(self):
+        print("State space:")
+        for (state, state_info) in self.state_space.items():
+            print("State: " + str(state))
+            for transition in state_info.transitions:
+                print("    (" + transition.action + 
+                      ", " + str(transition.rate) + 
+                      ")." + str(transition.successor))
 
     def get_generator_matrix(self):
         # State space is a dictionary which maps a state representation to

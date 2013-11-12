@@ -121,6 +121,8 @@ class ParsedNamedComponent(object):
         return self.identifier
     def get_state_builder(self, actions_dictionary):
         return LeafBuilder(actions_dictionary)
+    def get_utilisation_builder(self):
+        return LeafUtilisations()
 
 class ParsedAggregation(object):
     def __init__(self, tokens):
@@ -141,6 +143,8 @@ class ParsedAggregation(object):
     def get_state_builder(self, actions_dictionary):
         lhs = self.lhs.get_state_builder(actions_dictionary)
         return AggregationBuilder(lhs)
+    def get_utilisation_builder(self):
+        return AggregationUtilisations()
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -168,6 +172,9 @@ class ParsedSystemCooperation(object):
         return CoopBuilder(self.lhs.get_state_builder(actions_dictionary),
                            self.cooperation_set,
                            self.rhs.get_state_builder(actions_dictionary))
+    def get_utilisation_builder(self):
+        return CoopUtilisations(self.lhs.get_utilisation_builder(),
+                                self.rhs.get_utilisation_builder())
 
 system_equation_grammar = pyparsing.Forward()
 system_equation_ident = identifier.copy()
@@ -261,6 +268,8 @@ class ParsedModel(object):
     def get_state_builder(self):
         actions_dictionary = self.get_process_actions()
         return self.system_equation.get_state_builder(actions_dictionary)
+    def get_utilisation_builder(self):
+        return self.system_equation.get_utilisation_builder()
 
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might indeed
@@ -379,6 +388,38 @@ class CoopBuilder(MemoisationBuilder):
 
         return transitions
 
+class LeafUtilisations(object):
+    def __init__(self):
+        self.utilisations = dict()
+    def utilise_state(self, state, probability):
+        # We assume that state is a string
+        self.utilisations[state] = self.utilisations.get(state, 0.0) + probability
+    def get_utilisations(self):
+        return [ self.utilisations ]
+    
+class AggregationUtilisations(object):
+    def __init__(self):
+        self.utilisations = dict()
+    def utilise_state(self, state, probability):
+        # We assume state is a tuple mapping names to numbers
+        for local_state, num in state:
+            additional_util = probability * num
+            previous_util = self.utilisations.get(local_state, 0.0)
+            self.utilisations[local_state] = previous_util + additional_util
+    def get_utilisations(self):
+        return [ self.utilisations ]
+
+class CoopUtilisations(object):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+    def utilise_state(self, state, probability):
+        left, right = state
+        self.lhs.utilise_state(left, probability)
+        self.rhs.utilise_state(right, probability)
+    def get_utilisations(self):
+        return self.lhs.get_utilisations() + self.rhs.get_utilisations()
+
 class ModelSolver(object):
     """A full state space exploring model solver. This solver builds the
        entire state-space of the model and from that derives a CTMC which is
@@ -485,22 +526,11 @@ class ModelSolver(object):
         return result
 
     def get_utilisations(self):
-        def flatten_state(state):
-            if isinstance(state, str):
-                return [ state ]
-            else:
-                left, right = state
-                return flatten_state(left) + flatten_state(right)
-        # The flattening of the initial state here just lets us know how many
-        # dictionaries we are going to return.
-        dictionaries = [ dict() for x in flatten_state(self.initial_state) ]
+        utilisation_builder = self.model.get_utilisation_builder()
         for (state, (state_number, transitions)) in self.state_space.items():
             probability = self.steady_solution[state_number]
-            local_states = flatten_state(state)
-            for dictionary, process_name in zip(dictionaries, local_states):
-                current_probability = dictionary.get(process_name, 0.0)
-                dictionary[process_name] = probability + current_probability
-        return dictionaries
+            utilisation_builder.utilise_state(state, probability)
+        return utilisation_builder.get_utilisations()
 
 def analyse_model(model_string):
     model = parse_model(model_string)

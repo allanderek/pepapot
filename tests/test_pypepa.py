@@ -275,6 +275,11 @@ class TestSimpleArray(TestSimpleNoCoop):
                                    ( ((('P', 0), ('P1', 3)),
                                       (('Q', 3), ('Q1', 0))), 0.009826078412105735)
                                  ]
+        self.expected_utilisations = [ dict([ ("P", 1.7133732927188765),
+                                              ("P1", 1.2866267072811248) ]),
+                                       dict([ ("Q", 1.7133732927188765),
+                                              ("Q1", 1.2866267072811248) ])
+                                     ]
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

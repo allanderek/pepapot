@@ -535,7 +535,8 @@ class ModelSolver(object):
         return gen_matrix
 
     def solve_generator_matrix(self):
-        solution_vector = numpy.zeros(len(self.gen_matrix), dtype=numpy.float64)
+        size = len(self.gen_matrix)
+        solution_vector = numpy.zeros(size, dtype=numpy.float64)
         solution_vector[0] = 1
         # This is the normalisation bit
         self.gen_matrix[:,0] = 1

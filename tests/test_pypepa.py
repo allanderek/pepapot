@@ -109,6 +109,7 @@ class TestSimpleNoCoop(unittest.TestCase):
                          self.expected_initial_state)
 
         # Test the size of the state space produced
+        model_solver.log_state_space()
         self.assertEqual(len(model_solver.state_space), 
                          self.expected_state_space_size)
                          
@@ -351,5 +352,5 @@ class TestChoiceAlias(TestSimpleNoCoop):
         super(TestChoiceAlias, self).test_actions()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.WARNING)
     unittest.main()

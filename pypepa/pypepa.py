@@ -473,16 +473,19 @@ class ModelSolver(object):
                 # that at some point.
                 if new_state not in explored and new_state != current_state:
                     explore_queue.add(new_state)
-        return state_builder.state_dictionary
+        state_space = state_builder.state_dictionary
+        return state_space
 
-    def print_state_space(self):
-        print("State space:")
-        for (state, state_info) in self.state_space.items():
-            print("State: " + str(state))
+    def log_state_space(self, state_space=None):
+        if state_space is None:
+            state_space = self.state_space
+        logging.info("State space:")
+        for (state, state_info) in state_space.items():
+            logging.info("State: " + str(state))
             for transition in state_info.transitions:
-                print("    (" + transition.action + 
-                      ", " + str(transition.rate) + 
-                      ")." + str(transition.successor))
+                logging.info("    (" + transition.action + 
+                                ", " + str(transition.rate) + 
+                                ")." + str(transition.successor))
 
     @lazy
     def gen_matrix(self):

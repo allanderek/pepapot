@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
@@ -30,7 +30,7 @@ setup(
     ],
     package_dir={'pypepa': 'pypepa'},
     include_package_data=True,
-    install_requires=[ "pyparsing", "numpy" ],
+    install_requires=[ "pyparsing", "numpy", "lazy" ],
     license="BSD",
     zip_safe=False,
     keywords='pypepa',

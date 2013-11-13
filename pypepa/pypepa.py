@@ -8,6 +8,7 @@ from collections import namedtuple
 import pyparsing
 from pyparsing import Combine, OneOrMore, Or, Group, Optional
 import numpy
+from lazy import lazy
 
 Action = namedtuple('Action', ["action", "rate", "successor" ])
 
@@ -446,39 +447,15 @@ class ModelSolver(object):
     def __init__(self, model):
         self.model = model
 
-    @property
+    @lazy
     def initial_state(self):
-        if getattr(self, "_initial_state", None) is None:
-            components = self.model.get_components()
-            builder_helper = InitialStateBuilderHelper(components)
-            self._initial_state = self.model.get_builder(builder_helper)
+        components = self.model.get_components()
+        builder_helper = InitialStateBuilderHelper(components)
+        self._initial_state = self.model.get_builder(builder_helper)
         return self._initial_state
 
-    @property
+    @lazy
     def state_space(self):
-        if getattr(self, "_state_space", None) is None:
-            self._state_space = self.build_state_space()
-        return self._state_space
-
-    @property
-    def gen_matrix(self):
-        if getattr(self, "_gen_matrix", None) is None:
-            self._gen_matrix = self.get_generator_matrix()
-        return self._gen_matrix
-
-    @property
-    def steady_solution(self):
-        if getattr(self, "_steady_solution", None) is None:
-            self._steady_solution = self.solve_generator_matrix()
-        return self._steady_solution
-
-    @property
-    def steady_utilisations(self):
-        if getattr(self, "_steady_utilisations", None) is None:
-            self._steady_utilisations = self.get_utilisations()
-        return self._steady_utilisations
-
-    def build_state_space(self):
         builder_helper = StateBuilderHelper(self.model.get_process_actions())
         state_builder = self.model.get_builder(builder_helper)
         explore_queue = set([self.initial_state])
@@ -489,11 +466,11 @@ class ModelSolver(object):
             successor_states = [ t.successor for t in transitions ]
             explored.add(current_state)
             for new_state in successor_states:
-                # Note that we should be careful if the new_state is the same as
-                # the current state. We won't put it in the explore_queue since
-                # the current state should be in explored. However it will mean 
-                # we have a self-loop, and we should probably flag that at some
-                # point.
+                # Note that we should be careful if the new_state is the same
+                # as the current state. We won't put it in the explore_queue
+                # since the current state should be in explored. However it
+                # will mean we have a self-loop, and we should probably flag
+                # that at some point.
                 if new_state not in explored and new_state != current_state:
                     explore_queue.add(new_state)
         return state_builder.state_dictionary
@@ -507,34 +484,41 @@ class ModelSolver(object):
                       ", " + str(transition.rate) + 
                       ")." + str(transition.successor))
 
-    def get_generator_matrix(self):
+    @lazy
+    def gen_matrix(self):
+        """ Build the generator matrix based on the state space of the model
+        """
         # State space is a dictionary which maps a state representation to
         # information about that state. Crucially, the state number and the
         # outgoing transitions. We could possibly store the state number
-        # together with the state itself, which would be useful because then the
-        # transitions would not need to look up the target states' numbers.
-        # This would require the state space build to give a number to each
-        # state as it is discovered, which in turn would require that it still
-        # stores some set/lookup of the state representation to the state number.
+        # together with the state itself, which would be useful because then
+        # the transitions would not need to look up the target states'
+        # numbers. This would require the state space build to give a number
+        # to each state as it is discovered, which in turn would require that
+        # it still stores some set/lookup of the state representation to the
+        # state number.
         size = len(self.state_space)
         gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
         for state_number, transitions in self.state_space.values():
             # For the current state we can obtain the set of transitions.
-            # This should be known as we would have done this during state_space
-            # exploration hence we can given None as the actions dictionary
+            # This should be known as we would have done this during
+            # state_space exploration hence we can given None as the actions
+            # dictionary
             total_out_rate = 0.0
             for transition in transitions:
                 target_state = transition.successor
                 target_info = self.state_space[target_state]
                 target_state_number = target_info.state_number
-                # It is += since there may be more than one transition to the same
-                # target state from the current state.
+                # It is += since there may be more than one transition to the
+                # same target state from the current state.
                 gen_matrix[state_number, target_state_number] += transition.rate
                 total_out_rate += transition.rate
             gen_matrix[state_number, state_number] = -total_out_rate
         return gen_matrix
 
-    def solve_generator_matrix(self):
+    @lazy
+    def steady_solution(self):
+        """Solve the generator matrix to obtain a steady solution"""
         size = len(self.gen_matrix)
         solution_vector = numpy.zeros(size, dtype=numpy.float64)
         solution_vector[0] = 1
@@ -543,10 +527,15 @@ class ModelSolver(object):
         # Note that here we must transpose the matrix, but arguably we could
         # just build it in the transposed form, since we never use the
         # transposed-form. This would include the above normalisation line.
-        result = numpy.linalg.solve(self.gen_matrix.transpose(), solution_vector)
+        result = numpy.linalg.solve(self.gen_matrix.transpose(), 
+                                    solution_vector)
         return result
 
-    def get_utilisations(self):
+    @lazy
+    def steady_utilisations(self):
+        """ From the steady state create a dictionary of utilisations for
+            each component in the system equation
+        """
         builder_helper = UtilisationsBuilderHelper()
         utilisation_builder = self.model.get_builder(builder_helper)
         for (state, (state_number, transitions)) in self.state_space.items():

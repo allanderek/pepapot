@@ -63,19 +63,7 @@ class TestSimpleNoCoop(unittest.TestCase):
                                        dict([ ("Q", 0.5),
                                               ("Q1", 0.5) ])
                                      ]
-
-    @property
-    def model(self):
-        if getattr(self, "_model", None) is None:
-            self._model = pypepa.parse_model(self.model_source)
-        return self._model
-
-    @property
-    def model_solver(self):
-        if getattr(self, "_model_solver", None) is None:
-            self._model_solver = pypepa.ModelSolver(self.model)
-        return self._model_solver
-
+                                     
     def assertAlmostEqual(self, a, b, msg=None):
         """A helper method to assert that two values are approximately equal.
            This is useful since floating point operations often do not end in
@@ -105,7 +93,7 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.assertEqual(shared_actions, self.expected_shared_actions)
 
        # Test the defined names
-        defined_names = self.model.defined_process_names()
+        defined_names = model.defined_process_names()
         self.assertEqual(defined_names, self.expected_defined_process_names)
 
         # Test the used names

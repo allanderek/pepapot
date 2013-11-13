@@ -92,50 +92,57 @@ class TestSimpleNoCoop(unittest.TestCase):
             message = msg + "\n   " + message
         self.assertTrue((abs(a - b)) < 1e-8, msg=message)
 
-    def test_parse_model(self):
-        shared_actions = self.model.system_equation.get_shared_actions()
+    # I had separate methods for testing each of these things, but I found
+    # that unittest re-created this class for each test, hence I was not
+    # remembering the previous computed values. Not a huge problem as
+    # everything was computed fast enough. But still, I think I prefer this.
+    def test_everything(self):
+        model = pypepa.parse_model(self.model_source)
+        model_solver = pypepa.ModelSolver(model)
+        
+        # Test the parser
+        shared_actions = model.system_equation.get_shared_actions()
         self.assertEqual(shared_actions, self.expected_shared_actions)
 
-    def test_used_names(self):
-        used_names = self.model.used_process_names()
-        self.assertEqual(used_names, self.expected_used_process_names)
-
-    def test_defined_names(self):
+       # Test the defined names
         defined_names = self.model.defined_process_names()
         self.assertEqual(defined_names, self.expected_defined_process_names)
 
-    def test_actions(self):
-        actual_actions = self.model.get_process_actions()
+        # Test the used names
+        used_names = model.used_process_names()
+        self.assertEqual(used_names, self.expected_used_process_names)
+
+        # Test the set of actions
+        actual_actions = model.get_process_actions()
         self.assertEqual(actual_actions, self.expected_actions_dictionary)
 
-    def test_initial_state(self):
-        self.assertEqual(self.model_solver.initial_state,
+        # Test the initial state
+        self.assertEqual(model_solver.initial_state,
                          self.expected_initial_state)
 
-    def test_state_space_size(self):
-        self.assertEqual(len(self.model_solver.state_space), 
+        # Test the size of the state space produced
+        self.assertEqual(len(model_solver.state_space), 
                          self.expected_state_space_size)
-    def test_generator_matrix(self):
-        for (row_number, row) in enumerate(self.model_solver.gen_matrix):
+                         
+        # Test the generator matrix
+        for (row_number, row) in enumerate(model_solver.gen_matrix):
             self.assertAlmostEqual(0.0, sum(row))
             self.assertTrue(row[row_number] < 0.0)
 
-    def test_steady_state_solve(self):
-        state_space = self.model_solver.state_space
-        steady_solution = self.model_solver.steady_solution
+        # Test the steady state solution
+        steady_solution = model_solver.steady_solution
         self.assertAlmostEqual(sum(steady_solution), 1.0,
                                msg="Probabilities do not add up to one")
         for (state, expected_probability) in self.expected_solution:
-            state_number, transitions = state_space[state]
+            state_number, transitions = model_solver.state_space[state]
             probability = steady_solution[state_number]
             message = ("Probability for state: " + str(state) +
                         " is calculated as " + str(probability) +
                         " rather than the expected " + str(expected_probability))
             self.assertAlmostEqual(probability, expected_probability, msg=message)
 
-    def test_utilisations(self):
-        steady_utilisations = self.model_solver.steady_utilisations
-        
+        # Test the steady state utilisations
+        steady_utilisations = model_solver.steady_utilisations
         for actual_utils, expected_utils in zip(steady_utilisations,
                                                 self.expected_utilisations):
             for process, utilisation in expected_utils.items():
@@ -295,25 +302,12 @@ class TestSimpleAlias(TestSimpleNoCoop):
     # unittest.expectedFailure, however I prefer this as if you decorate the
     # entire class, then it is essentially the same as skipping the tests, that
     # is no report is given saying how many expected failures there were.
+    # Additionally note that I would like to be able to have more fine-grained
+    # control on what I expect to fail here. For example I do not expect
+    # parsing to fail here.
     @unittest.expectedFailure
-    def test_actions(self):
+    def test_everything(self):
         super(TestSimpleAlias, self).test_actions()
-
-    @unittest.expectedFailure
-    def test_state_space_size(self):
-        super(TestSimpleAlias, self).test_state_space_size()
-
-    @unittest.expectedFailure
-    def test_generator_matrix(self):
-        super(TestSimpleAlias, self).test_generator_matrix()
-
-    @unittest.expectedFailure
-    def test_steady_state_solve(self):
-        super(TestSimpleAlias, self).test_steady_state_solve()
-
-    @unittest.expectedFailure
-    def test_utilisations(self):
-        super(TestSimpleAlias, self).test_utilisations()
 
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
@@ -365,24 +359,8 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_state_space_size = 4
 
     @unittest.expectedFailure
-    def test_actions(self):
+    def test_everything(self):
         super(TestChoiceAlias, self).test_actions()
-
-    @unittest.expectedFailure
-    def test_state_space_size(self):
-        super(TestChoiceAlias, self).test_state_space_size()
-
-    @unittest.expectedFailure
-    def test_generator_matrix(self):
-        super(TestChoiceAlias, self).test_generator_matrix()
-
-    @unittest.expectedFailure
-    def test_steady_state_solve(self):
-        super(TestChoiceAlias, self).test_steady_state_solve()
-
-    @unittest.expectedFailure
-    def test_utilisations(self):
-        super(TestChoiceAlias, self).test_utilisations()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

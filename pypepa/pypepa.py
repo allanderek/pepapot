@@ -9,7 +9,6 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
   """
-import sys
 import logging
 from collections import namedtuple
 
@@ -584,5 +583,6 @@ def run_command_line(default_outfile, argv=None):
             model_solver.output_steady_utilisations(default_outfile)
 
 if __name__ == "__main__": # pragma: no cover
+    import sys
     run_command_line(sys.stdout)
 

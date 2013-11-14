@@ -9,6 +9,7 @@ Tests for `pypepa` module.
 """
 
 import unittest
+import io
 import logging
 
 import numpy
@@ -426,6 +427,17 @@ class TestChoiceAlias(TestSimpleNoCoop):
     @unittest.expectedFailure
     def test_everything(self):
         super(TestChoiceAlias, self).test_actions()
+
+class TestCommandLine(unittest.TestCase):
+    def test_simple(self):
+        memory_file = io.StringIO()
+        pypepa.run_command_line(["steady", "util", "models/simple.pepa"],
+                                output_file=memory_file)
+        actual_output = memory_file.getvalue()
+        actual_lines = actual_output.split("\n")
+        expected_lines = [ "P1 : 0.4", "P : 0.6", "Q : 0.6", "Q1 : 0.4" ]
+        for line in expected_lines:
+            self.assertIn(line, actual_lines)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.WARNING)

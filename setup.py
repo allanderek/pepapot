@@ -19,7 +19,10 @@ readme = open('README.rst').read()
 setup(
     name='pypepa',
     version='0.1.0',
-    description='An attempt at writing a very simple PEPA tool in Python. It is intended to be a compliment to pyPEPA. Here though the focus is on being as simple as possible and hence can be used in, for example, student projects',
+    description="""An attempt at writing a very simple PEPA tool in Python. 
+                   It is intended to be a compliment to pyPEPA. Here though 
+                   the focus is on being as simple as possible and hence can 
+                   be used in, for example, student projects""",
     long_description=readme + '\n\n',
     author='Allan Clark',
     author_email='allan.clark@gmail.com',

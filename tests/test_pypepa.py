@@ -313,6 +313,44 @@ class TestSelfLoopArray(TestSimpleNoCoop):
                                        dict([ ("Q", 1.5),
                                               ("Q1", 1.5) ])
                                      ]
+
+class TestThreeStateArray(TestSimpleNoCoop):
+    """Test whether we correctly deal with a process with a self-loop. Partly
+       this test was added to gain extra coverage of tests which were missing
+       a couple of lines which expressely dealt with that situation for
+       aggregation.
+    """
+    def setUp(self):
+        self.model_source = """P  = (a, 1.0).P1;
+                               P1 = (b, 1.0).P2;
+                               P2 = (c, 1.0).P;
+                               P[3]
+                            """
+        self.expected_used_process_names = set(["P", "P1", "P2"])
+        self.expected_defined_process_names = set(["P", "P1", "P2"])
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [ Action("a", 1.0, "P1") ]
+        self.expected_actions_dictionary["P1" ] = [ Action("b", 1.0, "P2") ]
+        self.expected_actions_dictionary["P2" ] = [ Action("c", 1.0, "P") ]
+        self.expected_shared_actions = set([])
+        self.expected_state_space_size = 10
+        self.expected_initial_state = (('P', 3), ('P1', 0), ('P2', 0))
+        self.expected_solution = [ ( (('P', 3), ('P1', 0), ('P2', 0)), 0.03703703703703704 ),
+                                   ( (('P', 2), ('P1', 1), ('P2', 0)), 0.11111111111111112 ),
+                                   ( (('P', 2), ('P1', 0), ('P2', 1)), 0.11111111111111113 ),
+                                   ( (('P', 1), ('P1', 2), ('P2', 0)), 0.11111111111111112 ),
+                                   ( (('P', 1), ('P1', 1), ('P2', 1)), 0.22222222222222227 ),
+                                   ( (('P', 1), ('P1', 0), ('P2', 2)), 0.11111111111111112 ),
+                                   ( (('P', 0), ('P1', 3), ('P2', 0)), 0.03703703703703704 ),
+                                   ( (('P', 0), ('P1', 2), ('P2', 1)), 0.11111111111111113 ),
+                                   ( (('P', 0), ('P1', 1), ('P2', 2)), 0.11111111111111113 ),
+                                   ( (('P', 0), ('P1', 0), ('P2', 3)), 0.03703703703703705 )
+                                 ]
+        self.expected_utilisations = [ dict([ ("P", 1.0),
+                                              ("P1", 1.0),
+                                              ("P2", 1.0) ])
+                                     ]
                                  
 
 class TestSimpleAlias(TestSimpleNoCoop):

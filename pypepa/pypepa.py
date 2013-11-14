@@ -9,12 +9,11 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
   """
-from docopt import docopt
-
+import sys
 import logging
-
 from collections import namedtuple
 
+from docopt import docopt
 import pyparsing
 from pyparsing import Combine, OneOrMore, Or, Group, Optional
 import numpy
@@ -559,6 +558,15 @@ class ModelSolver(object):
             utilisation_builder.utilise_state(state, probability)
         return utilisation_builder.get_utilisations()
 
+    def output_steady_utilisations(self, writer):
+        for dictionary in self.steady_utilisations:
+            writer.write("----------------\n")
+            for component, probability in dictionary.items():
+                writer.write(component)
+                writer.write(" : ")
+                writer.write(str(probability))
+                writer.write("\n")
+
 
 # Now the command-line stuff
 def run_command_line(argv=None):
@@ -568,8 +576,7 @@ def run_command_line(argv=None):
             with open(filename, "r") as file:
                 model = parse_model(file.read())
             model_solver = ModelSolver(model)
-            steady_utilisations = model_solver.steady_utilisations
-            print (steady_utilisations)
+            model_solver.output_steady_utilisations(sys.stdout)
 
 if __name__ == "__main__": # pragma: no cover
     run_command_line()

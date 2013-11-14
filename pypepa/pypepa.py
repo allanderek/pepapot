@@ -568,21 +568,21 @@ class ModelSolver(object):
                 writer.write("\n")
 
 # Now the command-line stuff
-def run_command_line(argv=None, output_file=None):
-    # The output file should also be specified by the command-line. The fact
-    # that this takes in an argument is only so that the test routine can
-    # pass in an io.StringIO object as the output file and thus inspect the
-    # output for what is expected.
-    if output_file == None:
-        output_file = sys.stdout
+def run_command_line(default_outfile, argv=None):
+    """The default_out argument is used to specify a *default* output file.
+       We should also have a command-line option to specify the output file.
+       The reason this method takes it in as an argument is to allow
+       testing of the command-line interface by output to a memory_file 
+       (io.StringIO) which can then be inspected.
+    """
     arguments = docopt(__doc__, argv=argv, version='pypepa 0.1')
     for filename in arguments['<name>']:
         if arguments['steady'] and arguments['util']:
             with open(filename, "r") as file:
                 model = parse_model(file.read())
             model_solver = ModelSolver(model)
-            model_solver.output_steady_utilisations(output_file)
+            model_solver.output_steady_utilisations(default_outfile)
 
 if __name__ == "__main__": # pragma: no cover
-    run_command_line()
+    run_command_line(sys.stdout)
 

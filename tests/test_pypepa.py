@@ -431,8 +431,8 @@ class TestChoiceAlias(TestSimpleNoCoop):
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()
-        pypepa.run_command_line(["steady", "util", "models/simple.pepa"],
-                                output_file=memory_file)
+        pypepa.run_command_line(memory_file, ["steady", "util", 
+                                              "models/simple.pepa"])
         actual_output = memory_file.getvalue()
         actual_lines = actual_output.split("\n")
         expected_lines = [ "P1 : 0.4", "P : 0.6", "Q : 0.6", "Q1 : 0.4" ]

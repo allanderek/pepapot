@@ -571,6 +571,6 @@ def run_command_line(argv=None):
             steady_utilisations = model_solver.steady_utilisations
             print (steady_utilisations)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     run_command_line()
 

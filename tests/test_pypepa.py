@@ -163,7 +163,7 @@ class TestSimpleSingleCoop(TestSimpleNoCoop):
 
 class TestSimpleDoubleCoop(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can
-       and so many of th expected results are the same.
+       and so many of the expected results are the same.
     """
     def setUp(self):
         super(TestSimpleDoubleCoop, self).setUp()
@@ -276,6 +276,44 @@ class TestSimpleArray(TestSimpleNoCoop):
                                        dict([ ("Q", 1.7133732927188765),
                                               ("Q1", 1.2866267072811248) ])
                                      ]
+
+class TestSelfLoopArray(TestSimpleNoCoop):
+    """Test whether we correctly deal with a process with a self-loop. Partly
+       this test was added to gain extra coverage of tests which were missing
+       a couple of lines which expressely dealt with that situation for
+       aggregation.
+    """
+    def setUp(self):
+        self.model_source = """P = (a, 1.0).P;
+                               Q = (a, 1.0).Q1;
+                               Q1 = (b, 1.0).Q;
+                               P[3] <a> Q[3]
+                            """
+        self.expected_used_process_names = set(["P", "Q", "Q1"])
+        self.expected_defined_process_names = set(["P", "Q", "Q1"])
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [ Action("a", 1.0, "P") ]
+        self.expected_actions_dictionary["Q" ] = [ Action("a", 1.0, "Q1") ]
+        self.expected_actions_dictionary["Q1" ] = [ Action("b", 1.0, "Q") ]
+        self.expected_shared_actions = set(["a"])
+        self.expected_state_space_size = 4
+        self.expected_initial_state = ((('P', 3),),
+                                       (('Q', 3), ('Q1', 0)) )
+        self.expected_solution = [ ( ( (('P', 3), ),
+                                       (('Q', 3), ('Q1', 0)) ), 0.125 ),
+                                   ( ( (('P', 3), ),
+                                       (('Q', 2), ('Q1', 1)) ), 0.375 ),
+                                   ( ( (('P', 3), ),
+                                       (('Q', 1), ('Q1', 2)) ), 0.375 ),
+                                   ( ( (('P', 3), ),
+                                       (('Q', 0), ('Q1', 3)) ), 0.125 )
+                                 ]
+        self.expected_utilisations = [ dict([ ("P", 3.0) ]),
+                                       dict([ ("Q", 1.5),
+                                              ("Q1", 1.5) ])
+                                     ]
+                                 
 
 class TestSimpleAlias(TestSimpleNoCoop):
     """Similar to the above case we're only using super here because we can

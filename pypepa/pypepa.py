@@ -288,7 +288,10 @@ class MemoisationBuilder(object):
     """
     def __init__(self):
         self.state_dictionary = dict()
-    def _compute_transitions(self, state):
+    def _compute_transitions(self, state): #pragma: no cover
+        # Just using a pragma at the moment to exclude this from coverage
+        # Could otherwise use a '.coveragerc' file as described at:
+        # http://nedbatchelder.com/code/coverage/config.html#config
         raise Exception("Unimplemented abstract method: _compute_transitions")
     def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)

@@ -1,6 +1,16 @@
-"""The main source of the pypepa library"""
+"""pypepa.
 
-import argparse
+Usage:
+  pypepa.py steady util <name>...
+  pypepa.py -h | --help
+  pypepa.py --version
+
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+  """
+from docopt import docopt
+
 import logging
 
 from collections import namedtuple
@@ -549,59 +559,18 @@ class ModelSolver(object):
             utilisation_builder.utilise_state(state, probability)
         return utilisation_builder.get_utilisations()
 
-def analyse_model(model_string):
-    model = parse_model(model_string)
 
-    logging.debug (model)
-    logging.debug ("Defined process names:")
-    for name in defined_process_names(model):
-        logging.debug ("    " + name)
-    logging.debug ("Referenced process names:")
-    for name in used_process_names(model):
-        logging.debug ("    " + name)
-            
-def analyse_pepa_file(filename):
-    with open(filename, "r") as pepa_file:
-        model_string = pepa_file.read()
-        analyse_model(model_string)
-
-
-def run ():
-    """perform the banalities of command-line argument processing 
-        and then begin the appropriate command
-    """
-    description = "The pypepa command-line tool"
-    parser = argparse.ArgumentParser(description=description)
-    # Probably parse will not ultimately be a command, but is here for testing
-    # in the early stages.
-    command_choices = ["parse"]
-    parser.add_argument('command', metavar='COMMAND', nargs='?', default="parse",
-                        choices=command_choices, 
-                        help="The command to perform: " + ", ".join(command_choices))
-    parser.add_argument('filenames', metavar='F', nargs='+',
-                        help="A PEPA file")
-    log_choices = [ "info", "warning", "error", "critical", "debug" ]
-    parser.add_argument('--loglevel', action='store',
-                        choices=log_choices, default='info',
-                        help="Set the level of the logger")
-    parser.add_argument('--logfile', action='store', default=None,
-                        help="The file to output the log to")
-
-    arguments = parser.parse_args()
-
-    # Initialise the logger
-    numerical_level = getattr(logging, arguments.loglevel.upper(), None)
-    if arguments.logfile:
-        logging.basicConfig(filename=arguments.logfile, level=numerical_level)
-    else:
-        logging.basicConfig(level=numerical_level)
-    # We could also change the format of the logging messages to
-    # something like: format='%(levelname)s:%(message)s'
-
-    for filename in arguments.filenames:
-        if arguments.command == "parse":
-            analyse_pepa_file(filename)
-
+# Now the command-line stuff
+def run_command_line(argv=None):
+    arguments = docopt(__doc__, version='pypepa 0.1')
+    for filename in arguments['<name>']:
+        if arguments['steady'] and arguments['util']:
+            with open(filename, "r") as file:
+                model = parse_model(file.read())
+            model_solver = ModelSolver(model)
+            steady_utilisations = model_solver.steady_utilisations
+            print (steady_utilisations)
 
 if __name__ == "__main__":
-    run()
+    run_command_line()
+

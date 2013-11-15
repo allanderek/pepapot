@@ -18,24 +18,25 @@ from pyparsing import Combine, OneOrMore, Or, Group, Optional
 import numpy
 from lazy import lazy
 
-Action = namedtuple('Action', ["action", "rate", "successor" ])
+Action = namedtuple('Action', ["action", "rate", "successor"])
 
 identifier = pyparsing.Word(pyparsing.alphanums)
 
 # TODO: There is a fairly good calculator parsing example which includes
 # identifiers as expressions. It can be found at:
-# http://pyparsing.wikispaces.com/file/view/SimpleCalc.py/30112812/SimpleCalc.py
+# pyparsing.wikispaces.com/file/view/SimpleCalc.py/30112812/SimpleCalc.py
 plusorminus = pyparsing.Literal('+') | pyparsing.Literal('-')
-number = pyparsing.Word(pyparsing.nums) 
-integer = Combine( Optional(plusorminus) + number )
-floatnumber = Combine( integer + 
-                       Optional( pyparsing.Literal('.') + number ) +
-                       Optional( pyparsing.CaselessLiteral('E') + integer )
-                     )
+number = pyparsing.Word(pyparsing.nums)
+integer = Combine(Optional(plusorminus) + number)
+floatnumber = Combine(integer +
+                      Optional(pyparsing.Literal('.') + number) +
+                      Optional(pyparsing.CaselessLiteral('E') + integer)
+                      )
 expr = floatnumber.copy()
 expr.setParseAction(lambda tokens: float(tokens[0]))
 
 rate_grammar = expr
+
 
 class ProcessIdentifier(object):
     def __init__(self, tokens):
@@ -45,11 +46,12 @@ class ProcessIdentifier(object):
         return self.name
 
     def get_used_process_names(self):
-        return set([ self.name ])
+        return set([self.name])
 process_identifier = identifier.copy()
 process_identifier.setParseAction(ProcessIdentifier)
 
 process_leaf = pyparsing.Forward()
+
 
 class PrefixNode(object):
     def __init__(self, tokens):
@@ -61,10 +63,12 @@ class PrefixNode(object):
         return self.successor.get_used_process_names()
 
     def get_possible_actions(self):
-        return [ Action(self.action, self.rate, str(self.successor)) ]
+        return [Action(self.action, self.rate, str(self.successor))]
 
-prefix_grammar  = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
+prefix_grammar = ("(" + identifier + "," + rate_grammar + ")" +
+                  "." + process_leaf)
 prefix_grammar.setParseAction(PrefixNode)
+
 
 class ChoiceNode(object):
     def __init__(self, tokens):
@@ -72,14 +76,15 @@ class ChoiceNode(object):
         self.rhs = tokens[2]
 
     def get_possible_actions(self):
-        left_actions  = self.lhs.get_possible_actions()
+        left_actions = self.lhs.get_possible_actions()
         right_actions = self.rhs.get_possible_actions()
         # Because we are not using sets here it is possible that we have
-        # duplicates, this is interesting, I'm not sure what to make of, for
-        # examples "P = (a,r).P1 + (a,r).P1", should it occur at twice the rate?
-        # We could detect duplicates at this stage and double the rate. In fact
-        # they would not need to be duplicates, simply sum the rates, eg:
-        # "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
+        # duplicates, this is interesting, I'm not sure what to make of,
+        # for example, "P = (a,r).P1 + (a,r).P1",
+        # should it occur at twice the rate?
+        # We could detect duplicates at this stage and multiply the rate.
+        # In fact they would not need to be duplicates, simply sum the rates,
+        # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         return left_actions + right_actions
 
     def get_used_process_names(self):
@@ -89,8 +94,10 @@ class ChoiceNode(object):
 
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()
-process_grammar << process_leaf + Optional ("+" + process_grammar)
-def create_process (tokens):
+process_grammar << process_leaf + Optional("+" + process_grammar)
+
+
+def create_process(tokens):
     if len(tokens) == 3:
         return ChoiceNode(tokens)
     else:
@@ -98,47 +105,58 @@ def create_process (tokens):
 process_grammar.setParseAction(create_process)
 
 
-
 class ProcessDefinition(object):
     def __init__(self, tokens):
         self.lhs = tokens[0]
         self.rhs = tokens[2]
+
+
 process_definition_grammar = identifier + "=" + process_grammar + ";"
 process_definition_grammar.setParseAction(ProcessDefinition)
 process_definitions_grammar = Group(OneOrMore(process_definition_grammar))
 
 activity_list_grammar = "<" + pyparsing.delimitedList(identifier, ",") + ">"
-cooperation_set_grammar =Or([pyparsing.Literal("||"), activity_list_grammar])
+cooperation_set_grammar = Or([pyparsing.Literal("||"), activity_list_grammar])
+
+
 def get_action_set(tokens):
     # It's a double list because otherwise the system_equation_parser will
     # assume the list returned is a set of tokens and concatenate it in with
     # the other tokens.
-    return [[ x for x in tokens if x not in [ "||", "<", ">"] ]]
+    return [[x for x in tokens if x not in ["||", "<", ">"]]]
 cooperation_set_grammar.setParseAction(get_action_set)
 
 
 class ParsedNamedComponent(object):
     def __init__(self, tokens):
         self.identifier = tokens[0]
+
     def get_used_process_names(self):
         return set(self.identifier)
+
     def get_shared_actions(self):
         """Mostly for testing purposes we return all activities shared
            at least once"""
         return set()
+
     def get_builder(self, builder_helper):
         return builder_helper.leaf(self.identifier)
+
 
 class ParsedAggregation(object):
     def __init__(self, tokens):
         self.lhs = tokens[0]
         self.amount = tokens[1]
+
     def get_used_process_names(self):
         return self.lhs.get_used_process_names()
+
     def get_shared_actions(self):
         return self.lhs.get_shared_actions()
+
     def get_builder(self, builder_helper):
         return builder_helper.aggregation(self.lhs, self.amount)
+
 
 class ParsedSystemCooperation(object):
     def __init__(self, tokens):
@@ -160,8 +178,8 @@ class ParsedSystemCooperation(object):
         return these.union(left).union(right)
 
     def get_builder(self, builder_helper):
-        return builder_helper.cooperation(self.lhs, 
-                                          self.cooperation_set, 
+        return builder_helper.cooperation(self.lhs,
+                                          self.cooperation_set,
                                           self.rhs)
 
 system_equation_grammar = pyparsing.Forward()
@@ -172,6 +190,8 @@ system_equation_ident.setParseAction(ParsedNamedComponent)
 # translation to ODEs.
 array_suffix = "[" + number + "]"
 array_suffix.setParseAction(lambda x: int(x[1]))
+
+
 # This way means that aggregation can only be applied to a single identifier
 # such as "P[10]". We could also allow for example "(P <a> Q)[10]".
 def create_aggregation(tokens):
@@ -179,12 +199,15 @@ def create_aggregation(tokens):
         return ParsedAggregation(tokens)
     else:
         return tokens
+
+
 system_equation_aggregation = system_equation_ident + Optional(array_suffix)
 system_equation_aggregation.setParseAction(create_aggregation)
 system_equation_paren = "(" + system_equation_grammar + ")"
 system_equation_paren.setParseAction(lambda x: x[1])
-system_equation_atom = Or ([system_equation_aggregation,
-                            system_equation_paren])
+system_equation_atom = Or([system_equation_aggregation,
+                           system_equation_paren])
+
 
 def create_system_component(tokens):
     if len(tokens) > 1:
@@ -192,9 +215,10 @@ def create_system_component(tokens):
     else:
         return tokens
 system_equation_grammar << (system_equation_atom +
-                            Optional(cooperation_set_grammar + 
+                            Optional(cooperation_set_grammar +
                                      system_equation_grammar))
 system_equation_grammar.setParseAction(create_system_component)
+
 
 class ParsedModel(object):
     def __init__(self, tokens):
@@ -220,8 +244,8 @@ class ParsedModel(object):
                 name = name_queue.pop()
                 if name not in closure:
                     closure.append(name)
-                    definition = [ x for x in self.process_definitions
-                                   if x.lhs == name ][0]
+                    definition = [x for x in self.process_definitions
+                                  if x.lhs == name][0]
                     new_names = definition.rhs.get_used_process_names()
                     name_queue.update(new_names)
             components[name] = closure
@@ -248,16 +272,18 @@ class ParsedModel(object):
 
     def defined_process_names(self):
         """Return the list of defined process names"""
-        return set([definition.lhs for definition in self.process_definitions ])
+        names = [definition.lhs for definition in self.process_definitions]
+        return set(names)
 
     def get_builder(self, builder_helper):
         return self.system_equation.get_builder(builder_helper)
 
 # Note, this parser does not insist on the end of the input text. Which means
-# in theory you could have something *after* the model text, which might indeed
-# be what you are wishing for. See parse_model for a whole input parser
+# in theory you could have something *after* the model text, which might
+# indeed be what you are wishing for. See parse_model for a whole input parser
 model_grammar = process_definitions_grammar + system_equation_grammar
 model_grammar.setParseAction(ParsedModel)
+
 
 def parse_model(model_string):
     # Parses a model and also ensures that we have consumed the entire input
@@ -268,12 +294,15 @@ def parse_model(model_string):
 Transition = namedtuple('Transition', ["action", "rate", "successor"])
 StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
 
+
 class InitialStateBuilderHelper(object):
     def __init__(self, components):
         self.components = components
+
     def leaf(self, identifier):
         # A leaf state is simply an identifier
         return identifier
+
     def aggregation(self, lhs, amount):
         # This assumes that lhs will be an identifier, which as I write this
         # is enforced by the parser, but ultimately it would be good to allow
@@ -284,10 +313,12 @@ class InitialStateBuilderHelper(object):
         # An aggregation state is a tuple consisting of pairs. Each pair is
         # the name of a local state and the number of components in that state
         return tuple(pairs)
+
     def cooperation(self, lhs, _coop_set, rhs):
         # A cooperation state is simply a pair consisting of the left and
         # right sub-states
         return (lhs.get_builder(self), rhs.get_builder(self))
+
 
 class MemoisationBuilder(object):
     """ A somewhat abstract builder class which memorises the states which
@@ -296,11 +327,13 @@ class MemoisationBuilder(object):
     """
     def __init__(self):
         self.state_dictionary = dict()
-    def _compute_transitions(self, state): #pragma: no cover
+
+    def _compute_transitions(self, state):  # pragma: no cover
         # Just using a pragma at the moment to exclude this from coverage
         # Could otherwise use a '.coveragerc' file as described at:
         # http://nedbatchelder.com/code/coverage/config.html#config
         raise Exception("Unimplemented abstract method: _compute_transitions")
+
     def get_transitions(self, state):
         state_information = self.state_dictionary.get(state, None)
         if state_information:
@@ -309,17 +342,20 @@ class MemoisationBuilder(object):
         state_information = StateInfo(len(self.state_dictionary), transitions)
         self.state_dictionary[state] = state_information
         return transitions
-    
+
+
 class LeafBuilder(MemoisationBuilder):
     def __init__(self, actions_dictionary):
         super(LeafBuilder, self).__init__()
         self.actions_dictionary = actions_dictionary
+
     def _compute_transitions(self, state):
         # Leaf states are simply names
         actions = self.actions_dictionary[state]
-        transitions = [ Transition(a.action, a.rate, a.successor) 
-                        for a in actions ]
+        transitions = [Transition(a.action, a.rate, a.successor)
+                       for a in actions]
         return transitions
+
 
 class AggregationBuilder(MemoisationBuilder):
     def __init__(self, lhs):
@@ -349,16 +385,17 @@ class AggregationBuilder(MemoisationBuilder):
                                 return n + 1
                             else:
                                 return n
-                        successor = tuple([ (s, new_number(s,n)) 
-                                             for (s, n) in state ])
+                        successor = tuple([(s, new_number(s, n))
+                                           for (s, n) in state])
                     # I'm not 100% this always correct. Should we rather add
                     # a number of new transitions (ie. num) where each
                     # transition has the original rate?
-                    new_transition = Transition (transition.action,
-                                                 num * transition.rate,
-                                                 successor)
+                    new_transition = Transition(transition.action,
+                                                num * transition.rate,
+                                                successor)
                     new_transitions.append(new_transition)
         return new_transitions
+
 
 class CoopBuilder(MemoisationBuilder):
     def __init__(self, lhs, coop_set, rhs):
@@ -376,79 +413,104 @@ class CoopBuilder(MemoisationBuilder):
         for transition in left_transitions:
             if transition.action not in self.coop_set:
                 new_state = (transition.successor, right_state)
-                new_transition = Transition(transition.action, transition.rate,  new_state)
+                new_transition = transition._replace(successor=new_state)
                 transitions.append(new_transition)
         for transition in right_transitions:
             if transition.action not in self.coop_set:
                 new_state = (left_state, transition.successor)
-                new_transition = Transition(transition.action, transition.rate,  new_state)
+                new_transition = transition._replace(successor=new_state)
                 transitions.append(new_transition)
         for action in self.coop_set:
-            left_shared = [ t for t in left_transitions if t.action == action]
-            right_shared = [ t for t in right_transitions if t.action == action]
-            left_rate = sum([ t.rate for t in left_shared ])
+            left_shared = [t for t in left_transitions if t.action == action]
+            right_shared = [t for t in right_transitions if t.action == action]
+            left_rate = sum([t.rate for t in left_shared])
             right_rate = sum([t.rate for t in right_shared])
             governing_rate = min(left_rate, right_rate)
-            for (left, right) in [ (l, r) for l in left_shared for r in right_shared ]:
-                rate = (left.rate / left_rate) * (right.rate / right_rate) * governing_rate
+            transition_pairs = [(l, r)
+                                for l in left_shared
+                                for r in right_shared]
+            for (left, right) in transition_pairs:
+                rate = ((left.rate / left_rate) *
+                        (right.rate / right_rate) *
+                        governing_rate)
                 new_state = (left.successor, right.successor)
                 new_transition = Transition(action, rate, new_state)
                 transitions.append(new_transition)
 
         return transitions
 
+
 class StateBuilderHelper(object):
     def __init__(self, actions_dictionary):
         self.actions_dictionary = actions_dictionary
+
     def leaf(self, _identifier):
         return LeafBuilder(self.actions_dictionary)
+
     def aggregation(self, lhs, _amount):
         return AggregationBuilder(lhs.get_builder(self))
+
     def cooperation(self, lhs, coop_set, rhs):
-        return CoopBuilder(lhs.get_builder(self), coop_set, 
+        return CoopBuilder(lhs.get_builder(self), coop_set,
                            rhs.get_builder(self))
+
 
 class LeafUtilisations(object):
     def __init__(self):
         self.utilisations = dict()
+
     def utilise_state(self, state, probability):
-        # We assume that state is a string
-        self.utilisations[state] = self.utilisations.get(state, 0.0) + probability
+        # We assume that state is a string representing the local state of
+        # the process.
+        previous_utilisation = self.utilisations.get(state, 0.0)
+        self.utilisations[state] = previous_utilisation + probability
+
     def get_utilisations(self):
-        return [ self.utilisations ]
-    
+        return [self.utilisations]
+
+
 class AggregationUtilisations(object):
     def __init__(self):
         self.utilisations = dict()
+
     def utilise_state(self, state, probability):
         # We assume state is a tuple mapping names to numbers
         for local_state, num in state:
             additional_util = probability * num
             previous_util = self.utilisations.get(local_state, 0.0)
             self.utilisations[local_state] = previous_util + additional_util
+
     def get_utilisations(self):
-        return [ self.utilisations ]
+        return [self.utilisations]
+
 
 class CoopUtilisations(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
+
     def utilise_state(self, state, probability):
         left, right = state
         self.lhs.utilise_state(left, probability)
         self.rhs.utilise_state(right, probability)
+
     def get_utilisations(self):
         return self.lhs.get_utilisations() + self.rhs.get_utilisations()
+
 
 class UtilisationsBuilderHelper(object):
     def __init__(self):
         pass
+
     def leaf(self, _identifier):
         return LeafUtilisations()
+
     def aggregation(self, lhs, _amount):
         return AggregationUtilisations()
+
     def cooperation(self, lhs, _coop_set, rhs):
         return CoopUtilisations(lhs.get_builder(self), rhs.get_builder(self))
+
 
 class ModelSolver(object):
     """A full state space exploring model solver. This solver builds the
@@ -474,7 +536,7 @@ class ModelSolver(object):
         while (explore_queue):
             current_state = explore_queue.pop()
             transitions = state_builder.get_transitions(current_state)
-            successor_states = [ t.successor for t in transitions ]
+            successor_states = [t.successor for t in transitions]
             explored.add(current_state)
             for new_state in successor_states:
                 # Note that we should be careful if the new_state is the same
@@ -494,9 +556,9 @@ class ModelSolver(object):
         for (state, state_info) in state_space.items():
             logging.info("State: " + str(state))
             for transition in state_info.transitions:
-                logging.info("    (" + transition.action + 
-                                ", " + str(transition.rate) + 
-                                ")." + str(transition.successor))
+                logging.info("    (" + transition.action +
+                             ", " + str(transition.rate) +
+                             ")." + str(transition.successor))
 
     @lazy
     def gen_matrix(self):
@@ -522,10 +584,10 @@ class ModelSolver(object):
             for transition in transitions:
                 target_state = transition.successor
                 target_info = self.state_space[target_state]
-                target_state_number = target_info.state_number
+                target_number = target_info.state_number
                 # It is += since there may be more than one transition to the
                 # same target state from the current state.
-                gen_matrix[state_number, target_state_number] += transition.rate
+                gen_matrix[state_number, target_number] += transition.rate
                 total_out_rate += transition.rate
             gen_matrix[state_number, state_number] = -total_out_rate
         return gen_matrix
@@ -537,11 +599,11 @@ class ModelSolver(object):
         solution_vector = numpy.zeros(size, dtype=numpy.float64)
         solution_vector[0] = 1
         # This is the normalisation bit
-        self.gen_matrix[:,0] = 1
+        self.gen_matrix[:, 0] = 1
         # Note that here we must transpose the matrix, but arguably we could
         # just build it in the transposed form, since we never use the
         # transposed-form. This would include the above normalisation line.
-        result = numpy.linalg.solve(self.gen_matrix.transpose(), 
+        result = numpy.linalg.solve(self.gen_matrix.transpose(),
                                     solution_vector)
         return result
 
@@ -566,12 +628,13 @@ class ModelSolver(object):
                 writer.write(str(probability))
                 writer.write("\n")
 
+
 # Now the command-line stuff
 def run_command_line(default_outfile, argv=None):
     """The default_out argument is used to specify a *default* output file.
        We should also have a command-line option to specify the output file.
        The reason this method takes it in as an argument is to allow
-       testing of the command-line interface by output to a memory_file 
+       testing of the command-line interface by output to a memory_file
        (io.StringIO) which can then be inspected.
     """
     arguments = docopt(__doc__, argv=argv, version='pypepa 0.1')
@@ -582,7 +645,6 @@ def run_command_line(default_outfile, argv=None):
             model_solver = ModelSolver(model)
             model_solver.output_steady_utilisations(default_outfile)
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import sys
     run_command_line(sys.stdout)
-

@@ -1,15 +1,15 @@
 ===============================
-pypepa
+pepapot
 ===============================
 
-.. image:: https://badge.fury.io/py/pypepa.png
-    :target: http://badge.fury.io/py/pypepa
+.. image:: https://badge.fury.io/py/pepapot.png
+    :target: http://badge.fury.io/py/pepapot
     
-.. image:: https://travis-ci.org/allanderek/pypepa.png?branch=master
-        :target: https://travis-ci.org/allanderek/pypepa
+.. image:: https://travis-ci.org/allanderek/pepapot.png?branch=master
+        :target: https://travis-ci.org/allanderek/pepapot
 
-.. image:: https://pypip.in/d/pypepa/badge.png
-        :target: https://crate.io/packages/pypepa?version=latest
+.. image:: https://pypip.in/d/pepapot/badge.png
+        :target: https://crate.io/packages/pepapot?version=latest
 
 
 An attempt at writing a very simple PEPA tool in Python. It is intended to be
@@ -17,7 +17,7 @@ a compliment to pyPEPA. Here though the focus is on being as simple as
 possible and hence can be used in, for example, student projects.
 
 * Free software: BSD license
-* Documentation: http://pypepa.rtfd.org.
+* Documentation: http://pepapot.rtfd.org.
 
 Features
 --------

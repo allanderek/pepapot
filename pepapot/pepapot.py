@@ -1,9 +1,9 @@
-"""pypepa.
+"""pepapot.
 
 Usage:
-  pypepa.py steady util <name>...
-  pypepa.py -h | --help
-  pypepa.py --version
+  pepapot.py steady util <name>...
+  pepapot.py -h | --help
+  pepapot.py --version
 
 Options:
   -h --help     Show this screen.
@@ -637,7 +637,7 @@ def run_command_line(default_outfile, argv=None):
        testing of the command-line interface by output to a memory_file
        (io.StringIO) which can then be inspected.
     """
-    arguments = docopt(__doc__, argv=argv, version='pypepa 0.1')
+    arguments = docopt(__doc__, argv=argv, version='pepapot 0.1')
     for filename in arguments['<name>']:
         if arguments['steady'] and arguments['util']:
             with open(filename, "r") as file:

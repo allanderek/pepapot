@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 """
-test_pypepa
+test_pepapot
 ----------------------------------
 
-Tests for `pypepa` module.
+Tests for `pepapot` module.
 """
 
 import unittest
 import io
 import logging
 
-from pypepa import pypepa
-Action = pypepa.Action
+from pepapot import pepapot
+Action = pepapot.Action
 
 simple_components = """
 P = (a,1.0).P1;
@@ -83,8 +83,8 @@ class TestSimpleNoCoop(unittest.TestCase):
     # remembering the previous computed values. Not a huge problem as
     # everything was computed fast enough. But still, I think I prefer this.
     def test_everything(self):
-        model = pypepa.parse_model(self.model_source)
-        model_solver = pypepa.ModelSolver(model)
+        model = pepapot.parse_model(self.model_source)
+        model_solver = pepapot.ModelSolver(model)
 
         # Test the parser
         shared_actions = model.system_equation.get_shared_actions()
@@ -433,7 +433,7 @@ class TestChoiceAlias(TestSimpleNoCoop):
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()
-        pypepa.run_command_line(memory_file, ["steady", "util",
+        pepapot.run_command_line(memory_file, ["steady", "util",
                                               "models/simple.pepa"])
         actual_output = memory_file.getvalue()
         actual_lines = actual_output.split("\n")

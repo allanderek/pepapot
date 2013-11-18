@@ -17,7 +17,7 @@ if sys.argv[-1] == 'publish':
 readme = open('README.rst').read()
 
 setup(
-    name='pypepa',
+    name='pepapot',
     version='0.1.0',
     description="""An attempt at writing a very simple PEPA tool in Python. 
                    It is intended to be a compliment to pyPEPA. Here though 
@@ -26,16 +26,16 @@ setup(
     long_description=readme + '\n\n',
     author='Allan Clark',
     author_email='allan.clark@gmail.com',
-    url='https://github.com/allanderek/pypepa',
+    url='https://github.com/allanderek/pepapot',
     packages=[
-        'pypepa',
+        'pepapot',
     ],
-    package_dir={'pypepa': 'pypepa'},
+    package_dir={'pepapot': 'pepapot'},
     include_package_data=True,
     install_requires=[ "pyparsing", "numpy", "lazy" ],
     license="BSD",
     zip_safe=False,
-    keywords='pypepa',
+    keywords='pepapot',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',

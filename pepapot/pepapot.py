@@ -248,6 +248,12 @@ class ParsedModel(object):
         self.process_definitions = proc_defs
         self.system_equation = sys_equation
 
+    def get_process_definition(self, name):
+        """ Returns the process definition which defines the given name.
+            This may raise StopIteration if no such definition exists
+        """
+        return next(x for x in self.process_definitions if x.lhs == name)
+
     def get_components(self):
         """Returns a dictionary mapping each name used in the system equation
            to a list of names reachable via actions from that name.
@@ -267,8 +273,7 @@ class ParsedModel(object):
                 name = name_queue.pop()
                 if name not in closure:
                     closure.append(name)
-                    definition = [x for x in self.process_definitions
-                                  if x.lhs == name][0]
+                    definition = self.get_process_definition(name)
                     new_names = definition.rhs.get_used_process_names()
                     name_queue.update(new_names)
             components[name] = closure

@@ -146,7 +146,7 @@ class ParsedNamedComponent(object):
         self.identifier = name
 
     def get_used_process_names(self):
-        return set(self.identifier)
+        return set([self.identifier])
 
     def get_shared_actions(self):
         """Mostly for testing purposes we return all activities shared

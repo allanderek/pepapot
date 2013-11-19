@@ -498,17 +498,22 @@ class RandomPepa(object):
         return self.model.format()
 
 
+
 class TestRandom(unittest.TestCase):
+    @staticmethod
+    def random_model_source():
+        random_pepa = RandomPepa()
+        random_pepa.generate_model()
+        return random_pepa.get_model_source()
+
     def setUp(self):
-        self.random_pepa = RandomPepa()
-        self.random_pepa.generate_model()
-        self.model_source = self.random_pepa.get_model_source()
+        self.model_sources = [self.random_model_source() for x in range(10)]
 
     def test_model(self):
-        for i in range(10):
+        for model_source in self.model_sources:
             logging.info("The random model source:")
-            logging.info(self.model_source)
-            model = pepapot.parse_model(self.model_source)
+            logging.info(model_source)
+            model = pepapot.parse_model(model_source)
             model_solver = pepapot.ModelSolver(model)
             is_valid_gen_matrix(self, model_solver)
 

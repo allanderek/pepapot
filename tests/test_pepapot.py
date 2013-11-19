@@ -8,9 +8,11 @@ test_pepapot
 Tests for `pepapot` module.
 """
 
+import random
 import unittest
 import io
 import logging
+import functools
 
 from pepapot import pepapot
 Action = pepapot.Action
@@ -430,6 +432,53 @@ class TestChoiceAlias(TestSimpleNoCoop):
         super(TestChoiceAlias, self).test_actions()
 
 
+# The goal is to build a method which will generate a random PEPA model. This
+# can then be used to do some randomised testing. To do that we require to
+# have some properties about the results which we can test. The first and
+# most obvious is simply that parsing has been successful.
+class RandomPepa(object):
+    def __init__(self):
+        self.processes = []
+        self.process_definitions = []
+
+    def generate_process_definitions(self):
+        for i in range(random.randint(1, 4)):
+            head_name = "P_" + str(i) + "_0"
+            self.processes.append(head_name)
+            head_successor = pepapot.ProcessIdentifier("P_" + str(i) + "_1")
+            head_rhs = pepapot.PrefixNode("a", 1.0, head_successor)
+            head_definition = pepapot.ProcessDefinition(head_name, head_rhs)
+            self.process_definitions.append(head_definition)
+
+
+    def generate_system_equation(self):
+        def combine(left, right):
+            return pepapot.ParsedSystemCooperation(left, [], right)
+        processes = [pepapot.ParsedNamedComponent(x) for x in self.processes]
+        self.system_equation = functools.reduce(combine, processes)
+
+    def generate_model(self):
+        self.generate_process_definitions()
+        self.generate_system_equation()
+        self.model = pepapot.ParsedModel(self.process_definitions,
+                                         self.system_equation)
+    def get_model_source(self):
+        return self.model.format()
+
+class TestRandom(unittest.TestCase):
+    def setUp(self):
+        self.random_pepa = RandomPepa()
+        self.random_pepa.generate_model()
+        self.model_source = self.random_pepa.get_model_source()
+
+    def test_model(self):
+        for i in range(10):
+            logging.info("The random model source:")
+            logging.info(self.model_source)
+            model = pepapot.parse_model(self.model_source)
+            model_solver = pepapot.ModelSolver(model)
+            self.assertTrue(True)
+
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()
@@ -442,5 +491,5 @@ class TestCommandLine(unittest.TestCase):
             self.assertIn(line, actual_lines)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.DEBUG)
     unittest.main()

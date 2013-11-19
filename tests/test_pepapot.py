@@ -450,22 +450,26 @@ class RandomPepa(object):
         # system equation themselves.
         self.process_definitions = []
 
-    def simple_prefix_definition(self, name, action, rate, target_name):
+    def prefix_definition(self, name, action, rate, target_name):
         successor = pepapot.ProcessIdentifier(target_name)
         prefix_node = pepapot.PrefixNode(action, rate, successor)
         definition = pepapot.ProcessDefinition(name, prefix_node)
         self.process_definitions.append(definition)
 
+    def choice_definition(self, name, lhs, rhs):
+        choice_node = pepapot.ChoiceNode(lhs, rhs)
+        definition = pepapot.ProcessDefinition(name, choice_node)
+        self.process_definitions.append(definition)
+
     def generate_process_definitions(self):
-        # from pepapot import ProcessIdentifier, ProcessDefinition, PrefixNode
         for i in range(random.randint(1, 4)):
             head_name = "P_" + str(i) + "_0"
             self.processes.append(head_name)
 
             if random.choice([True, False]):
                 tail_name = "P_" + str(i) + "_1"
-                self.simple_prefix_definition(head_name, "a", 1.0, tail_name)
-                self.simple_prefix_definition(tail_name, "b", 1.0, head_name)
+                self.prefix_definition(head_name, "a", 1.0, tail_name)
+                self.prefix_definition(tail_name, "b", 1.0, head_name)
             else:
                 left_name = "P_" + str(i) + "_l"
                 right_name = "P_" + str(i) + "_r"
@@ -473,12 +477,10 @@ class RandomPepa(object):
                 left_prefix = pepapot.PrefixNode("a", 1.0, left_successor)
                 right_successor = pepapot.ProcessIdentifier(right_name)
                 right_prefix = pepapot.PrefixNode("b", 1.0, right_successor)
-                head_rhs = pepapot.ChoiceNode(left_prefix, right_prefix)
-                head_definition = pepapot.ProcessDefinition(head_name, head_rhs)
-                self.process_definitions.append(head_definition)
 
-                self.simple_prefix_definition(left_name, "c", 1.0, head_name)
-                self.simple_prefix_definition(right_name, "d", 1.0, head_name)
+                self.choice_definition(head_name, left_prefix, right_prefix)
+                self.prefix_definition(left_name, "c", 1.0, head_name)
+                self.prefix_definition(right_name, "d", 1.0, head_name)
 
     def generate_system_equation(self):
         def combine(left, right):

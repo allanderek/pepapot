@@ -20,7 +20,7 @@ from lazy import lazy
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
-identifier = pyparsing.Word(pyparsing.alphanums)
+identifier = pyparsing.Word(pyparsing.alphanums + "_")
 
 # TODO: There is a fairly good calculator parsing example which includes
 # identifiers as expressions. It can be found at:
@@ -128,7 +128,9 @@ proc_def_grammar.setParseAction(lambda t: ProcessDefinition(t[0], t[2]))
 process_definitions_grammar = Group(OneOrMore(proc_def_grammar))
 
 activity_list_grammar = "<" + pyparsing.delimitedList(identifier, ",") + ">"
-cooperation_set_grammar = Or([pyparsing.Literal("||"), activity_list_grammar])
+cooperation_set_grammar = Or([pyparsing.Literal("||"),
+                              pyparsing.Literal("<>"),
+                              activity_list_grammar])
 
 
 def get_action_set(tokens):

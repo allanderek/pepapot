@@ -442,24 +442,43 @@ class TestChoiceAlias(TestSimpleNoCoop):
 # most obvious is simply that parsing has been successful.
 class RandomPepa(object):
     def __init__(self):
+        # The list of logical processes, in other words the names which will
+        # be used in the system equation
         self.processes = []
+        # All the process definitions including those which are successors of
+        # the names used in the system equation and hence won't be in the
+        # system equation themselves.
         self.process_definitions = []
 
+    def simple_prefix_definition(self, name, action, rate, target_name):
+        successor = pepapot.ProcessIdentifier(target_name)
+        prefix_node = pepapot.PrefixNode(action, rate, successor)
+        definition = pepapot.ProcessDefinition(name, prefix_node)
+        self.process_definitions.append(definition)
+
     def generate_process_definitions(self):
+        # from pepapot import ProcessIdentifier, ProcessDefinition, PrefixNode
         for i in range(random.randint(1, 4)):
             head_name = "P_" + str(i) + "_0"
             self.processes.append(head_name)
 
-            tail_name = "P_" + str(i) + "_1"
-            head_successor = pepapot.ProcessIdentifier(tail_name)
-            head_rhs = pepapot.PrefixNode("a", 1.0, head_successor)
-            head_definition = pepapot.ProcessDefinition(head_name, head_rhs)
-            self.process_definitions.append(head_definition)
+            if random.choice([True, False]):
+                tail_name = "P_" + str(i) + "_1"
+                self.simple_prefix_definition(head_name, "a", 1.0, tail_name)
+                self.simple_prefix_definition(tail_name, "b", 1.0, head_name)
+            else:
+                left_name = "P_" + str(i) + "_l"
+                right_name = "P_" + str(i) + "_r"
+                left_successor = pepapot.ProcessIdentifier(left_name)
+                left_prefix = pepapot.PrefixNode("a", 1.0, left_successor)
+                right_successor = pepapot.ProcessIdentifier(right_name)
+                right_prefix = pepapot.PrefixNode("b", 1.0, right_successor)
+                head_rhs = pepapot.ChoiceNode(left_prefix, right_prefix)
+                head_definition = pepapot.ProcessDefinition(head_name, head_rhs)
+                self.process_definitions.append(head_definition)
 
-            tail_successor = pepapot.ProcessIdentifier(head_name)
-            tail_rhs = pepapot.PrefixNode("b", 1.0, tail_successor)
-            tail_definition = pepapot.ProcessDefinition(tail_name, tail_rhs)
-            self.process_definitions.append(tail_definition)
+                self.simple_prefix_definition(left_name, "c", 1.0, head_name)
+                self.simple_prefix_definition(right_name, "d", 1.0, head_name)
 
     def generate_system_equation(self):
         def combine(left, right):

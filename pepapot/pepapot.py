@@ -115,6 +115,7 @@ def create_process(tokens):
         return tokens
 process_grammar.setParseAction(create_process)
 
+
 class ProcessDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -161,6 +162,7 @@ class ParsedNamedComponent(object):
 
 system_equation_ident = identifier.copy()
 system_equation_ident.setParseAction(lambda t: ParsedNamedComponent(t[0]))
+
 
 class ParsedAggregation(object):
     def __init__(self, lhs, amount):

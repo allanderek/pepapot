@@ -31,10 +31,12 @@ P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
 
+
 def is_valid_gen_matrix(testcase, model_solver):
     for (row_number, row) in enumerate(model_solver.gen_matrix):
         testcase.assertAlmostEqual(0.0, sum(row))
         testcase.assertTrue(row[row_number] < 0.0)
+
 
 class TestSimpleNoCoop(unittest.TestCase):
     """This tests a very simple test model. It also serves as a base class from
@@ -470,8 +472,10 @@ class RandomPepa(object):
         self.generate_system_equation()
         self.model = pepapot.ParsedModel(self.process_definitions,
                                          self.system_equation)
+
     def get_model_source(self):
         return self.model.format()
+
 
 class TestRandom(unittest.TestCase):
     def setUp(self):
@@ -487,11 +491,12 @@ class TestRandom(unittest.TestCase):
             model_solver = pepapot.ModelSolver(model)
             is_valid_gen_matrix(self, model_solver)
 
+
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()
         pepapot.run_command_line(memory_file, ["steady", "util",
-                                              "models/simple.pepa"])
+                                               "models/simple.pepa"])
         actual_output = memory_file.getvalue()
         actual_lines = actual_output.split("\n")
         expected_lines = ["P1 : 0.4", "P : 0.6", "Q : 0.6", "Q1 : 0.4"]

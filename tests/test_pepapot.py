@@ -31,6 +31,10 @@ P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
 
+def is_valid_gen_matrix(testcase, model_solver):
+    for (row_number, row) in enumerate(model_solver.gen_matrix):
+        testcase.assertAlmostEqual(0.0, sum(row))
+        testcase.assertTrue(row[row_number] < 0.0)
 
 class TestSimpleNoCoop(unittest.TestCase):
     """This tests a very simple test model. It also serves as a base class from
@@ -114,9 +118,7 @@ class TestSimpleNoCoop(unittest.TestCase):
                          self.expected_state_space_size)
 
         # Test the generator matrix
-        for (row_number, row) in enumerate(model_solver.gen_matrix):
-            self.assertAlmostEqual(0.0, sum(row))
-            self.assertTrue(row[row_number] < 0.0)
+        is_valid_gen_matrix(self, model_solver)
 
         # Test the steady state solution
         steady_solution = model_solver.steady_solution
@@ -445,11 +447,17 @@ class RandomPepa(object):
         for i in range(random.randint(1, 4)):
             head_name = "P_" + str(i) + "_0"
             self.processes.append(head_name)
-            head_successor = pepapot.ProcessIdentifier("P_" + str(i) + "_1")
+
+            tail_name = "P_" + str(i) + "_1"
+            head_successor = pepapot.ProcessIdentifier(tail_name)
             head_rhs = pepapot.PrefixNode("a", 1.0, head_successor)
             head_definition = pepapot.ProcessDefinition(head_name, head_rhs)
             self.process_definitions.append(head_definition)
 
+            tail_successor = pepapot.ProcessIdentifier(head_name)
+            tail_rhs = pepapot.PrefixNode("b", 1.0, tail_successor)
+            tail_definition = pepapot.ProcessDefinition(tail_name, tail_rhs)
+            self.process_definitions.append(tail_definition)
 
     def generate_system_equation(self):
         def combine(left, right):
@@ -477,7 +485,7 @@ class TestRandom(unittest.TestCase):
             logging.info(self.model_source)
             model = pepapot.parse_model(self.model_source)
             model_solver = pepapot.ModelSolver(model)
-            self.assertTrue(True)
+            is_valid_gen_matrix(self, model_solver)
 
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):

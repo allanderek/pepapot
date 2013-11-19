@@ -42,6 +42,12 @@ class ProcessIdentifier(object):
     def __init__(self, name):
         self.name = name
 
+    grammar = identifier.copy()
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0])
+
     def __str__(self):
         return self.name
 
@@ -51,9 +57,7 @@ class ProcessIdentifier(object):
     def format(self):
         return self.name
 
-process_identifier = identifier.copy()
-process_identifier.setParseAction(lambda x: ProcessIdentifier(x[0]))
-
+ProcessIdentifier.grammar.setParseAction(ProcessIdentifier.from_tokens)
 process_leaf = pyparsing.Forward()
 
 
@@ -62,6 +66,12 @@ class PrefixNode(object):
         self.action = action
         self.rate = rate
         self.successor = successor
+
+    grammar = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[1], tokens[3], tokens[6])
 
     def get_used_process_names(self):
         return self.successor.get_used_process_names()
@@ -73,9 +83,7 @@ class PrefixNode(object):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
 
-prefix_grammar = ("(" + identifier + "," + rate_grammar + ")" +
-                  "." + process_leaf)
-prefix_grammar.setParseAction(lambda t: PrefixNode(t[1], t[3], t[6]))
+PrefixNode.grammar.setParseAction(PrefixNode.from_tokens)
 
 
 class ChoiceNode(object):
@@ -108,7 +116,7 @@ class ChoiceNode(object):
         # P = (a, r).(Q + R);
         return " ".join([self.lhs.format(), "+", self.rhs.format()])
 
-process_leaf << Or([prefix_grammar, process_identifier])
+process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
 process_grammar = pyparsing.Forward()
 process_grammar << process_leaf + Optional("+" + process_grammar)
 

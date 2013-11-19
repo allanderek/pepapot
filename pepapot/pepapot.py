@@ -101,7 +101,12 @@ class ChoiceNode(object):
         return lhs.union(rhs)
 
     def format(self):
-        return " ".join(["(", self.lhs.format(), "+", self.rhs.format(), ")"])
+        # I believe there is no need for  parentheses, since we cannot make
+        # a mistake since the only binary operator is +. Currently we cannot
+        # have P = (a, r).(Q + R); which would make things ambiguous since
+        # P = (a, r).Q + R could be either P = ((a.r).P) + R; or
+        # P = (a, r).(Q + R);
+        return " ".join([self.lhs.format(), "+", self.rhs.format()])
 
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()

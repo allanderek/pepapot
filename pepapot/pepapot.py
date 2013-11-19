@@ -39,25 +39,29 @@ rate_grammar = expr
 
 
 class ProcessIdentifier(object):
-    def __init__(self, tokens):
-        self.name = tokens[0]
+    def __init__(self, name):
+        self.name = name
 
     def __str__(self):
         return self.name
 
     def get_used_process_names(self):
         return set([self.name])
+
+    def format(self):
+        return self.name
+
 process_identifier = identifier.copy()
-process_identifier.setParseAction(ProcessIdentifier)
+process_identifier.setParseAction(lambda x: ProcessIdentifier(x[0]))
 
 process_leaf = pyparsing.Forward()
 
 
 class PrefixNode(object):
-    def __init__(self, tokens):
-        self.action = tokens[1]
-        self.rate = tokens[3]
-        self.successor = tokens[6]
+    def __init__(self, action, rate, successor):
+        self.action = action
+        self.rate = rate
+        self.successor = successor
 
     def get_used_process_names(self):
         return self.successor.get_used_process_names()
@@ -65,15 +69,19 @@ class PrefixNode(object):
     def get_possible_actions(self):
         return [Action(self.action, self.rate, str(self.successor))]
 
+    def format(self):
+        return "".join(["(", self.action, ", ", str(self.rate),
+                        ").", self.successor.format()])
+
 prefix_grammar = ("(" + identifier + "," + rate_grammar + ")" +
                   "." + process_leaf)
-prefix_grammar.setParseAction(PrefixNode)
+prefix_grammar.setParseAction(lambda t: PrefixNode(t[1], t[3], t[6]))
 
 
 class ChoiceNode(object):
-    def __init__(self, tokens):
-        self.lhs = tokens[0]
-        self.rhs = tokens[2]
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
 
     def get_possible_actions(self):
         left_actions = self.lhs.get_possible_actions()
@@ -92,6 +100,9 @@ class ChoiceNode(object):
         rhs = self.rhs.get_used_process_names()
         return lhs.union(rhs)
 
+    def format(self):
+        return " ".join(["(", self.lhs.format(), "+", self.rhs.format(), ")"])
+
 process_leaf << Or([prefix_grammar, process_identifier])
 process_grammar = pyparsing.Forward()
 process_grammar << process_leaf + Optional("+" + process_grammar)
@@ -99,21 +110,22 @@ process_grammar << process_leaf + Optional("+" + process_grammar)
 
 def create_process(tokens):
     if len(tokens) == 3:
-        return ChoiceNode(tokens)
+        return ChoiceNode(tokens[0], tokens[2])
     else:
         return tokens
 process_grammar.setParseAction(create_process)
 
-
 class ProcessDefinition(object):
-    def __init__(self, tokens):
-        self.lhs = tokens[0]
-        self.rhs = tokens[2]
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
 
+    def format(self):
+        return " ".join([self.lhs, "=", self.rhs.format(), ";"])
 
-process_definition_grammar = identifier + "=" + process_grammar + ";"
-process_definition_grammar.setParseAction(ProcessDefinition)
-process_definitions_grammar = Group(OneOrMore(process_definition_grammar))
+proc_def_grammar = identifier + "=" + process_grammar + ";"
+proc_def_grammar.setParseAction(lambda t: ProcessDefinition(t[0], t[2]))
+process_definitions_grammar = Group(OneOrMore(proc_def_grammar))
 
 activity_list_grammar = "<" + pyparsing.delimitedList(identifier, ",") + ">"
 cooperation_set_grammar = Or([pyparsing.Literal("||"), activity_list_grammar])
@@ -128,8 +140,8 @@ cooperation_set_grammar.setParseAction(get_action_set)
 
 
 class ParsedNamedComponent(object):
-    def __init__(self, tokens):
-        self.identifier = tokens[0]
+    def __init__(self, name):
+        self.identifier = name
 
     def get_used_process_names(self):
         return set(self.identifier)
@@ -142,11 +154,16 @@ class ParsedNamedComponent(object):
     def get_builder(self, builder_helper):
         return builder_helper.leaf(self.identifier)
 
+    def format(self):
+        return self.identifier
+
+system_equation_ident = identifier.copy()
+system_equation_ident.setParseAction(lambda t: ParsedNamedComponent(t[0]))
 
 class ParsedAggregation(object):
-    def __init__(self, tokens):
-        self.lhs = tokens[0]
-        self.amount = tokens[1]
+    def __init__(self, lhs, amount):
+        self.lhs = lhs
+        self.amount = amount
 
     def get_used_process_names(self):
         return self.lhs.get_used_process_names()
@@ -159,10 +176,10 @@ class ParsedAggregation(object):
 
 
 class ParsedSystemCooperation(object):
-    def __init__(self, tokens):
-        self.lhs = tokens[0]
-        self.cooperation_set = tokens[1]
-        self.rhs = tokens[2]
+    def __init__(self, lhs, coop_set, rhs):
+        self.lhs = lhs
+        self.cooperation_set = coop_set
+        self.rhs = rhs
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -182,9 +199,11 @@ class ParsedSystemCooperation(object):
                                           self.cooperation_set,
                                           self.rhs)
 
+    def format(self):
+        coop_string = "<" + ", ".join(self.cooperation_set) + ">"
+        return " ".join([self.lhs.format(), coop_string, self.rhs.format()])
+
 system_equation_grammar = pyparsing.Forward()
-system_equation_ident = identifier.copy()
-system_equation_ident.setParseAction(ParsedNamedComponent)
 # Forces this to be a non-negative integer, though could be zero. Arguably
 # we may want to allow decimals here, obviously only appropriate for
 # translation to ODEs.
@@ -196,7 +215,7 @@ array_suffix.setParseAction(lambda x: int(x[1]))
 # such as "P[10]". We could also allow for example "(P <a> Q)[10]".
 def create_aggregation(tokens):
     if len(tokens) > 1:
-        return ParsedAggregation(tokens)
+        return ParsedAggregation(tokens[0], tokens[1])
     else:
         return tokens
 
@@ -211,7 +230,7 @@ system_equation_atom = Or([system_equation_aggregation,
 
 def create_system_component(tokens):
     if len(tokens) > 1:
-        return ParsedSystemCooperation(tokens)
+        return ParsedSystemCooperation(tokens[0], tokens[1], tokens[2])
     else:
         return tokens
 system_equation_grammar << (system_equation_atom +
@@ -221,9 +240,9 @@ system_equation_grammar.setParseAction(create_system_component)
 
 
 class ParsedModel(object):
-    def __init__(self, tokens):
-        self.process_definitions = tokens[0]
-        self.system_equation = tokens[1]
+    def __init__(self, proc_defs, sys_equation):
+        self.process_definitions = proc_defs
+        self.system_equation = sys_equation
 
     def get_components(self):
         """Returns a dictionary mapping each name used in the system equation
@@ -278,11 +297,17 @@ class ParsedModel(object):
     def get_builder(self, builder_helper):
         return self.system_equation.get_builder(builder_helper)
 
+    def format(self):
+        proc_def_strings = [p.format() for p in self.process_definitions]
+        proc_defs = "\n".join(proc_def_strings)
+        sys_equation = self.system_equation.format()
+        return "\n".join([proc_defs, sys_equation])
+
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might
 # indeed be what you are wishing for. See parse_model for a whole input parser
 model_grammar = process_definitions_grammar + system_equation_grammar
-model_grammar.setParseAction(ParsedModel)
+model_grammar.setParseAction(lambda t: ParsedModel(t[0], t[1]))
 
 
 def parse_model(model_string):

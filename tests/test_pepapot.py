@@ -498,7 +498,6 @@ class RandomPepa(object):
         return self.model.format()
 
 
-
 class TestRandom(unittest.TestCase):
     @staticmethod
     def random_model_source():

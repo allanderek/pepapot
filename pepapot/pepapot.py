@@ -292,6 +292,17 @@ class ParsedModel(object):
         self.process_definitions = proc_defs
         self.system_equation = sys_equation
 
+    # Note, this parser does not insist on the end of the input text.
+    # Which means in theory you could have something *after* the model text,
+    # which might indeed be what you are wishing for.
+    # See parse_model for a whole input parser
+    grammar = ProcessDefinition.list_grammar + system_equation_grammar
+    whole_input_grammar = grammar + pyparsing.StringEnd()
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[1])
+
     def get_process_definition(self, name):
         """ Returns the process definition which defines the given name.
             This may raise StopIteration if no such definition exists
@@ -356,17 +367,13 @@ class ParsedModel(object):
         sys_equation = self.system_equation.format()
         return "\n".join([proc_defs, sys_equation])
 
-# Note, this parser does not insist on the end of the input text. Which means
-# in theory you could have something *after* the model text, which might
-# indeed be what you are wishing for. See parse_model for a whole input parser
-model_grammar = ProcessDefinition.list_grammar + system_equation_grammar
-model_grammar.setParseAction(lambda t: ParsedModel(t[0], t[1]))
+
+ParsedModel.grammar.setParseAction(ParsedModel.from_tokens)
 
 
 def parse_model(model_string):
-    # Parses a model and also ensures that we have consumed the entire input
-    whole_input_parser = model_grammar + pyparsing.StringEnd()
-    return whole_input_parser.parseString(model_string)[0]
+    """Parses a model ensuring that we have consumed the entire input"""
+    return ParsedModel.whole_input_grammar.parseString(model_string)[0]
 
 
 Transition = namedtuple('Transition', ["action", "rate", "successor"])

@@ -14,7 +14,7 @@ from collections import namedtuple
 
 from docopt import docopt
 import pyparsing
-from pyparsing import Combine, OneOrMore, Or, Group, Optional
+from pyparsing import Combine, Or, Group, Optional, Literal, Suppress
 import numpy
 from lazy import lazy
 
@@ -25,13 +25,13 @@ identifier = pyparsing.Word(pyparsing.alphanums + "_")
 # TODO: There is a fairly good calculator parsing example which includes
 # identifiers as expressions. It can be found at:
 # pyparsing.wikispaces.com/file/view/SimpleCalc.py/30112812/SimpleCalc.py
-plusorminus = pyparsing.Literal('+') | pyparsing.Literal('-')
+plusorminus = Literal('+') | Literal('-')
 number = pyparsing.Word(pyparsing.nums)
 integer = Combine(Optional(plusorminus) + number)
-floatnumber = Combine(integer +
-                      Optional(pyparsing.Literal('.') + number) +
-                      Optional(pyparsing.CaselessLiteral('E') + integer)
-                      )
+decimal_fraction = Literal('.') + number
+scientific_enotation = pyparsing.CaselessLiteral('E') + integer
+floatnumber = Combine(integer + Optional(decimal_fraction) +
+                      Optional(scientific_enotation))
 expr = floatnumber.copy()
 expr.setParseAction(lambda tokens: float(tokens[0]))
 
@@ -84,12 +84,27 @@ class PrefixNode(object):
                         ").", self.successor.format()])
 
 PrefixNode.grammar.setParseAction(PrefixNode.from_tokens)
+process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
 
 
 class ChoiceNode(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
+
+    grammar = pyparsing.Forward()
+    grammar << process_leaf + Optional("+" + grammar)
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        """ A non-typical implementation here, since it might not actually
+            produce a 'ChoiceNode' if the number of tokens indicate that the
+            optional '+ process_grammar' part is empty.
+        """
+        if len(tokens) == 3:
+            return cls(tokens[0], tokens[2])
+        else:
+            return tokens
 
     def get_possible_actions(self):
         left_actions = self.lhs.get_possible_actions()
@@ -116,17 +131,10 @@ class ChoiceNode(object):
         # P = (a, r).(Q + R);
         return " ".join([self.lhs.format(), "+", self.rhs.format()])
 
-process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
-process_grammar = pyparsing.Forward()
-process_grammar << process_leaf + Optional("+" + process_grammar)
-
-
-def create_process(tokens):
-    if len(tokens) == 3:
-        return ChoiceNode(tokens[0], tokens[2])
-    else:
-        return tokens
-process_grammar.setParseAction(create_process)
+ChoiceNode.grammar.setParseAction(ChoiceNode.from_tokens)
+# This just sets up an alias because it is otherwise non-obvious that
+# ChoiceNode.grammar represents the grammar for generic processes.
+process_grammar = ChoiceNode.grammar
 
 
 class ProcessDefinition(object):
@@ -134,30 +142,28 @@ class ProcessDefinition(object):
         self.lhs = lhs
         self.rhs = rhs
 
+    grammar = identifier + "=" + process_grammar + ";"
+    list_grammar = Group(pyparsing.OneOrMore(grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[2])
+
     def format(self):
         return " ".join([self.lhs, "=", self.rhs.format(), ";"])
 
-proc_def_grammar = identifier + "=" + process_grammar + ";"
-proc_def_grammar.setParseAction(lambda t: ProcessDefinition(t[0], t[2]))
-process_definitions_grammar = Group(OneOrMore(proc_def_grammar))
-
-activity_list_grammar = "<" + pyparsing.delimitedList(identifier, ",") + ">"
-cooperation_set_grammar = Or([pyparsing.Literal("||"),
-                              pyparsing.Literal("<>"),
-                              activity_list_grammar])
-
-
-def get_action_set(tokens):
-    # It's a double list because otherwise the system_equation_parser will
-    # assume the list returned is a set of tokens and concatenate it in with
-    # the other tokens.
-    return [[x for x in tokens if x not in ["||", "<", ">"]]]
-cooperation_set_grammar.setParseAction(get_action_set)
+ProcessDefinition.grammar.setParseAction(ProcessDefinition.from_tokens)
 
 
 class ParsedNamedComponent(object):
     def __init__(self, name):
         self.identifier = name
+
+    grammar = identifier.copy()
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0])
 
     def get_used_process_names(self):
         return set([self.identifier])
@@ -173,14 +179,34 @@ class ParsedNamedComponent(object):
     def format(self):
         return self.identifier
 
-system_equation_ident = identifier.copy()
-system_equation_ident.setParseAction(lambda t: ParsedNamedComponent(t[0]))
+ParsedNamedComponent.grammar.setParseAction(ParsedNamedComponent.from_tokens)
 
 
 class ParsedAggregation(object):
     def __init__(self, lhs, amount):
         self.lhs = lhs
         self.amount = amount
+
+    # Forces this to be a non-negative integer, though could be zero. Arguably
+    # we may want to allow decimals here, obviously only appropriate for
+    # translation to ODEs.
+    array_suffix = "[" + number + "]"
+    array_suffix.setParseAction(lambda x: int(x[1]))
+    # This way means that aggregation can only be applied to a single
+    # identifier such as "P[10]". We could also allow for example
+    # "(P <a> Q)[10]".
+    grammar = ParsedNamedComponent.grammar + Optional(array_suffix)
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        """ Another atypical 'from_tokens' implementation that might not
+            actually return a ParsedAggregation, again this comes from the
+            inclusion of 'Optional' in its grammar
+        """
+        if len(tokens) > 1:
+            return cls(tokens[0], tokens[1])
+        else:
+            return tokens
 
     def get_used_process_names(self):
         return self.lhs.get_used_process_names()
@@ -191,12 +217,48 @@ class ParsedAggregation(object):
     def get_builder(self, builder_helper):
         return builder_helper.aggregation(self.lhs, self.amount)
 
+ParsedAggregation.grammar.setParseAction(ParsedAggregation.from_tokens)
+system_equation_grammar = pyparsing.Forward()
+system_equation_paren = "(" + system_equation_grammar + ")"
+system_equation_paren.setParseAction(lambda x: x[1])
+system_equation_atom = Or([ParsedAggregation.grammar,
+                           system_equation_paren])
+
 
 class ParsedSystemCooperation(object):
     def __init__(self, lhs, coop_set, rhs):
         self.lhs = lhs
         self.cooperation_set = coop_set
         self.rhs = rhs
+
+    action_names_grammar = pyparsing.delimitedList(identifier, ",")
+    activity_list = Suppress("<") + action_names_grammar + Suppress(">")
+    coop_set_grammar = Or([Suppress(Literal("||")),
+                           Suppress(Literal("<>")),
+                           activity_list])
+    # It's a double list because otherwise the system_equation_parser will
+    # assume the list returned is a set of tokens and concatenate it in
+    # with the other tokens. In this way we get a parse result from 'grammar'
+    # for ("P <a,b,c> Q") to be [ Named, [a,b,c], Named ] which is what we
+    # want, rather than [ Named, a, b, c, Named ].
+    # Now, why 'lambda t: [t]' doesn't work, I do not understand. I would have
+    # thought that '[t] == [[x for x in t]]', but try changing it and you will
+    # see that the tests fail. I do not understand why.
+    coop_set_grammar.setParseAction(lambda t: [[x for x in t]])
+
+    grammar = (system_equation_atom + Optional(coop_set_grammar +
+                                               system_equation_grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        """ Another non-typical definition of 'from_tokens' in which the
+            result may not actually be a ParsedSystemCooperation. Once again
+            this stems from the user of Optional in the grammar.
+        """
+        if len(tokens) > 1:
+            return cls(tokens[0], tokens[1], tokens[2])
+        else:
+            return tokens
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -220,40 +282,9 @@ class ParsedSystemCooperation(object):
         coop_string = "<" + ", ".join(self.cooperation_set) + ">"
         return " ".join([self.lhs.format(), coop_string, self.rhs.format()])
 
-system_equation_grammar = pyparsing.Forward()
-# Forces this to be a non-negative integer, though could be zero. Arguably
-# we may want to allow decimals here, obviously only appropriate for
-# translation to ODEs.
-array_suffix = "[" + number + "]"
-array_suffix.setParseAction(lambda x: int(x[1]))
 
-
-# This way means that aggregation can only be applied to a single identifier
-# such as "P[10]". We could also allow for example "(P <a> Q)[10]".
-def create_aggregation(tokens):
-    if len(tokens) > 1:
-        return ParsedAggregation(tokens[0], tokens[1])
-    else:
-        return tokens
-
-
-system_equation_aggregation = system_equation_ident + Optional(array_suffix)
-system_equation_aggregation.setParseAction(create_aggregation)
-system_equation_paren = "(" + system_equation_grammar + ")"
-system_equation_paren.setParseAction(lambda x: x[1])
-system_equation_atom = Or([system_equation_aggregation,
-                           system_equation_paren])
-
-
-def create_system_component(tokens):
-    if len(tokens) > 1:
-        return ParsedSystemCooperation(tokens[0], tokens[1], tokens[2])
-    else:
-        return tokens
-system_equation_grammar << (system_equation_atom +
-                            Optional(cooperation_set_grammar +
-                                     system_equation_grammar))
-system_equation_grammar.setParseAction(create_system_component)
+system_equation_grammar << ParsedSystemCooperation.grammar
+system_equation_grammar.setParseAction(ParsedSystemCooperation.from_tokens)
 
 
 class ParsedModel(object):
@@ -328,7 +359,7 @@ class ParsedModel(object):
 # Note, this parser does not insist on the end of the input text. Which means
 # in theory you could have something *after* the model text, which might
 # indeed be what you are wishing for. See parse_model for a whole input parser
-model_grammar = process_definitions_grammar + system_equation_grammar
+model_grammar = ProcessDefinition.list_grammar + system_equation_grammar
 model_grammar.setParseAction(lambda t: ParsedModel(t[0], t[1]))
 
 

@@ -14,7 +14,7 @@ from collections import namedtuple
 
 from docopt import docopt
 import pyparsing
-from pyparsing import Combine, Or, Group, Optional, Literal, Suppress
+from pyparsing import Combine, Or, Optional, Literal, Suppress
 import numpy
 from lazy import lazy
 
@@ -143,7 +143,7 @@ class ProcessDefinition(object):
         self.rhs = rhs
 
     grammar = identifier + "=" + process_grammar + ";"
-    list_grammar = Group(pyparsing.OneOrMore(grammar))
+    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod
     def from_tokens(cls, tokens):

@@ -517,6 +517,19 @@ class TestRandom(unittest.TestCase):
             is_valid_gen_matrix(self, model_solver)
 
 
+class TestParseError(unittest.TestCase):
+    """ More documentation than test. This is intended to make sure that we
+        know what will happen when the source is not syntactically correct.
+    """
+    def setUp(self):
+        self.model_source = "P = (, 1.0).P1; P <a> P"
+
+    def test_parse_error(self):
+        from pyparsing import ParseException
+        self.assertRaises(ParseException,
+                          pepapot.parse_model, self.model_source)
+
+
 class TestCommandLine(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()

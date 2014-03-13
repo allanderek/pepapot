@@ -8,7 +8,7 @@ on the Red Hat OpenShift PaaS.
 Running on OpenShift
 ----------------------------
 
-Create an account at http://openshift.redhat.com/
+Create an account at https://www.openshift.com/
 
 Create a python application
 

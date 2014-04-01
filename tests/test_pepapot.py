@@ -545,7 +545,7 @@ class TestCommandLine(unittest.TestCase):
 
 ## Obviously this is not so far a valid Bio-PEPA model.
 simple_biopepa_model = """
-M = P;
+M = (d, 1);
 """
 
 class TestSimpleBioModel(unittest.TestCase):

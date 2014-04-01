@@ -714,13 +714,30 @@ class ModelSolver(object):
 
 # Bio-PEPA stuff
 
+class BioBehaviour(object):
+    def __init__(self, reaction, stoich, role, species):
+        self.reaction_name = reaction
+        self.stoichiometry = stoich
+        self.role = role
+        self.species = species
+
+    prefix_grammar = "(" + identifier + "," + integer + ")"
+    role_grammar = "<<"
+    grammar = prefix_grammar + role_grammar + identifier
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[1], tokens[2], tokens[3])
+
+BioBehaviour.grammar.setParseAction(BioBehaviour.from_tokens)
+
 class BioSpeciesDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
 
     # TODO: Obviously the right hand side should be a species grammar.
-    grammar = identifier + "=" + identifier + ";"
+    grammar = identifier + "=" + BioBehaviour.grammar + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod

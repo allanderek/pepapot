@@ -712,6 +712,43 @@ class ModelSolver(object):
                 writer.write(str(probability))
                 writer.write("\n")
 
+# Bio-PEPA stuff
+
+class BioSpeciesDefinition(object):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    # TODO: Obviously the right hand side should be a species grammar.
+    grammar = identifier + "=" + identifier + ";"
+    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[2])
+
+    def format(self):
+        return " ".join([self.lhs, "=", self.rhs.format(), ";"])
+
+ProcessDefinition.grammar.setParseAction(ProcessDefinition.from_tokens)
+
+
+class ParsedBioModel(object):
+    def __init__(self, tokens):
+        self.species_defs = tokens
+
+    # Note, this parser does not insist on the end of the input text.
+    # Which means in theory you could have something *after* the model text,
+    # which might indeed be what you are wishing for.
+    grammar = BioSpeciesDefinition.list_grammar
+    whole_input_grammar = grammar + pyparsing.StringEnd()
+
+ParsedBioModel.grammar.setParseAction(ParsedBioModel)
+
+def parse_biomodel(model_string):
+    """Parses a bio-model ensuring that we have consumed the entire input"""
+    return ParsedBioModel.whole_input_grammar.parseString(model_string)[0]
+
 
 # Now the command-line stuff
 def run_command_line(default_outfile, argv=None):

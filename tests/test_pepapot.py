@@ -541,6 +541,26 @@ class TestCommandLine(unittest.TestCase):
         for line in expected_lines:
             self.assertIn(line, actual_lines)
 
+## Now we test for Bio-PEPA models
+
+## Obviously this is not so far a valid Bio-PEPA model.
+simple_biopepa_model = """
+M = P;
+"""
+
+class TestSimpleBioModel(unittest.TestCase):
+    def setUp(self):
+        self.model_source = simple_biopepa_model
+        self.expected_number_species = 1
+
+    def test_everything(self):
+        model = pepapot.parse_biomodel(self.model_source)
+
+        # Test the parser
+        number_species = len(model.species_defs)
+        self.assertEqual(number_species, self.expected_number_species)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

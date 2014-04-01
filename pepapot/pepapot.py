@@ -715,6 +715,20 @@ class ModelSolver(object):
 # Bio-PEPA stuff
 
 # TODO: Can we make an abstract base class for definitions?
+class BioRateConstant(object):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    grammar = identifier + "=" + rate_grammar + ";"
+    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[1], tokens[3])
+
+BioRateConstant.grammar.setParseAction(BioRateConstant.from_tokens)
+
 class BioRateDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -727,6 +741,9 @@ class BioRateDefinition(object):
     def from_tokens(cls, tokens):
         return cls(tokens[1], tokens[3])
 
+# TODO: Is it not possible to put these setParseActions within the class
+# definition? I kind of assume not otherwise I would have done that but I do
+# not see why not?
 BioRateDefinition.grammar.setParseAction(BioRateDefinition.from_tokens)
 
 class BioBehaviour(object):
@@ -780,7 +797,8 @@ biosystem_grammar = pyparsing.Forward()
 biosystem_grammar << BioPopulation.grammar + Optional("<*>" + biosystem_grammar)
 
 class ParsedBioModel(object):
-    def __init__(self, kinetic_laws, species, populations):
+    def __init__(self, constants, kinetic_laws, species, populations):
+        self.constants = constants
         self.kinetic_laws = kinetic_laws
         self.species_defs = species
         self.populations = dict()
@@ -790,14 +808,15 @@ class ParsedBioModel(object):
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    grammar = (BioRateDefinition.list_grammar + 
+    grammar = (BioRateConstant.list_grammar +
+               BioRateDefinition.list_grammar + 
                BioSpeciesDefinition.list_grammar +
                pyparsing.Group(biosystem_grammar))
     whole_input_grammar = grammar + pyparsing.StringEnd()
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[1], tokens[2])
+        return cls(tokens[0], tokens[1], tokens[2], tokens[3])
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 

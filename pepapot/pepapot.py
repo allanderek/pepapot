@@ -295,7 +295,6 @@ class ParsedModel(object):
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    # See parse_model for a whole input parser
     grammar = ProcessDefinition.list_grammar + system_equation_grammar
     whole_input_grammar = grammar + pyparsing.StringEnd()
 

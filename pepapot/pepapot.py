@@ -747,20 +747,42 @@ class BioSpeciesDefinition(object):
     def format(self):
         return " ".join([self.lhs, "=", self.rhs.format(), ";"])
 
-ProcessDefinition.grammar.setParseAction(ProcessDefinition.from_tokens)
+BioSpeciesDefinition.grammar.setParseAction(BioSpeciesDefinition.from_tokens)
 
+class BioPopulation(object):
+    def __init__(self, species, amount):
+        self.species_name = species
+        self.amount = amount
+
+    grammar = identifier + "[" + integer + "]"
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[2])
+
+BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
+biosystem_grammar = pyparsing.Forward()
+biosystem_grammar << BioPopulation.grammar + Optional("<*>" + biosystem_grammar)
 
 class ParsedBioModel(object):
-    def __init__(self, tokens):
-        self.species_defs = tokens
+    def __init__(self, species, populations):
+        self.species_defs = species
+        self.populations = dict()
+        for population in populations:
+            self.populations[population.species_name] = int(population.amount)
 
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    grammar = BioSpeciesDefinition.list_grammar
+    grammar = (BioSpeciesDefinition.list_grammar +
+               pyparsing.Group(biosystem_grammar))
     whole_input_grammar = grammar + pyparsing.StringEnd()
 
-ParsedBioModel.grammar.setParseAction(ParsedBioModel)
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[1])
+
+ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 
 def parse_biomodel(model_string):
     """Parses a bio-model ensuring that we have consumed the entire input"""

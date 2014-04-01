@@ -546,12 +546,15 @@ class TestCommandLine(unittest.TestCase):
 ## Obviously this is not so far a valid Bio-PEPA model.
 simple_biopepa_model = """
 M = (d, 1) << M;
+
+M[1]
 """
 
 class TestSimpleBioModel(unittest.TestCase):
     def setUp(self):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
+        self.expected_populations = {'M' : 1 }
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
@@ -559,6 +562,8 @@ class TestSimpleBioModel(unittest.TestCase):
         # Test the parser
         number_species = len(model.species_defs)
         self.assertEqual(number_species, self.expected_number_species)
+
+        self.assertEqual(model.populations, self.expected_populations)
 
 
 if __name__ == '__main__':

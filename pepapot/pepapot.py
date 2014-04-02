@@ -103,8 +103,13 @@ class Expression:
 class NumExpression(Expression):
     """A class to represent the AST of an number literal expression"""
     def __init__(self, number):
-        Expression.__init__(self)
+        super(NumExpression, self).__init__()
         self.number = number
+
+    def __eq__(self, other_expression):
+        # TODO: A touch questionable, we should decide whether we want
+        # *equivalent* expressions to equal each other.
+        return self.get_value() == other_expression.get_value()
 
     def visit (self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
@@ -132,7 +137,7 @@ class NumExpression(Expression):
 class NameExpression(Expression):
     """A class to represent the AST of a variable (name) expression"""
     def __init__(self, name):
-        Expression.__init__(self) 
+        super(NameExpression, self).__init__()
         self.name = name
 
     def visit (self, visitor):
@@ -224,7 +229,7 @@ class ApplyExpression(Expression):
     """ A class to represent the AST of an apply expression, applying a
         named function to a list of argument expressions"""
     def __init__(self, name, args):
-        Expression.__init__(self)
+        super(ApplyExpression, self).__init__()
         self.name = name
         self.args = args
 
@@ -464,10 +469,12 @@ decimal_fraction = Literal('.') + number
 scientific_enotation = pyparsing.CaselessLiteral('E') + integer
 floatnumber = Combine(integer + Optional(decimal_fraction) +
                       Optional(scientific_enotation))
-expr = floatnumber.copy()
-expr.setParseAction(lambda tokens: float(tokens[0]))
 
-rate_grammar = expr
+
+num_expr = floatnumber.copy()
+num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
+
+rate_grammar = num_expr
 
 
 class ProcessIdentifier(object):

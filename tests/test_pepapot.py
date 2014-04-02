@@ -297,9 +297,10 @@ class TestSelfLoopArray(TestSimpleNoCoop):
         self.expected_defined_process_names = set(["P", "Q", "Q1"])
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P")]
-        self.expected_actions_dictionary["Q"] = [Action("a", 1.0, "Q1")]
-        self.expected_actions_dictionary["Q1"] = [Action("b", 1.0, "Q")]
+        one_expr = pepapot.NumExpression(1.0)
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P")]
+        self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
         self.expected_shared_actions = set(["a"])
         self.expected_state_space_size = 4
         self.expected_initial_state = ((('P', 3),),
@@ -333,11 +334,12 @@ class TestThreeStateArray(TestSimpleNoCoop):
                             """
         self.expected_used_process_names = set(["P", "P1", "P2"])
         self.expected_defined_process_names = set(["P", "P1", "P2"])
-
+        self.maxDiff = 1200
+        one_expr = pepapot.NumExpression(1.0)
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P1")]
-        self.expected_actions_dictionary["P1"] = [Action("b", 1.0, "P2")]
-        self.expected_actions_dictionary["P2"] = [Action("c", 1.0, "P")]
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P2")]
+        self.expected_actions_dictionary["P2"] = [Action("c", one_expr, "P")]
         self.expected_shared_actions = set([])
         self.expected_state_space_size = 10
         self.expected_initial_state = (('P', 3), ('P1', 0), ('P2', 0))

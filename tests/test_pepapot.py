@@ -31,6 +31,7 @@ P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
 
+one_expr = pepapot.NumExpression(1.0)
 
 def is_valid_gen_matrix(testcase, model_solver):
     for (row_number, row) in enumerate(model_solver.gen_matrix):
@@ -50,10 +51,10 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.expected_defined_process_names = set(["P", "P1", "Q", "Q1"])
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P1")]
-        self.expected_actions_dictionary["P1"] = [Action("b", 1.0, "P")]
-        self.expected_actions_dictionary["Q"] = [Action("a", 1.0, "Q1")]
-        self.expected_actions_dictionary["Q1"] = [Action("b", 1.0, "Q")]
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P")]
+        self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
 
         self.expected_shared_actions = set()
 
@@ -92,7 +93,6 @@ class TestSimpleNoCoop(unittest.TestCase):
     # everything was computed fast enough. But still, I think I prefer this.
     def test_everything(self):
         model = pepapot.parse_model(self.model_source)
-        model_solver = pepapot.ModelSolver(model)
 
         # Test the parser
         shared_actions = model.system_equation.get_shared_actions()
@@ -109,6 +109,8 @@ class TestSimpleNoCoop(unittest.TestCase):
         # Test the set of actions
         actual_actions = model.get_process_actions()
         self.assertEqual(actual_actions, self.expected_actions_dictionary)
+
+        model_solver = pepapot.ModelSolver(model)
 
         # Test the initial state
         self.assertEqual(model_solver.initial_state,
@@ -206,12 +208,14 @@ R <b> (P || Q)
         self.expected_defined_process_names = set_of_names
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P1")]
-        self.expected_actions_dictionary["P1"] = [Action("b", 1.0, "P")]
-        self.expected_actions_dictionary["Q"] = [Action("a", 1.0, "Q1")]
-        self.expected_actions_dictionary["Q1"] = [Action("b", 2.0, "Q")]
-        self.expected_actions_dictionary["R"] = [Action("a", 1.0, "R1")]
-        self.expected_actions_dictionary["R1"] = [Action("b", 10.0, "R")]
+        two_expr = pepapot.NumExpression(2.0)
+        ten_expr = pepapot.NumExpression(10.0)
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P")]
+        self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        self.expected_actions_dictionary["Q1"] = [Action("b", two_expr, "Q")]
+        self.expected_actions_dictionary["R"] = [Action("a", one_expr, "R1")]
+        self.expected_actions_dictionary["R1"] = [Action("b", ten_expr, "R")]
 
         self.expected_initial_state = ("R", ("P", "Q"))
         self.expected_state_space_size = 8
@@ -297,7 +301,6 @@ class TestSelfLoopArray(TestSimpleNoCoop):
         self.expected_defined_process_names = set(["P", "Q", "Q1"])
 
         self.expected_actions_dictionary = dict()
-        one_expr = pepapot.NumExpression(1.0)
         self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P")]
         self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
         self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
@@ -334,8 +337,7 @@ class TestThreeStateArray(TestSimpleNoCoop):
                             """
         self.expected_used_process_names = set(["P", "P1", "P2"])
         self.expected_defined_process_names = set(["P", "P1", "P2"])
-        self.maxDiff = 1200
-        one_expr = pepapot.NumExpression(1.0)
+
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
         self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P2")]
@@ -392,10 +394,10 @@ class TestSimpleChoice(TestSimpleNoCoop):
         self.expected_defined_process_names = self.expected_used_process_names
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P1"),
-                                                 Action("b", 1.0, "P2")]
-        self.expected_actions_dictionary["P1"] = [Action("c", 1.0, "P")]
-        self.expected_actions_dictionary["P2"] = [Action("d", 1.0, "P")]
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1"),
+                                                 Action("b", one_expr, "P2")]
+        self.expected_actions_dictionary["P1"] = [Action("c", one_expr, "P")]
+        self.expected_actions_dictionary["P2"] = [Action("d", one_expr, "P")]
 
         self.expected_shared_actions = set()
 
@@ -424,11 +426,11 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_shared_actions = set()
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", 1.0, "P3"),
-                                                 Action("b", 1.0, "P3")]
-        self.expected_actions_dictionary["P1"] = [Action("a", 1.0, "P3")]
-        self.expected_actions_dictionary["P2"] = [Action("b", 1.0, "P3")]
-        self.expected_actions_dictionary["P3"] = [Action("c", 1.0, "P")]
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P3"),
+                                                 Action("b", one_expr, "P3")]
+        self.expected_actions_dictionary["P1"] = [Action("a", one_expr, "P3")]
+        self.expected_actions_dictionary["P2"] = [Action("b", one_expr, "P3")]
+        self.expected_actions_dictionary["P3"] = [Action("c", one_expr, "P")]
 
         self.expected_initial_state = "P"
         self.expected_state_space_size = 4

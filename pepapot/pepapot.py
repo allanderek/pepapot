@@ -518,6 +518,9 @@ class PrefixNode(object):
     def get_possible_actions(self):
         return [Action(self.action, self.rate, str(self.successor))]
 
+    def concretise_actions(self, environment=None):
+        self.rate = self.rate.get_value()
+
     def format(self):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
@@ -556,6 +559,10 @@ class ChoiceNode(object):
         # In fact they would not need to be duplicates, simply sum the rates,
         # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         return left_actions + right_actions
+
+    def concretise_actions(self, environment=None):
+        self.lhs.concretise_actions(environment)
+        self.rhs.concretise_actions(environment)
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -1034,6 +1041,27 @@ class UtilisationsBuilderHelper(object):
     def cooperation(self, lhs, _coop_set, rhs):
         return CoopUtilisations(lhs.get_builder(self), rhs.get_builder(self))
 
+# Note, we must concretise the actions now such that all later operations
+# need not worry about the fact that rates and populations might have
+# been expressions. We do this in the initialiser for the model solver.
+# It could be that really we might want, for example, functional rates.
+# I think the absolute best way to do this would be to have the rate expression
+# have a value field which is lazily evaluated, but this is awkward because of
+# the need for an environment in which to evaluate the expression. For now I
+# have done the simplest thing that would work. There are some fragilities, for
+# example if you examine the model *after* you have created the model solver
+# you will be reading concrete rate values when you might have been expecting
+# expressions. This is even if you have not done anything with the model solver
+# yet.
+#
+# Note, we could think about doing the concretising in the initial_state method,
+# but it is lazily evaluated so you have to be careful you do not, for example
+# call `model.get_process_actions()` before you inspect the `initial_state`, eg.
+# if the concretising were done in the initial_state method, we could *not* do:
+#       builder_helper = StateBuilderHelper(self.model.get_process_actions())
+#       state_builder = self.model.get_builder(builder_helper)
+#       explore_queue = set([self.initial_state])
+
 
 class ModelSolver(object):
     """A full state space exploring model solver. This solver builds the
@@ -1042,6 +1070,11 @@ class ModelSolver(object):
     """
     def __init__(self, model):
         self.model = model
+        # TODO: Clearly we should be passing in some kind of environment to
+        # concretise_actions, that environment should come from the rate
+        # constant definitions of the model.
+        for proc_def in self.model.process_definitions:
+            proc_def.rhs.concretise_actions()
 
     @lazy
     def initial_state(self):

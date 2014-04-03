@@ -33,6 +33,7 @@ P2 = (d, 1.0).P;
 
 one_expr = pepapot.NumExpression(1.0)
 
+
 def is_valid_gen_matrix(testcase, model_solver):
     for (row_number, row) in enumerate(model_solver.gen_matrix):
         testcase.assertAlmostEqual(0.0, sum(row))
@@ -558,11 +559,12 @@ M = (d, 1) << M;
 M[1]
 """
 
+
 class TestSimpleBioModel(unittest.TestCase):
     def setUp(self):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
-        self.expected_populations = {'M' : 1 }
+        self.expected_populations = {'M': 1}
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)

@@ -488,7 +488,22 @@ floatnumber = Combine(integer + Optional(decimal_fraction) +
 num_expr = floatnumber.copy()
 num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 
-rate_grammar = num_expr
+multop = Literal('*') | Literal('/')
+atom_expr = Or([num_expr, identifier])
+term_expr = pyparsing.Forward()
+term_expr << atom_expr + Optional(multop + term_expr)
+
+
+def term_parse_action(tokens):
+    if len(tokens) > 1:
+        operator = tokens[1]
+        return ApplyExpression(operator, [tokens[0], tokens[2]])
+    else:
+        return tokens[0]
+term_expr.setParseAction(term_parse_action)
+
+
+rate_grammar = term_expr
 
 
 class ProcessIdentifier(object):

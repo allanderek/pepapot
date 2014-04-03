@@ -552,7 +552,7 @@ class TestCommandLine(unittest.TestCase):
 simple_biopepa_model = """
 delta = 1.0;
 
-kineticLawOf d : 1.0;
+kineticLawOf d : delta * M;
 
 M = (d, 1) << M;
 

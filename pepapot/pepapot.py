@@ -1275,9 +1275,17 @@ class BioPopulation(object):
         return cls(tokens[0], tokens[2])
 
 BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
-biosystem_grammar = pyparsing.Forward()
-biosystem_grammar << (BioPopulation.grammar +
-                      Optional("<*>" + biosystem_grammar))
+
+def separated_list(item_grammar, separator_grammar):
+    """ A utlity parsing method to generate a parser for a list of items
+        separated by some separator. This does not return the results of
+        parsing the separtor, only the list of separated items.
+    """
+    list_grammar = pyparsing.Forward()
+    list_grammar << item_grammar + Optional(item_grammar + list_grammar)
+    return list_grammar
+
+biosystem_grammar = separated_list(BioPopulation.grammar, "<*>")
 
 
 class ParsedBioModel(object):

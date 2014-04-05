@@ -17,7 +17,7 @@ Create a python application
 Add this upstream bottle repo
 
     cd bottle
-    git remote add upstream -m master git://github.com/openshift/bottle-openshift-quickstart.git
+    git remote add upstream -m master git://github.com/openshift-quickstart/bottle-openshift-quickstart.git
     git pull -s recursive -X theirs upstream master
     
 Then push the repo upstream

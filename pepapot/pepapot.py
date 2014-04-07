@@ -59,17 +59,6 @@ class Expression:
         # pylint: disable=R0201
         raise ValueError("Virtual method 'get_value' called")
 
-    def get_value_none(self, environment=None):
-        """ The same as 'get_value' except that it returns None in the case
-            that we cannot evaluate the expression (because the environment
-            either is not given or does not define some name used in the
-            expression)
-        """
-        try:
-            return self.get_value(environment=environment)
-        except KeyError:
-            return None
-
     def reduce(self, environment=None):
         """ Similar to 'get_value' except that we always return an expression,
             and in the case that the expression is not wholly reducible to a

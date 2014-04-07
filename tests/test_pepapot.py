@@ -77,7 +77,24 @@ def is_valid_gen_matrix(testcase, model_solver):
         testcase.assertTrue(row[row_number] < 0.0)
 
 
-class TestSimpleNoCoop(unittest.TestCase):
+class TestAlmostEqual(unittest.TestCase):
+    def assertAlmostEqual(self, a, b, msg=None):
+        """A helper method to assert that two values are approximately equal.
+           This is useful since floating point operations often do not end in
+           exactly correct answers. There is scope here for adding in an
+           absolute and relative tolerance, but for now we'll assume that we're
+           interested in a fixed level of accuracy. The scipy assertall method
+           has something a bit more sophisticated than this including atol and
+           rtol, if this becomes necessary. The scipy method works over arrays
+           and we likely wish to work over single values but we could easily
+           adapt the code.
+        """
+        message = str(a) + " is not approximately " + str(b)
+        if msg is not None:
+            message = msg + "\n   " + message
+        self.assertTrue((abs(a - b)) < 1e-8, msg=message)
+
+class TestSimpleNoCoop(TestAlmostEqual):
     """This tests a very simple test model. It also serves as a base class from
        which all other cases testing particular models should derive.
        A subclass should re-write the setup method populating all of the
@@ -108,22 +125,6 @@ class TestSimpleNoCoop(unittest.TestCase):
                                             ("P1", 0.5)]),
                                       dict([("Q", 0.5),
                                             ("Q1", 0.5)])]
-
-    def assertAlmostEqual(self, a, b, msg=None):
-        """A helper method to assert that two values are approximately equal.
-           This is useful since floating point operations often do not end in
-           exactly correct answers. There is scope here for adding in an
-           absolute and relative tolerance, but for now we'll assume that we're
-           interested in a fixed level of accuracy. The scipy assertall method
-           has something a bit more sophisticated than this including atol and
-           rtol, if this becomes necessary. The scipy method works over arrays
-           and we likely wish to work over single values but we could easily
-           adapt the code.
-        """
-        message = str(a) + " is not approximately " + str(b)
-        if msg is not None:
-            message = msg + "\n   " + message
-        self.assertTrue((abs(a - b)) < 1e-8, msg=message)
 
     # I had separate methods for testing each of these things, but I found
     # that unittest re-created this class for each test, hence I was not
@@ -602,6 +603,7 @@ class TestSimpleBioModel(unittest.TestCase):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
         self.expected_populations = {'M': 1}
+        self.expected_result = {'M': 10.0}
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
@@ -611,6 +613,14 @@ class TestSimpleBioModel(unittest.TestCase):
         self.assertEqual(number_species, self.expected_number_species)
 
         self.assertEqual(model.populations, self.expected_populations)
+
+        # Test the solver
+        configuration = pepapot.Configuration()
+        model_solver = pepapot.BioModelSolver(model)
+        result = model_solver.solve_odes(configuration)
+        for species, population in self.expected_result.items():
+            # TODO: here the [0] index should depend on the name 'species'
+            self.assertAlmostEqual(result[-1][0], population)
 
 
 if __name__ == '__main__':

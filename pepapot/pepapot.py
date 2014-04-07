@@ -270,6 +270,10 @@ class ApplyExpression(Expression):
         for child in self.args:
             child.munge_names(function)
 
+    # TODO: This should not be in here if we really want the parsing of
+    # expressions to be separate from Bio-PEPA evaluation. We should have a
+    # general way to remove expressions. We could even restrict this to
+    # specifically apply expressions but it should be more general.
     def remove_rate_law_sugar(self, reaction=None):
         # First apply this to all of the argument expressions.
         new_args = [arg.remove_rate_law_sugar(reaction) for arg in self.args]

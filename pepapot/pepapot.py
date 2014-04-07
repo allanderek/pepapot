@@ -1352,6 +1352,7 @@ class TimeCourse(object):
         self.column_names = names
         self.rows = rows
 
+
 def get_time_grid(configuration):
     """ From a solver configuration return the time points which should
         be returned from the solver
@@ -1366,6 +1367,7 @@ def get_time_grid(configuration):
     return numpy.arange(start=start_time,
                         stop=stop_time + out_interval,
                         step=out_interval)
+
 
 class BioModelSolver(object):
     def __init__(self, model):
@@ -1385,20 +1387,19 @@ class BioModelSolver(object):
                 equations Essentially then, solves for each ODE the right hand
                 side of the ode at the given populations and time.
             """
-            result = [ c * -1.0 for c in current_pops ]
+            result = [c * -1.0 for c in current_pops]
             return result
 
         # The difficulty here is that initials must be the same order as
         # 'results'
         initials = [population_dictionary[name] for name in species_names]
-       
-        time_grid  = get_time_grid(configuration)
+
+        time_grid = get_time_grid(configuration)
         # Solve the ODEs
         solution = odeint(get_rhs, initials, time_grid)
 
         timecourse = TimeCourse(species_names, solution)
         return timecourse
-
 
 
 # Now the command-line stuff

@@ -94,6 +94,7 @@ class TestAlmostEqual(unittest.TestCase):
             message = msg + "\n   " + message
         self.assertTrue((abs(a - b)) < 1e-8, msg=message)
 
+
 class TestSimpleNoCoop(TestAlmostEqual):
     """This tests a very simple test model. It also serves as a base class from
        which all other cases testing particular models should derive.

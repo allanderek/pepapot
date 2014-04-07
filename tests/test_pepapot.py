@@ -25,10 +25,15 @@ class TestExpression(unittest.TestCase):
         self.expected_result = 3
         self.environment = None
 
-    def test_evaluation(self):
-        expr = pepapot.expr_grammar.parseString(self.expression_source,
-                                                parseAll=True)
+    def evaluate_expression(self):
+        parsed = pepapot.expr_grammar.parseString(self.expression_source,
+                                                  parseAll=True)
+        expr = parsed[0]
         result = expr.get_value(environment=self.environment)
+        return result
+
+    def test_evaluation(self):
+        result = self.evaluate_expression()
         self.assertEqual(result, self.expected_result)
 
 class TestNameExpression(TestExpression):
@@ -36,6 +41,14 @@ class TestNameExpression(TestExpression):
         self.expression_source = "10 * 10"
         self.expected_result = 100
         self.environment = {"x": 10}
+
+class TestMissingNameExpression(TestExpression):
+    def setUp(self):
+        self.expression_source = "x * y"
+        self.environment = {"x": 10}
+
+    def test_evaluation(self):
+        self.assertRaises(KeyError, self.evaluate_expression)
 
 
 simple_components = """

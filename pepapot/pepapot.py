@@ -492,8 +492,11 @@ floatnumber = Combine(integer + Optional(decimal_fraction) +
 num_expr = floatnumber.copy()
 num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 
+name_expr = identifier.copy()
+name_expr.setParseAction(lambda tokens: NameExpression(tokens[0]))
+
 multop = Literal('*') | Literal('/')
-atom_expr = Or([num_expr, identifier])
+atom_expr = Or([num_expr, name_expr])
 term_expr = pyparsing.Forward()
 term_expr << atom_expr + Optional(multop + term_expr)
 

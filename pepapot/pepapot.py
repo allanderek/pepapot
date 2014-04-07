@@ -310,24 +310,24 @@ class ApplyExpression(Expression):
         """
         arg_values = [arg.get_value(environment=environment)
                       for arg in self.args]
-        if self.name == "plus":
+        if self.name == "plus" or self.name == "+":
             return sum(arg_values)
-        elif self.name == "times":
+        elif self.name == "times" or self.name == "*":
             answer = 1
             for arg in arg_values:
                 answer *= arg
             return answer
-        elif self.name == "minus":
+        elif self.name == "minus" or self.name == "-":
             # What should we do if there is only one argument, I think we
             # should treat '(-) x' the same as '0 - x'.
             answer = arg_values[0]
             for arg in arg_values[1:]:
                 answer -= arg
-        elif self.name == "divide":
+        elif self.name == "divide" or self.name == "/":
             answer = arg_values[0]
             for arg in arg_values[1:]:
                 answer /= arg
-        elif self.name == "power":
+        elif self.name == "power" or self.name == "**":
             # power is interesting because it associates to the right
             exponent = 1
             # counts downwards from the last index to the 0.
@@ -495,19 +495,26 @@ num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 name_expr = identifier.copy()
 name_expr.setParseAction(lambda tokens: NameExpression(tokens[0]))
 
-multop = Literal('*') | Literal('/')
 atom_expr = Or([num_expr, name_expr])
-term_expr = pyparsing.Forward()
-term_expr << atom_expr + Optional(multop + term_expr)
 
-
-def term_parse_action(tokens):
+multop = Literal('*') | Literal('/')
+factor_expr = pyparsing.Forward()
+factor_expr << atom_expr + Optional(multop + factor_expr)
+def factor_parse_action(tokens):
     if len(tokens) > 1:
         operator = tokens[1]
         return ApplyExpression(operator, [tokens[0], tokens[2]])
     else:
         return tokens[0]
+
+
+term_expr = pyparsing.Forward()
+term_expr << factor_expr + Optional(plusorminus + term_expr)
+
+
+term_parse_action = factor_parse_action
 term_expr.setParseAction(term_parse_action)
+
 
 expr_grammar = term_expr
 rate_grammar = expr_grammar

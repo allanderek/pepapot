@@ -500,6 +500,8 @@ atom_expr = Or([num_expr, name_expr])
 multop = Literal('*') | Literal('/')
 factor_expr = pyparsing.Forward()
 factor_expr << atom_expr + Optional(multop + factor_expr)
+
+
 def factor_parse_action(tokens):
     if len(tokens) > 1:
         operator = tokens[1]

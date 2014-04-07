@@ -19,6 +19,7 @@ Action = pepapot.Action
 
 ## We begin with testing for the expression parser and evaluator
 
+
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.expression_source = "1 + 2"
@@ -36,11 +37,13 @@ class TestExpression(unittest.TestCase):
         result = self.evaluate_expression()
         self.assertEqual(result, self.expected_result)
 
+
 class TestNameExpression(TestExpression):
     def setUp(self):
         self.expression_source = "10 * 10"
         self.expected_result = 100
         self.environment = {"x": 10}
+
 
 class TestMissingNameExpression(TestExpression):
     def setUp(self):

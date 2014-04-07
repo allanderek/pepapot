@@ -17,6 +17,27 @@ import functools
 from pepapot import pepapot
 Action = pepapot.Action
 
+## We begin with testing for the expression parser and evaluator
+
+class TestExpression(unittest.TestCase):
+    def setUp(self):
+        self.expression_source = "1 + 2"
+        self.expected_result = 3
+        self.environment = None
+
+    def test_evaluation(self):
+        expr = pepapot.expr_grammar.parseString(self.expression_source,
+                                                parseAll=True)
+        result = expr.get_value(environment=self.environment)
+        self.assertEqual(result, self.expected_result)
+
+class TestNameExpression(TestExpression):
+    def setUp(self):
+        self.expression_source = "10 * 10"
+        self.expected_result = 100
+        self.environment = {"x": 10}
+
+
 simple_components = """
 P = (a,1.0).P1;
 P1 = (b, 1.0).P;

@@ -506,8 +506,8 @@ def term_parse_action(tokens):
         return tokens[0]
 term_expr.setParseAction(term_parse_action)
 
-
-rate_grammar = term_expr
+expr_grammar = term_expr
+rate_grammar = expr_grammar
 
 
 class ProcessIdentifier(object):

@@ -16,6 +16,7 @@ from docopt import docopt
 import pyparsing
 from pyparsing import Combine, Or, Optional, Literal, Suppress
 import numpy
+from scipy.integrate import odeint
 from lazy import lazy
 
 
@@ -1337,6 +1338,67 @@ ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 def parse_biomodel(model_string):
     """Parses a bio-model ensuring that we have consumed the entire input"""
     return ParsedBioModel.whole_input_grammar.parseString(model_string)[0]
+
+
+class Configuration(object):
+    def __init__(self):
+        self.start_time = 0.0
+        self.stop_time = 10.0
+        self.out_interval = 1.0
+
+
+class TimeCourse(object):
+    def __init__(self, names, rows):
+        self.column_names = names
+        self.rows = rows
+
+def get_time_grid(configuration):
+    """ From a solver configuration return the time points which should
+        be returned from the solver
+    """
+    start_time = configuration.start_time
+    stop_time = configuration.stop_time
+    out_interval = configuration.out_interval
+    # putting stop beyond the actual stop time means that the output
+    # will actually include the stop time. Note that in some cases this
+    # may result in stop_time + out_interval actually appearing in the
+    # output as well, see numpy.arange documentation.
+    return numpy.arange(start=start_time,
+                        stop=stop_time + out_interval,
+                        step=out_interval)
+
+class BioModelSolver(object):
+    def __init__(self, model):
+        self.model = model
+
+    def solve_odes(self, configuration):
+        """ Solves the model, to give a timeseries, by converting the model
+            to a series of ODEs.
+        """
+        population_dictionary = self.model.populations.copy()
+        species_names = list(population_dictionary.keys())
+
+        def get_rhs(current_pops, time):
+            """ The main function passed to the solver, it calculates from the
+                current populations of species, the rate of change of each
+                species. Also given a 'time' which may be used in the
+                equations Essentially then, solves for each ODE the right hand
+                side of the ode at the given populations and time.
+            """
+            result = [ c * -1.0 for c in current_pops ]
+            return result
+
+        # The difficulty here is that initials must be the same order as
+        # 'results'
+        initials = [population_dictionary[name] for name in species_names]
+       
+        time_grid  = get_time_grid(configuration)
+        # Solve the ODEs
+        solution = odeint(get_rhs, initials, time_grid)
+
+        timecourse = TimeCourse(species_names, solution)
+        return timecourse
+
 
 
 # Now the command-line stuff

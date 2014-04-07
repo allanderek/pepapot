@@ -603,7 +603,7 @@ class TestSimpleBioModel(unittest.TestCase):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
         self.expected_populations = {'M': 1}
-        self.expected_result = {'M': 10.0}
+        self.expected_result = {'M': 4.54009266e-05}
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
@@ -618,9 +618,11 @@ class TestSimpleBioModel(unittest.TestCase):
         configuration = pepapot.Configuration()
         model_solver = pepapot.BioModelSolver(model)
         result = model_solver.solve_odes(configuration)
+
         for species, population in self.expected_result.items():
-            # TODO: here the [0] index should depend on the name 'species'
-            self.assertAlmostEqual(result[-1][0], population)
+            row = result.rows[-1]
+            index = result.column_names.index(species)
+            self.assertAlmostEqual(row[index], population)
 
 
 if __name__ == '__main__':

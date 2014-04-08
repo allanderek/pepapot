@@ -681,7 +681,9 @@ class TestBioSyntaxSugar(unittest.TestCase):
         left_result = self.get_result(self.left_model_source)
         right_result = self.get_result(self.right_model_source)
 
-        self.assertEqual(left_result, right_result)
+        left_final_row = list(left_result.rows[-1])
+        right_final_row = list(right_result.rows[-1])
+        self.assertListEqual(left_final_row, right_final_row)
 
 
 class TestBioStoichSugar(TestBioSyntaxSugar):

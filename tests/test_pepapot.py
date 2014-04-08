@@ -647,6 +647,59 @@ class TestReverseBioModel(TestSimpleBioModel):
         self.expected_result = {'A': 66.66667694, 'B': 133.33332306}
         self.configuration = pepapot.Configuration()
 
+
+class TestBioSyntaxSugar(unittest.TestCase):
+    """ A simple test class which tests that two models are equivalent
+        despite having different syntaxes. This particular one is testing
+        the syntax sugar of behaviours.
+    """
+    def setUp(self):
+        self.configuration = pepapot.Configuration()
+        self.left_model_source = reverse_reaction_biopepa_model
+        self.right_model_source = """
+        delta = 1.0;
+        gamma = 0.5;
+
+        kineticLawOf r : delta * A;
+        kineticLawOf rm : gamma * B;
+
+        A = r << + rm >> ;
+        B = r >> + rm << ;
+
+        A[100] <*> B[100]
+        """
+
+    def get_result(self, model_source):
+        model = pepapot.parse_biomodel(model_source)
+        model_solver = pepapot.BioModelSolver(model)
+        result = model_solver.solve_odes(self.configuration)
+        return result
+
+    def test_equivalence(self):
+        left_result = self.get_result(self.left_model_source)
+        right_result = self.get_result(self.right_model_source)
+
+        self.assertEqual(left_result, right_result)
+
+
+class TestBioFMASyntax(TestBioSyntaxSugar):
+    def setUp(self):
+        self.configuration = pepapot.Configuration()
+        self.left_model_source = reverse_reaction_biopepa_model
+        self.right_model_source = """
+        delta = 1.0;
+        gamma = 0.5;
+
+        kineticLawOf r : fMA(delta);
+        kineticLawOf rm : fMA(gamma);
+
+        A = (r, 1) << A + (rm, 1) >> A;
+        B = (r, 1) >> B + (rm, 1) << B;
+
+        A[100] <*> B[100]
+        """
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

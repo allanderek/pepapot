@@ -303,10 +303,7 @@ class ApplyExpression(Expression):
         if self.name == "plus" or self.name == "+":
             return sum(arg_values)
         elif self.name == "times" or self.name == "*":
-            answer = 1
-            for arg in arg_values:
-                answer *= arg
-            return answer
+            return list_product(arg_values)
         elif self.name == "minus" or self.name == "-":
             # What should we do if there is only one argument, I think we
             # should treat '(-) x' the same as '0 - x'.
@@ -498,7 +495,7 @@ def factor_parse_action(tokens):
         return ApplyExpression(operator, [tokens[0], tokens[2]])
     else:
         return tokens[0]
-
+factor_expr.setParseAction(factor_parse_action)
 
 term_expr = pyparsing.Forward()
 term_expr << factor_expr + Optional(plusorminus + term_expr)
@@ -1229,12 +1226,12 @@ class BioRateConstant(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    grammar = identifier + "=" + rate_grammar + ";"
+    grammar = identifier + "=" + expr_grammar + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[1], tokens[3])
+        return cls(tokens[0], tokens[2])
 
 BioRateConstant.grammar.setParseAction(BioRateConstant.from_tokens)
 
@@ -1251,9 +1248,6 @@ class BioRateDefinition(object):
     def from_tokens(cls, tokens):
         return cls(tokens[1], tokens[3])
 
-# TODO: Is it not possible to put these setParseActions within the class
-# definition? I kind of assume not otherwise I would have done that but I do
-# not see why not?
 BioRateDefinition.grammar.setParseAction(BioRateDefinition.from_tokens)
 
 
@@ -1265,12 +1259,13 @@ class BioBehaviour(object):
         self.species = species
 
     prefix_grammar = "(" + identifier + "," + integer + ")"
+    prefix_grammar.setParseAction(lambda tokens: (tokens[1], int(tokens[3])))
     role_grammar = "<<"
     grammar = prefix_grammar + role_grammar + identifier
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[1], tokens[2], tokens[3])
+        return cls(tokens[0][0], tokens[0][1], tokens[1], tokens[2])
 
 BioBehaviour.grammar.setParseAction(BioBehaviour.from_tokens)
 
@@ -1303,7 +1298,7 @@ class BioPopulation(object):
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[2])
+        return cls(tokens[0], int(tokens[2]))
 
 BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
 
@@ -1317,7 +1312,7 @@ class ParsedBioModel(object):
         self.species_defs = species
         self.populations = dict()
         for population in populations:
-            self.populations[population.species_name] = int(population.amount)
+            self.populations[population.species_name] = population.amount
 
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
@@ -1334,6 +1329,11 @@ class ParsedBioModel(object):
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 
+def def_list_as_dictionary(definitions):
+    dictionary = dict()
+    for definition in definitions:
+        dictionary[definition.lhs] = definition.rhs
+    return dictionary
 
 def parse_biomodel(model_string):
     """Parses a bio-model ensuring that we have consumed the entire input"""
@@ -1377,8 +1377,47 @@ class BioModelSolver(object):
         """ Solves the model, to give a timeseries, by converting the model
             to a series of ODEs.
         """
-        population_dictionary = self.model.populations.copy()
-        species_names = list(population_dictionary.keys())
+        kinetic_laws = def_list_as_dictionary(self.model.kinetic_laws)
+        # For each species we build an expression to calculate its rate of
+        # change based on the current population
+        species_names = []
+        species_gradients = []
+        for species_def in self.model.species_defs:
+            species = species_def.lhs
+            species_names.append(species)
+            behaviour = species_def.rhs
+            if behaviour.role == "<<":
+                modifier = -1 * behaviour.stoichiometry
+            elif behaviour.role == ">>":
+                modifier = 1 * behaviour.stoichiometry
+            else:
+                modifier = 0
+
+            expr = kinetic_laws[behaviour.reaction_name]
+            if modifier == 0:
+                expr = NumExpression(0.0)
+            elif modifier != 1:
+                expr = ApplyExpression("*", [NumExpression(modifier), expr])
+            species_gradients.append(expr)
+
+        # We need an environment in which to evaluate each expression, this
+        # will consist of the populations (which will be overridden at each
+        # time point, and any constants that are used. Theoretically we could
+        # instead reduce all of these expressions to remove any use of
+        # variables which are assigned to constants (even if indirectly).
+        # If we did this, we could have a new environment created inside
+        # 'get_rhs' and this would only be used to create the initials.
+        environment = self.model.populations.copy()
+
+        # For now though we will just add the constants to the environment
+        for constant_def in self.model.constants:
+            name = constant_def.lhs
+            value = constant_def.rhs.get_value(environment=environment)
+            environment[name] = value
+
+        # TODO: Check what happens if we have (d, 2) (+) E; that is a
+        # stoichiometry that is not one for a modifier, rather than a reactant
+        # or product. I think this just should not be allowed, correct?
 
         def get_rhs(current_pops, time):
             """ The main function passed to the solver, it calculates from the
@@ -1387,12 +1426,16 @@ class BioModelSolver(object):
                 equations Essentially then, solves for each ODE the right hand
                 side of the ode at the given populations and time.
             """
-            result = [c * -1.0 for c in current_pops]
+            environment["time"] = time
+            for species, population in zip(species_names, current_pops):
+                environment[species] = population
+                result = [expr.get_value(environment=environment)
+                          for expr in species_gradients]
             return result
 
         # The difficulty here is that initials must be the same order as
         # 'results'
-        initials = [population_dictionary[name] for name in species_names]
+        initials = [environment[name] for name in species_names]
 
         time_grid = get_time_grid(configuration)
         # Solve the ODEs

@@ -1239,7 +1239,13 @@ class BioBehaviour(object):
     prefix_grammar.setParseAction(lambda tokens: (tokens[1], int(tokens[3])))
     op_strings = ["<<", ">>", "(+)", "(-)", "(.)"]
     role_grammar = Or([Literal(op) for op in op_strings])
-    grammar = prefix_grammar + role_grammar + identifier
+
+    # The true syntax calls for (a,r) << P; where P is the name of the process
+    # being updated by the behaviour. However since this is (in the absence
+    # of locations) always the same as the process being defined, it is
+    # permitted to simply omit it.
+    process_update_identifier = Optional(identifier, default=None)
+    grammar = prefix_grammar + role_grammar + process_update_identifier
 
     @classmethod
     def from_tokens(cls, tokens):

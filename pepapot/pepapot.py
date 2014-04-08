@@ -1329,11 +1329,13 @@ class ParsedBioModel(object):
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 
+
 def def_list_as_dictionary(definitions):
     dictionary = dict()
     for definition in definitions:
         dictionary[definition.lhs] = definition.rhs
     return dictionary
+
 
 def parse_biomodel(model_string):
     """Parses a bio-model ensuring that we have consumed the entire input"""

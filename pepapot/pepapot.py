@@ -21,31 +21,6 @@ from scipy.integrate import odeint
 from lazy import lazy
 
 
-def separated_list(item_grammar, separator_grammar):
-    """ A utlity parsing method to generate a parser for a list of items
-        separated by some separator. This does not return the results of
-        parsing the separtor, only the list of separated items.
-    """
-    list_grammar = pyparsing.Forward()
-    tail_grammar = Optional(separator_grammar + list_grammar)
-    tail_grammar.setParseAction(lambda toks: toks[1] if toks else toks)
-    list_grammar << item_grammar + tail_grammar
-
-    # TODO: This should really return a pyparsing.Group(list_grammar) since
-    # otherwise you return a list of tokens for which it is an easy mistake
-    # index and take the first item. For example if you have the grammar of
-    # a definition such as:
-    # identifier + '=' + separated_list(X, "+") + ';'
-    # Then it is easy to take the result of this as:
-    # tokens[0], tokens[2]
-    # But if you parsed the string:
-    # 'ident = X + X;'
-    # for some string matching the parser X, then the result would be:
-    # ['ident', '=', X, X, ';']
-    # So you can see you have incorrectly taken just the first of the list.
-    return list_grammar
-
-
 class Expression:
     """ The base class for all classes which represent the AST of some
         kind of expression"""
@@ -582,20 +557,6 @@ class ChoiceNode(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    # TODO: Make sure this works for more than a simple choice of 2
-    grammar = separated_list(process_leaf, "+")
-
-    @classmethod
-    def from_tokens(cls, tokens):
-        """ A non-typical implementation here, since it might not actually
-            produce a 'ChoiceNode' if the number of tokens indicate that the
-            optional '+ process_grammar' part is empty.
-        """
-        if len(tokens) == 2:
-            return cls(tokens[0], tokens[1])
-        else:
-            return tokens
-
     def get_possible_actions(self):
         left_actions = self.lhs.get_possible_actions()
         right_actions = self.rhs.get_possible_actions()
@@ -625,16 +586,16 @@ class ChoiceNode(object):
         # P = (a, r).(Q + R);
         return " ".join([self.lhs.format(), "+", self.rhs.format()])
 
-ChoiceNode.grammar.setParseAction(ChoiceNode.from_tokens)
-# This just sets up an alias because it is otherwise non-obvious that
-# ChoiceNode.grammar represents the grammar for generic processes.
-process_grammar = ChoiceNode.grammar
-
 
 class ProcessDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
+
+    def process_grammar_action(tokens):
+        return functools.reduce(lambda l, r: ChoiceNode(l, r), tokens)
+    process_grammar = pyparsing.delimitedList(process_leaf, delim="+")
+    process_grammar.setParseAction(process_grammar_action)
 
     grammar = identifier + "=" + process_grammar + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
@@ -1309,9 +1270,8 @@ class BioSpeciesDefinition(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    # TODO: Obviously the right hand side should be a species grammar.
-    behaviours = pyparsing.Group(separated_list(BioBehaviour.grammar, "+"))
-    grammar = identifier + "=" + behaviours + ";"
+    behaviours = pyparsing.delimitedList(BioBehaviour.grammar, delim="+")
+    grammar = identifier + "=" + pyparsing.Group(behaviours) + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod
@@ -1319,7 +1279,8 @@ class BioSpeciesDefinition(object):
         return cls(tokens[0], tokens[2])
 
     def format(self):
-        return " ".join([self.lhs, "=", self.rhs.format(), ";"])
+        behaviours_string = " + ".join([b.format() for b in self.rhs])
+        return " ".join([self.lhs, "=", behaviours_string, ";"])
 
 BioSpeciesDefinition.grammar.setParseAction(BioSpeciesDefinition.from_tokens)
 
@@ -1337,7 +1298,8 @@ class BioPopulation(object):
 
 BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
 
-biosystem_grammar = separated_list(BioPopulation.grammar, "<*>")
+biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
+                                            delim="<*>")
 
 
 class ParsedBioModel(object):

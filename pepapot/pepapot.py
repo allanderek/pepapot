@@ -1235,8 +1235,19 @@ class BioBehaviour(object):
         self.role = role
         self.species = species
 
-    prefix_grammar = "(" + identifier + "," + integer + ")"
-    prefix_grammar.setParseAction(lambda tokens: (tokens[1], int(tokens[3])))
+    # If the stoichiometry is 1, then instead of writing "(r, 1)" we allow
+    # the modeller to simply write "r".
+    # TODO: Consider making the parentheses optional in any case, and then
+    # we can simply make the comma-stoich optional.
+    prefix_identifier = identifier.copy()
+    prefix_identifier.setParseAction(lambda tokens: (tokens[0], 1))
+
+    full_prefix_grammar = "(" + identifier + "," + integer + ")"
+    full_prefix_parse_action = lambda tokens: (tokens[1], int(tokens[3]))
+    full_prefix_grammar.setParseAction(full_prefix_parse_action)
+
+    prefix_grammar = Or([prefix_identifier, full_prefix_grammar])
+
     op_strings = ["<<", ">>", "(+)", "(-)", "(.)"]
     role_grammar = Or([Literal(op) for op in op_strings])
 

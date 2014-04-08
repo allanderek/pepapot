@@ -651,7 +651,9 @@ class TestReverseBioModel(TestSimpleBioModel):
 class TestBioSyntaxSugar(unittest.TestCase):
     """ A simple test class which tests that two models are equivalent
         despite having different syntaxes. This particular one is testing
-        the syntax sugar of behaviours.
+        the syntax sugar of behaviours such that one can simply leave off
+        the process name attached to the behaviour, which is generally the
+        same as the name of the process being defined.
     """
     def setUp(self):
         self.configuration = pepapot.Configuration()
@@ -663,8 +665,8 @@ class TestBioSyntaxSugar(unittest.TestCase):
         kineticLawOf r : delta * A;
         kineticLawOf rm : gamma * B;
 
-        A = r << + rm >> ;
-        B = r >> + rm << ;
+        A = (r, 1) << + (rm, 1) >> ;
+        B = (r, 1) >> + (rm, 1) << ;
 
         A[100] <*> B[100]
         """
@@ -682,7 +684,29 @@ class TestBioSyntaxSugar(unittest.TestCase):
         self.assertEqual(left_result, right_result)
 
 
+class TestBioStoichSugar(TestBioSyntaxSugar):
+    """ This Biological syntax sugar tests for the stoichiometry being 1
+        where the stoich and parentheses of the behaviour can be omitted.
+    """
+    def setUp(self):
+        self.configuration = pepapot.Configuration()
+        self.left_model_source = reverse_reaction_biopepa_model
+        self.right_model_source = """
+        delta = 1.0;
+        gamma = 0.5;
+
+        kineticLawOf r : delta * A;
+        kineticLawOf rm : gamma * B;
+
+        A = r << + rm >> ;
+        B = r >> + rm << ;
+
+        A[100] <*> B[100]
+        """
+
+
 class TestBioFMASyntax(TestBioSyntaxSugar):
+    """ This tests the fMA sugar for rate laws """
     def setUp(self):
         self.configuration = pepapot.Configuration()
         self.left_model_source = reverse_reaction_biopepa_model

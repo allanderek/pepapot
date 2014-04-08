@@ -605,6 +605,7 @@ class TestSimpleBioModel(unittest.TestCase):
         self.expected_number_species = 1
         self.expected_populations = {'M': 1}
         self.expected_result = {'M': 4.54009266e-05}
+        self.configuration = pepapot.Configuration()
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
@@ -616,15 +617,35 @@ class TestSimpleBioModel(unittest.TestCase):
         self.assertEqual(model.populations, self.expected_populations)
 
         # Test the solver
-        configuration = pepapot.Configuration()
         model_solver = pepapot.BioModelSolver(model)
-        result = model_solver.solve_odes(configuration)
+        result = model_solver.solve_odes(self.configuration)
 
         for species, population in self.expected_result.items():
             row = result.rows[-1]
             index = result.column_names.index(species)
             self.assertAlmostEqual(row[index], population)
 
+reverse_reaction_biopepa_model = """
+delta = 1.0;
+gamma = 0.5;
+
+kineticLawOf r : delta * A;
+kineticLawOf rm : gamma * B;
+
+A = (r, 1) << A + (rm, 1) >> A;
+B = (r, 1) >> B + (rm, 1) << B;
+
+A[100] <*> B[100]
+"""
+
+
+class TestReverseBioModel(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = reverse_reaction_biopepa_model
+        self.expected_number_species = 2
+        self.expected_populations = {'A': 100, 'B': 100}
+        self.expected_result = {'A': 0.0, 'B': 200.0}
+        self.configuration = pepapot.Configuration()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

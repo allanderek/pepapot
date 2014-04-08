@@ -644,7 +644,7 @@ class TestReverseBioModel(TestSimpleBioModel):
         self.model_source = reverse_reaction_biopepa_model
         self.expected_number_species = 2
         self.expected_populations = {'A': 100, 'B': 100}
-        self.expected_result = {'A': 0.0, 'B': 200.0}
+        self.expected_result = {'A': 66.66667694, 'B': 133.33332306}
         self.configuration = pepapot.Configuration()
 
 if __name__ == '__main__':

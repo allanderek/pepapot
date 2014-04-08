@@ -11,6 +11,7 @@ Options:
   """
 import logging
 from collections import namedtuple
+import functools
 
 from docopt import docopt
 import pyparsing
@@ -26,7 +27,22 @@ def separated_list(item_grammar, separator_grammar):
         parsing the separtor, only the list of separated items.
     """
     list_grammar = pyparsing.Forward()
-    list_grammar << item_grammar + Optional(separator_grammar + list_grammar)
+    tail_grammar = Optional(separator_grammar + list_grammar)
+    tail_grammar.setParseAction(lambda toks: toks[1] if toks else toks)
+    list_grammar << item_grammar + tail_grammar
+
+    # TODO: This should really return a pyparsing.Group(list_grammar) since
+    # otherwise you return a list of tokens for which it is an easy mistake
+    # index and take the first item. For example if you have the grammar of
+    # a definition such as:
+    # identifier + '=' + separated_list(X, "+") + ';'
+    # Then it is easy to take the result of this as:
+    # tokens[0], tokens[2]
+    # But if you parsed the string:
+    # 'ident = X + X;'
+    # for some string matching the parser X, then the result would be:
+    # ['ident', '=', X, X, ';']
+    # So you can see you have incorrectly taken just the first of the list.
     return list_grammar
 
 
@@ -575,8 +591,8 @@ class ChoiceNode(object):
             produce a 'ChoiceNode' if the number of tokens indicate that the
             optional '+ process_grammar' part is empty.
         """
-        if len(tokens) == 3:
-            return cls(tokens[0], tokens[2])
+        if len(tokens) == 2:
+            return cls(tokens[0], tokens[1])
         else:
             return tokens
 
@@ -1260,12 +1276,30 @@ class BioBehaviour(object):
 
     prefix_grammar = "(" + identifier + "," + integer + ")"
     prefix_grammar.setParseAction(lambda tokens: (tokens[1], int(tokens[3])))
-    role_grammar = "<<"
+    op_strings = ["<<", ">>", "(+)", "(-)", "(.)"]
+    role_grammar = Or([Literal(op) for op in op_strings])
     grammar = prefix_grammar + role_grammar + identifier
 
     @classmethod
     def from_tokens(cls, tokens):
         return cls(tokens[0][0], tokens[0][1], tokens[1], tokens[2])
+
+    def get_expression(self, kinetic_laws):
+        if self.role == "<<":
+            modifier = -1 * self.stoichiometry
+        elif self.role == ">>":
+            modifier = 1 * self.stoichiometry
+        else:
+            modifier = 0
+
+        expr = kinetic_laws[self.reaction_name]
+        if modifier == 0:
+            expr = NumExpression(0.0)
+        elif modifier != 1:
+            expr = ApplyExpression("*", [NumExpression(modifier), expr])
+
+        return expr
+
 
 BioBehaviour.grammar.setParseAction(BioBehaviour.from_tokens)
 
@@ -1276,7 +1310,8 @@ class BioSpeciesDefinition(object):
         self.rhs = rhs
 
     # TODO: Obviously the right hand side should be a species grammar.
-    grammar = identifier + "=" + BioBehaviour.grammar + ";"
+    behaviours = pyparsing.Group(separated_list(BioBehaviour.grammar, "+"))
+    grammar = identifier + "=" + behaviours + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod
@@ -1387,19 +1422,11 @@ class BioModelSolver(object):
         for species_def in self.model.species_defs:
             species = species_def.lhs
             species_names.append(species)
-            behaviour = species_def.rhs
-            if behaviour.role == "<<":
-                modifier = -1 * behaviour.stoichiometry
-            elif behaviour.role == ">>":
-                modifier = 1 * behaviour.stoichiometry
-            else:
-                modifier = 0
-
-            expr = kinetic_laws[behaviour.reaction_name]
-            if modifier == 0:
-                expr = NumExpression(0.0)
-            elif modifier != 1:
-                expr = ApplyExpression("*", [NumExpression(modifier), expr])
+            behaviours = species_def.rhs
+            behaviour_exprs = [b.get_expression(kinetic_laws)
+                               for b in behaviours]
+            add_exprs = lambda l, r: ApplyExpression("+", [l, r])
+            expr = functools.reduce(add_exprs, behaviour_exprs)
             species_gradients.append(expr)
 
         # We need an environment in which to evaluate each expression, this

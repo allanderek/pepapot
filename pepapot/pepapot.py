@@ -251,37 +251,6 @@ class ApplyExpression(Expression):
         for child in self.args:
             child.munge_names(function)
 
-    # TODO: This should not be in here if we really want the parsing of
-    # expressions to be separate from Bio-PEPA evaluation. We should have a
-    # general way to remove expressions. We could even restrict this to
-    # specifically apply expressions but it should be more general.
-    def remove_rate_law_sugar(self, reaction=None):
-        # First apply this to all of the argument expressions.
-        new_args = [arg.remove_rate_law_sugar(reaction) for arg in self.args]
-        self.args = new_args
-
-        if reaction is not None and self.name == "fMA":
-            # Should do some more error checking, eg if there is exactly
-            # one argument.
-            mass_action_reactants = reaction.get_mass_action_participants()
-            extra_args = [NameExpression(reactant.get_name())
-                          for reactant in mass_action_reactants]
-            all_args = new_args + extra_args
-            # fMA should have exactly one argument, the additional arguments
-            # are the populations of all the reactants/modifiers of the
-            # reaction. It could be that there are no such, in otherwords we
-            # have a source reaction
-            if len(all_args) > 1:
-                new_expr = ApplyExpression("times", new_args + extra_args)
-                return new_expr
-            else:
-                # If there is only the original argument then just return that
-                # even without the surrounding 'fMA' application.
-                return all_args[0]
-        else:
-            new_expr = ApplyExpression(self.name, new_args)
-            return new_expr
-
     def get_value(self, environment=None):
         """ Return the value to which the expression evaluates. If any
             environment is given it should be used to resolve any names in
@@ -429,27 +398,45 @@ class ExpressionVisitor(object):
         return self.result
 
     ###################################
-    # These are the unimplemented methods that you would be likely
-    # to override for your expression visitor.
-    # pylint: disable=C0103
-    def visit_NumExpression(self, _expression):
+    # These are base class definitions, you will wish to override at least
+    # one of these, possibly all of them.
+    def visit_NumExpression(self, expression):
         """Visit a NumExpression element"""
-        # pylint: disable=R0201
-        message = "visit_NumExpression element for expression visitor"
-        raise NotImplementedError(message)
+        self.result = expression
 
-    def visit_NameExpression(self, _expression):
+    def visit_NameExpression(self, expression):
         """Visit a NameExpression"""
-        # pylint: disable=R0201
-        message = "visit_NameExpression element for expression visitor"
-        raise NotImplementedError(message)
+        self.result = expression
 
-    def visit_ApplyExpression(self, _expression):
+    def visit_ApplyExpression(self, expression):
         """Visit an ApplyExpression element"""
-        # pylint: disable=R0201
-        message = "visit_ApplyExpression element for expression visitor"
-        raise NotImplementedError(message)
+        expression.args = [self.generic_visit_get_results(e)
+                           for e in expression.args]
+        self.result = expression
 
+class RemoveRateLawsVisitor(ExpressionVisitor):
+    def __init__(self, multipliers):
+        super(RemoveRateLawsVisitor, self).__init__()
+        self.multipliers = multipliers
+
+    def visit_ApplyExpression(self, apply_expr):
+        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
+        # TODO: If there are no reactants? I think just the rate expression,
+        # which is what this does.
+        if apply_expr.name == "fMA":
+            assert(len(apply_expr.args) == 1)
+            arg_expression = apply_expr.args[0]
+            arg_expression.visit(self)
+            expr = arg_expression
+
+            for (species, stoich) in self.multipliers:
+                species_expr = NameExpression(species)
+                if stoich != 1:
+                    num_expr = NumExpression(stoich)
+                    species_expr = ApplyExpression("*", [num_expr, 
+                                                         species_expr])
+                expr = ApplyExpression("*", [expr, species_expr])
+            self.result = expr
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
@@ -475,6 +462,10 @@ expr_grammar = pyparsing.Forward()
 num_expr = floatnumber.copy()
 num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 
+# A helper to create grammar element which must be surrounded by parentheses
+# but you then wish to ignore the parentheses
+def parenthetical_grammar(element_grammar):
+    return Suppress("(") + element_grammar + Suppress(")")
 
 def apply_expr_parse_action(tokens):
     if len(tokens) == 1:
@@ -482,7 +473,7 @@ def apply_expr_parse_action(tokens):
     else:
         return ApplyExpression(tokens[0], tokens[1:])
 arg_expr_list = pyparsing.delimitedList(expr_grammar)
-apply_expr = identifier + Optional("(" + arg_expr_list + ")")
+apply_expr = identifier + Optional(parenthetical_grammar(arg_expr_list))
 apply_expr.setParseAction(apply_expr_parse_action)
 
 
@@ -1354,6 +1345,35 @@ class ParsedBioModel(object):
     def from_tokens(cls, tokens):
         return cls(tokens[0], tokens[1], tokens[2], tokens[3])
 
+    def expand_rate_laws(self):
+        """ A method to expand the rate laws which are simple convenience
+            functions for the user. So we wish to turn:
+            kineticLawOf r : fMA(x);
+            into
+            kineticLawOf r : x * A * B;
+            Assuming that A and B are reactants or activators for the
+            reaction r
+        """
+        # First build up a dictionary mapping reaction names to reactants
+        # and activators (together with their stoichiometry)
+        multipliers = dict()
+        for species_def in self.species_defs:
+            species_name = species_def.lhs
+            behaviours = species_def.rhs
+            for behaviour in behaviours:
+                if behaviour.role in [ "<<", "(+)" ]:
+                    entry = (species_name, behaviour.stoichiometry)
+                    if behaviour.reaction_name in multipliers:
+                        entry_list = multipliers[behaviour.reaction_name]
+                    else:
+                        entry_list = []
+                        multipliers[behaviour.reaction_name] = entry_list
+                    entry_list.append(entry)
+        for kinetic_law in self.kinetic_laws:
+            visitor = RemoveRateLawsVisitor(multipliers[kinetic_law.lhs])
+            new_expr = visitor.generic_visit_get_results(kinetic_law.rhs)
+            kinetic_law.rhs = new_expr
+
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 
 
@@ -1406,6 +1426,7 @@ class BioModelSolver(object):
         """ Solves the model, to give a timeseries, by converting the model
             to a series of ODEs.
         """
+        self.model.expand_rate_laws()
         kinetic_laws = def_list_as_dictionary(self.model.kinetic_laws)
         # For each species we build an expression to calculate its rate of
         # change based on the current population

@@ -40,7 +40,7 @@ class TestExpression(unittest.TestCase):
 
 class TestNameExpression(TestExpression):
     def setUp(self):
-        self.expression_source = "10 * 10"
+        self.expression_source = "x * 10"
         self.expected_result = 100
         self.environment = {"x": 10}
 

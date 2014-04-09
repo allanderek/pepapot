@@ -27,70 +27,6 @@ class Expression:
     def __init__(self):
         pass
 
-    def show_expr(self):
-        """ This is a virtual method stub, this method should be overridden
-            by any class inheriting from this class"""
-        raise NotImplementedError("Expression is really an abstract class")
-
-    def used_names(self):
-        """ This is a virtual method stud, this method should be overridden
-            by any class inheriting from this class. The overriding method
-            should return a set of names used within the expression
-        """
-        raise NotImplementedError("Expression is really an abstract class")
-
-    def get_value(self, environment=None):
-        """ Returns the underlying value of this expression. For complex
-            expressions a dictionary mapping names to values may be supplied.
-            We raise the exception 'KeyError', if the value cannot be derived,
-            this will generally be because a name used in the expression is
-            not defined in the given environment (or there is no given
-            environment).
-        """
-        # pylint: disable=W0613
-        # pylint: disable=R0201
-        raise ValueError("Virtual method 'get_value' called")
-
-    def reduce(self, environment=None):
-        """ Similar to 'get_value' except that we always return an expression,
-            and in the case that the expression is not wholly reducible to a
-            number, it may be reducible to a more simpler expression, for
-            example: R * (factor ^ 2)
-            if we are given 'factor' as a constant, let's say mapped to '2',
-            then we can return the reduced expression: R * 4
-            The idea is that if the expression is something like a rate
-            expression which must be re-evaluated many times, then we can save
-            time by partially evaluating it. However if the expression cannot
-            be reduced then we simply return the original expression.
-        """
-        # pylint: disable=W0613
-        # pylint: disable=R0201
-        return self
-
-    def munge_names(self, function):
-        """ Munges the names used within the expression using the function
-            supplied. This is a virtual method stud, see below on our comment
-            of the remove_rate_law_sugar method. Essentially I think I should
-            be able to do something much nicer, using a visitor pattern.
-            Again here this is a bit more than a stub since all the simple
-            expressions which cannot contain any names do not need to override
-            this stub implementation.
-        """
-        # pylint: disable=W0613
-        # pylint: disable=R0201
-        return None
-
-    def remove_rate_law_sugar(self, reaction=None):
-        """ This is a virtual method stub, this method should be overridden
-            by any class inheriting from this class. In fact we should be
-            doing this with something like a visitor pattern, but I have not
-            yet fully groked visitor patterns for python.
-            Well it's a bit more than a stub, all the very simple expressions
-            which don't have sub-expressions do not need to override this.
-        """
-        # pylint: disable=W0613
-        return self
-
 
 class NumExpression(Expression):
     """A class to represent the AST of an number literal expression"""
@@ -107,23 +43,9 @@ class NumExpression(Expression):
         """Implements the visit method allowing ExpressionVisitors to work"""
         visitor.visit_NumExpression(self)
 
-    def show_expr(self):
-        """Display the underlying number of the numerical expression"""
-        return str(self.number)
-
     def get_value(self, environment=None):
         """Returns the underlying value of this expression"""
         return self.number
-
-    def reduce(self, environment=None):
-        """ Returns a reduced expression, it may not be entirely reduced to
-            a concrete number, but this is as far as we can reduce it
-        """
-        return self
-
-    def used_names(self):
-        """Return the set of used names, clearly here there are none"""
-        return []
 
 
 class NameExpression(Expression):
@@ -135,10 +57,6 @@ class NameExpression(Expression):
     def visit(self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
         visitor.visit_NameExpression(self)
-
-    def show_expr(self):
-        """Format as a string the name expression"""
-        return self.name
 
     def get_value(self, environment=None):
         """ Evalutes this expression based on the given variable_dictionary,
@@ -153,59 +71,6 @@ class NameExpression(Expression):
             return environment[self.name]
         else:
             raise KeyError(self.name)
-
-    def reduce(self, environment=None):
-        """ Attempts to reduce this expression, since this is a name
-            expression we can reduce it to a number if the value is in the
-            constant value mapping provided, otherwise we just return
-            ourselves.
-        """
-        try:
-            value = self.get_value(environment=environment)
-            return NumExpression(value)
-        except KeyError:
-            return self
-
-    def used_names(self):
-        """Return the set of names used within this expression"""
-        return set([self.name])
-
-    def munge_names(self, function):
-        self.name = function(self.name)
-
-
-def show_apply_expression(function_name, children):
-    """ Formats an apply expression as a string and returns that string.
-        Checks for common arithmetic operators and outputs the appropriate
-        infix expression in the case that it finds one.
-    """
-    function_dict = {"plus": "+",
-                     "minus": "-",
-                     "divide": "/",
-                     "times": "*",
-                     "power": "^",
-                     }
-    # The check on the length of children is just in case someone
-    # has managed to say apply 'times' to no arguments which would
-    # otherwise cause an error when we attempt to print the first one.
-    # It's unclear what we should do in that case, but for now I fall
-    # through to the generic case and basically you'll end up with
-    # just the 'times' (named as 'times' not as *) printed out.
-
-    result = ""
-
-    if function_name in function_dict and len(children) > 1:
-        result += "("
-        # Could just put the spaces in the dictionary above?
-        operator = " " + function_dict[function_name] + " "
-        result += operator.join(children)
-        result += ")"
-    else:
-        result += function_name + "("
-        result += ", ".join(children)
-        result += ")"
-
-    return result
 
 
 def list_product(factors):
@@ -248,25 +113,6 @@ class ApplyExpression(Expression):
         """Implements the visit method allowing ExpressionVisitors to work"""
         visitor.visit_ApplyExpression(self)
 
-    def show_expr(self):
-        """Format as a string the application expression"""
-        arg_strings = [arg.show_expr() for arg in self.args]
-        return show_apply_expression(self.name, arg_strings)
-
-    def used_names(self):
-        """Return the set of names used within this apply expression"""
-        result_set = set()
-        for expr in self.args:
-            result_set = result_set.union(expr.used_names())
-        return result_set
-
-    def munge_names(self, function):
-        """ Must munge all the names, we do not munge the name of the
-            function of the apply expression however.
-        """
-        for child in self.args:
-            child.munge_names(function)
-
     def get_value(self, environment=None):
         """ Return the value to which the expression evaluates. If any
             environment is given it should be used to resolve any names in
@@ -306,90 +152,6 @@ class ApplyExpression(Expression):
             return exponent
         else:
             raise ValueError("Unknown function name: " + self.name)
-
-    def reduce(self, environment=None):
-        """ Attempts to reduce this expression, note that there are three
-            possibilities, but the first is that the entire expression cannot
-            be reduced any further, in which case we can just return the
-            current expression, but we can ignore this possibility. Another
-            possibility is that some of the argument expressions can be
-            reduced but not all, in which case we return a new apply
-            expression with the reduced (as far as they can be) argument
-            expressions. Finally the case in which all expressions can be
-            reduced, in which case we return the value.
-        """
-        # We can easily check the final case by simply calling 'get_value' on
-        # this expression, if it doesn't reduce we can assume that at least
-        # one argument expression doesn't reduce.
-        # Note that this means we in some sense do a little of the work twice
-        # in the worst case we may have many arguments which reduce to a value
-        # and only one which does not, in which case we could have reduced
-        # all arg expressions and then applied the function if they all
-        # reduced to a NumExpression, otherwise build up the NameExpression
-        # with the reduced expression. The point is that here we assume you
-        # are doing this reduction once at the start of say a simulation and
-        # hence you don't require this to be extremely fast, and this is a
-        # very nice definition which means we need not write code to evaluate
-        # plus/minus etc twice. Alternatively we could write 'get_value' in
-        # terms of 'reduce' but that would mean building up NumExpressions
-        # more than we needed to.
-        try:
-            value = self.get_value(environment=environment)
-            return NumExpression(value)
-        except KeyError:
-            # We have a special case for the commutative expression plus and
-            # times, here we try to pull out all of the argument expressions
-            # which reduce to a value and sum or product them together. This
-            # is simply so that we can turn the expression:
-            # R * 0.2 * 10 where R is a dynamic variable into the expression
-            # R * 2
-            # which may save a bit of time during a simulation.
-            if self.name == "plus" or self.name == "times":
-                factors = []
-                arg_expressions = []
-                for arg in self.args:
-                    try:
-                        factors.append(arg.get_value(environment=environment))
-                    except KeyError:
-                        reduced_arg = arg.reduce(environment=environment)
-                        arg_expressions.append(reduced_arg)
-
-                # Based on whether it's plus or times we must (possibly) add
-                # the correct factor argument into the list of
-                # argument_expressions. At the end of this conditional
-                # arg_expressions will be the correct set of argument
-                # expressions.
-                if self.name == "plus":
-                    factor = sum(factors)
-                    # So if factor is not zero then we must add it as an arg.
-                    if factor != 0:
-                        factor_exp = NumExpression(factor)
-                        arg_expressions = [factor_exp] + arg_expressions
-                else:  # assume it equals "times", we above check this.
-                    factor = list_product(factors)
-                    if factor != 1:
-                        factor_exp = NumExpression(factor)
-                        arg_expressions = [factor_exp] + arg_expressions
-                # Now that we have the correct set of argument expressions
-                # we may return the reduced apply expression, but we first
-                # just check that we have not reduced it to a single
-                # expression, in which case we can simply return that
-                # expression, eg we may have started with R * 0.1 * 10, which
-                # would reduce to R * 1, but since then the factor would be 1
-                # we would not have added it as an arg_expression.
-                if len(arg_expressions) == 1:
-                    return arg_expressions[0]
-                else:
-                    return ApplyExpression(self.name, arg_expressions)
-            else:
-                # The easy case for non-commutative, we could go deeper and
-                # try to partially evaluate some of these, for example
-                # R - 3    - 1 could be made into R - 4. But for now the above
-                # will do, since I believe that multiplications by more than
-                # one constant are fairly common.
-                arg_expressions = [arg.reduce(environment=environment)
-                                   for arg in self.args]
-                return ApplyExpression(self.name, arg_expressions)
 
 
 class ExpressionVisitor(object):

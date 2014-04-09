@@ -441,39 +441,6 @@ class ExpressionModifierVisitor(ExpressionVisitor):
                            for e in expression.args]
         self.result = expression
 
-
-class RemoveRateLawsVisitor(ExpressionModifierVisitor):
-    """ Removes the rate laws syntax sugar from an expression. Currently only
-        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
-        if you call this you will likely used 'generic_visit_get_results' as
-        the original expression may not be modified but a new one returned
-        in its place. For fMA we could arguably do this using an ordinary
-        ExpressionVisitor since the result is still going to be an
-        ApplyExpression anyway, but this seems cleaner.
-    """
-    def __init__(self, multipliers):
-        super(RemoveRateLawsVisitor, self).__init__()
-        self.multipliers = multipliers
-
-    def visit_ApplyExpression(self, apply_expr):
-        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
-        # TODO: If there are no reactants? I think just the rate expression,
-        # which is what this does.
-        if apply_expr.name == "fMA":
-            assert(len(apply_expr.args) == 1)
-            arg_expression = apply_expr.args[0]
-            arg_expression.visit(self)
-            expr = arg_expression
-
-            for (species, stoich) in self.multipliers:
-                species_expr = NameExpression(species)
-                if stoich != 1:
-                    num_expr = NumExpression(stoich)
-                    species_expr = ApplyExpression("*", [num_expr, 
-                                                         species_expr])
-                expr = ApplyExpression("*", [expr, species_expr])
-            self.result = expr
-
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
 
@@ -1357,6 +1324,38 @@ BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
 
 biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
                                             delim="<*>")
+
+class RemoveRateLawsVisitor(ExpressionModifierVisitor):
+    """ Removes the rate laws syntax sugar from an expression. Currently only
+        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
+        if you call this you will likely used 'generic_visit_get_results' as
+        the original expression may not be modified but a new one returned
+        in its place. For fMA we could arguably do this using an ordinary
+        ExpressionVisitor since the result is still going to be an
+        ApplyExpression anyway, but this seems cleaner.
+    """
+    def __init__(self, multipliers):
+        super(RemoveRateLawsVisitor, self).__init__()
+        self.multipliers = multipliers
+
+    def visit_ApplyExpression(self, apply_expr):
+        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
+        # TODO: If there are no reactants? I think just the rate expression,
+        # which is what this does.
+        if apply_expr.name == "fMA":
+            assert(len(apply_expr.args) == 1)
+            arg_expression = apply_expr.args[0]
+            arg_expression.visit(self)
+            expr = arg_expression
+
+            for (species, stoich) in self.multipliers:
+                species_expr = NameExpression(species)
+                if stoich != 1:
+                    num_expr = NumExpression(stoich)
+                    species_expr = ApplyExpression("*", [num_expr, 
+                                                         species_expr])
+                expr = ApplyExpression("*", [expr, species_expr])
+            self.result = expr
 
 
 class ParsedBioModel(object):

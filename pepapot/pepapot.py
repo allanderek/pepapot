@@ -453,11 +453,15 @@ class ExpressionVisitor(object):
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
-identifier = pyparsing.Word(pyparsing.alphanums + "_")
 
-# TODO: There is a fairly good calculator parsing example which includes
-# identifiers as expressions. It can be found at:
-# pyparsing.wikispaces.com/file/view/SimpleCalc.py/30112812/SimpleCalc.py
+identifier_start = pyparsing.Word(pyparsing.alphas + "_", exact=1)
+identifier_remainder = pyparsing.Word(pyparsing.alphanums + "_")
+identifier = pyparsing.Combine(identifier_start + 
+                               Optional(identifier_remainder))
+
+# TODO: Check out pyparsing.operatorPrecedence and pyparsing.nestedExpr
+# http://pyparsing.wikispaces.com/file/view/simpleArith.py/30268305/simpleArith.py
+# http://pyparsing.wikispaces.com/file/view/nested.py/32064753/nested.py
 plusorminus = Literal('+') | Literal('-')
 number = pyparsing.Word(pyparsing.nums)
 integer = Combine(Optional(plusorminus) + number)
@@ -467,13 +471,22 @@ floatnumber = Combine(integer + Optional(decimal_fraction) +
                       Optional(scientific_enotation))
 
 
+expr_grammar = pyparsing.Forward()
 num_expr = floatnumber.copy()
 num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 
-name_expr = identifier.copy()
-name_expr.setParseAction(lambda tokens: NameExpression(tokens[0]))
 
-atom_expr = Or([num_expr, name_expr])
+def apply_expr_parse_action(tokens):
+    if len(tokens) == 1:
+        return NameExpression(tokens[0])
+    else:
+        return ApplyExpression(tokens[0], tokens[1:])
+arg_expr_list = pyparsing.delimitedList(expr_grammar)
+apply_expr = identifier + Optional("(" + arg_expr_list + ")")
+apply_expr.setParseAction(apply_expr_parse_action)
+
+
+atom_expr = Or([num_expr, apply_expr])
 
 multop = Literal('*') | Literal('/')
 factor_expr = pyparsing.Forward()
@@ -496,7 +509,7 @@ term_parse_action = factor_parse_action
 term_expr.setParseAction(term_parse_action)
 
 
-expr_grammar = term_expr
+expr_grammar << term_expr
 rate_grammar = expr_grammar
 
 

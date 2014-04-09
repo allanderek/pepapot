@@ -996,6 +996,13 @@ class ModelSolver(object):
 
 
 # TODO: Can we make an abstract base class for definitions?
+# TODO: We can at least do this for constants, currently the PEPA
+# implementation above does not allow for constant declarations, one problem
+# is that in PEPA, it is difficult to distinguish between an expression and
+# a process, for example:
+# P = Q + R;
+# Could be either, unless we insist that rates are lower case and processes
+# are upper case? Not sure I wish to do that.
 class BioRateConstant(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs

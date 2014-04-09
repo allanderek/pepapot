@@ -56,24 +56,23 @@ class TestMissingNameExpression(TestExpression):
 
 class TestConstantDefinitions(unittest.TestCase):
     def setUp(self):
+        # TODO: Add exponentiation when that is implemented in the parser
         self.source = """a = 1.0;
                          b = a + 10.0;
                          c = b - 1.0;
                          d = c * c;
                          e = d / 20.0;
-                         f = 2 ** 3;
                       """
         self.expected = {"a": 1.0,
                          "b": 11.0,
                          "c": 10.0,
                          "d": 100.0,
                          "e": 5.0,
-                         "f": 8.0
-                        }
+                         }
 
     def test_evaluation(self):
         grammar = pepapot.BioRateConstant.list_grammar
-        parse_result = grammar.parseString(self.source)
+        parse_result = grammar.parseString(self.source, parseAll=True)
         defs = parse_result[0]
         environment = dict()
         for definition in defs:

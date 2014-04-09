@@ -132,10 +132,12 @@ class ApplyExpression(Expression):
             answer = arg_values[0]
             for arg in arg_values[1:]:
                 answer -= arg
+            return answer
         elif self.name == "divide" or self.name == "/":
             answer = arg_values[0]
             for arg in arg_values[1:]:
                 answer /= arg
+            return answer
         elif self.name == "power" or self.name == "**":
             # power is interesting because it associates to the right
             exponent = 1

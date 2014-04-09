@@ -421,6 +421,15 @@ class ExpressionModifierVisitor(ExpressionVisitor):
         a base class for the kind of visitor which needs to return a new,
         possibly modified expression. The main difference is that in
         ExpressionModifierVisitor the result is set to the expression itself.
+        In short, use this one if your visitor may need to return an entirely
+        new expression, rather than simply modify the current one in place.
+        So for example, 'reduce' might wish to turn a:
+        ApplyExpression('*', [NumExpression(1), expr])
+        into simply
+        expr
+        To do so it could not simply modify the given ApplyExpression in place
+        since that may be contained within another kind of expression itself
+        and 'expr' might be something other than an ApplyExpression.
     """
     def visit_NumExpression(self, expression):
         """Visit a NumExpression element"""

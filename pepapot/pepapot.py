@@ -228,6 +228,22 @@ class ApplyExpression(Expression):
         self.name = name
         self.args = args
 
+    @classmethod
+    def addition(cls, left, right):
+        return cls("+", [left, right])
+
+    @classmethod
+    def subtract(cls, left, right):
+        return cls("-", [left, right])
+
+    @classmethod
+    def multiply(cls, left, right):
+        return cls("*", [left, right])
+
+    @classmethod
+    def divide(cls, left, right):
+        return cls("/", [left, right])
+
     def visit(self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
         visitor.visit_ApplyExpression(self)
@@ -1294,7 +1310,7 @@ class BioBehaviour(object):
         if modifier == 0:
             expr = NumExpression(0.0)
         elif modifier != 1:
-            expr = ApplyExpression("*", [NumExpression(modifier), expr])
+            expr = ApplyExpression.multiply(NumExpression(modifier), expr)
 
         return expr
 
@@ -1366,9 +1382,9 @@ class RemoveRateLawsVisitor(ExpressionModifierVisitor):
                 species_expr = NameExpression(species)
                 if stoich != 1:
                     num_expr = NumExpression(stoich)
-                    species_expr = ApplyExpression("*", [num_expr,
-                                                         species_expr])
-                expr = ApplyExpression("*", [expr, species_expr])
+                    species_expr = ApplyExpression.multiply(num_expr,
+                                                            species_expr)
+                expr = ApplyExpression.multiply(expr, species_expr)
             self.result = expr
 
 

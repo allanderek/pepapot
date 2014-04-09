@@ -375,10 +375,16 @@ class ApplyExpression(Expression):
                                    for arg in self.args]
                 return ApplyExpression(self.name, arg_expressions)
 
-
 class ExpressionVisitor(object):
     """ A parent class for classes which descend through the abstract syntax
         of expressions, generally storing a result along the way.
+        There are two kinds of expression visitors, ones which do not modify
+        the expressions but are merely used to descend through the expression
+        tree perhaps building up a result, such as the set of used variable
+        names. ExpressionVisitor implements that kind of Visitor. The second
+        kind of visitor is used to modify the given expression, for example
+        you may wish to reduce expressions or remove some kind of sugar. See
+        ExpressionModifierVisitor for that kind of visitor.
     """
     def __init__(self):
         self.result = None
@@ -397,9 +403,25 @@ class ExpressionVisitor(object):
         self.generic_visit(expression)
         return self.result
 
-    ###################################
-    # These are base class definitions, you will wish to override at least
-    # one of these, possibly all of them.
+    def visit_NumExpression(self, expression):
+        """Visit a NumExpression element"""
+        pass
+
+    def visit_NameExpression(self, expression):
+        """Visit a NameExpression"""
+        pass
+
+    def visit_ApplyExpression(self, expression):
+        """Visit an ApplyExpression element"""
+        for arg in expression.args:
+            arg.visit(self)
+
+class ExpressionModifierVisitor(ExpressionVisitor):
+    """ ExpressionModifierVisitor builds ontop of ExpressionVisitor to supply
+        a base class for the kind of visitor which needs to return a new,
+        possibly modified expression. The main difference is that in
+        ExpressionModifierVisitor the result is set to the expression itself.
+    """
     def visit_NumExpression(self, expression):
         """Visit a NumExpression element"""
         self.result = expression
@@ -409,12 +431,26 @@ class ExpressionVisitor(object):
         self.result = expression
 
     def visit_ApplyExpression(self, expression):
-        """Visit an ApplyExpression element"""
+        """ Visit an ApplyExpression element. Note that if you override this
+            you will likely still wish to recursively visit the argument
+            expressions, you can do this by calling this method using 'super'.
+            Also note that if you really wish to leave the original expression
+            untouched then you need to do the recursive calling yourself.
+        """
         expression.args = [self.generic_visit_get_results(e)
                            for e in expression.args]
         self.result = expression
 
-class RemoveRateLawsVisitor(ExpressionVisitor):
+
+class RemoveRateLawsVisitor(ExpressionModifierVisitor):
+    """ Removes the rate laws syntax sugar from an expression. Currently only
+        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
+        if you call this you will likely used 'generic_visit_get_results' as
+        the original expression may not be modified but a new one returned
+        in its place. For fMA we could arguably do this using an ordinary
+        ExpressionVisitor since the result is still going to be an
+        ApplyExpression anyway, but this seems cleaner.
+    """
     def __init__(self, multipliers):
         super(RemoveRateLawsVisitor, self).__init__()
         self.multipliers = multipliers

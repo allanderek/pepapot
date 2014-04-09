@@ -375,6 +375,7 @@ class ApplyExpression(Expression):
                                    for arg in self.args]
                 return ApplyExpression(self.name, arg_expressions)
 
+
 class ExpressionVisitor(object):
     """ A parent class for classes which descend through the abstract syntax
         of expressions, generally storing a result along the way.
@@ -416,6 +417,7 @@ class ExpressionVisitor(object):
         for arg in expression.args:
             arg.visit(self)
 
+
 class ExpressionModifierVisitor(ExpressionVisitor):
     """ ExpressionModifierVisitor builds ontop of ExpressionVisitor to supply
         a base class for the kind of visitor which needs to return a new,
@@ -455,11 +457,11 @@ Action = namedtuple('Action', ["action", "rate", "successor"])
 
 identifier_start = pyparsing.Word(pyparsing.alphas + "_", exact=1)
 identifier_remainder = pyparsing.Word(pyparsing.alphanums + "_")
-identifier = pyparsing.Combine(identifier_start + 
+identifier = pyparsing.Combine(identifier_start +
                                Optional(identifier_remainder))
 
 # TODO: Check out pyparsing.operatorPrecedence and pyparsing.nestedExpr
-# http://pyparsing.wikispaces.com/file/view/simpleArith.py/30268305/simpleArith.py
+# http://pyparsing.wikispaces.com/file/view/simpleArith.py/
 # http://pyparsing.wikispaces.com/file/view/nested.py/32064753/nested.py
 plusorminus = Literal('+') | Literal('-')
 number = pyparsing.Word(pyparsing.nums)
@@ -474,10 +476,12 @@ expr_grammar = pyparsing.Forward()
 num_expr = floatnumber.copy()
 num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
 
+
 # A helper to create grammar element which must be surrounded by parentheses
 # but you then wish to ignore the parentheses
 def parenthetical_grammar(element_grammar):
     return Suppress("(") + element_grammar + Suppress(")")
+
 
 def apply_expr_parse_action(tokens):
     if len(tokens) == 1:
@@ -1334,6 +1338,7 @@ BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
 biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
                                             delim="<*>")
 
+
 class RemoveRateLawsVisitor(ExpressionModifierVisitor):
     """ Removes the rate laws syntax sugar from an expression. Currently only
         fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
@@ -1361,7 +1366,7 @@ class RemoveRateLawsVisitor(ExpressionModifierVisitor):
                 species_expr = NameExpression(species)
                 if stoich != 1:
                     num_expr = NumExpression(stoich)
-                    species_expr = ApplyExpression("*", [num_expr, 
+                    species_expr = ApplyExpression("*", [num_expr,
                                                          species_expr])
                 expr = ApplyExpression("*", [expr, species_expr])
             self.result = expr
@@ -1405,7 +1410,7 @@ class ParsedBioModel(object):
             species_name = species_def.lhs
             behaviours = species_def.rhs
             for behaviour in behaviours:
-                if behaviour.role in [ "<<", "(+)" ]:
+                if behaviour.role in ["<<", "(+)"]:
                     entry = (species_name, behaviour.stoichiometry)
                     if behaviour.reaction_name in multipliers:
                         entry_list = multipliers[behaviour.reaction_name]

@@ -275,28 +275,20 @@ apply_expr.setParseAction(apply_expr_parse_action)
 
 atom_expr = Or([num_expr, apply_expr])
 
-multop = Literal('*') | Literal('/')
-factor_expr = pyparsing.Forward()
-factor_expr << atom_expr + Optional(multop + factor_expr)
+
+multop = pyparsing.oneOf('* /')
+plusop = pyparsing.oneOf('+ -')
 
 
-def factor_parse_action(tokens):
-    if len(tokens) > 1:
-        operator = tokens[1]
-        return ApplyExpression(operator, [tokens[0], tokens[2]])
-    else:
-        return tokens[0]
-factor_expr.setParseAction(factor_parse_action)
+def binop_parse_action(tokens):
+    elements = tokens[0]
+    return ApplyExpression(elements[1], [elements[0], elements[2]])
 
-term_expr = pyparsing.Forward()
-term_expr << factor_expr + Optional(plusorminus + term_expr)
-
-
-term_parse_action = factor_parse_action
-term_expr.setParseAction(term_parse_action)
-
-
-expr_grammar << term_expr
+grammar_precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
+                       (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
+                       (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
+                       ]
+expr_grammar << pyparsing.operatorPrecedence(atom_expr, grammar_precedences)
 rate_grammar = expr_grammar
 
 

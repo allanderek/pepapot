@@ -62,12 +62,14 @@ class TestConstantDefinitions(unittest.TestCase):
                          c = b - 1.0;
                          d = c * c;
                          e = d / 20.0;
+                         f = 2.0 ** 3;
                       """
         self.expected = {"a": 1.0,
                          "b": 11.0,
                          "c": 10.0,
                          "d": 100.0,
                          "e": 5.0,
+                         "f": 8.0
                          }
 
     def test_evaluation(self):

@@ -104,25 +104,7 @@ def is_valid_gen_matrix(testcase, model_solver):
         testcase.assertTrue(row[row_number] < 0.0)
 
 
-class TestAlmostEqual(unittest.TestCase):
-    def assertAlmostEqual(self, a, b, msg=None):
-        """A helper method to assert that two values are approximately equal.
-           This is useful since floating point operations often do not end in
-           exactly correct answers. There is scope here for adding in an
-           absolute and relative tolerance, but for now we'll assume that we're
-           interested in a fixed level of accuracy. The scipy assertall method
-           has something a bit more sophisticated than this including atol and
-           rtol, if this becomes necessary. The scipy method works over arrays
-           and we likely wish to work over single values but we could easily
-           adapt the code.
-        """
-        message = str(a) + " is not approximately " + str(b)
-        if msg is not None:
-            message = msg + "\n   " + message
-        self.assertTrue((abs(a - b)) < 1e-8, msg=message)
-
-
-class TestSimpleNoCoop(TestAlmostEqual):
+class TestSimpleNoCoop(unittest.TestCase):
     """This tests a very simple test model. It also serves as a base class from
        which all other cases testing particular models should derive.
        A subclass should re-write the setup method populating all of the
@@ -672,6 +654,35 @@ class TestReverseBioModel(TestSimpleBioModel):
         self.expected_number_species = 2
         self.expected_populations = {'A': 100, 'B': 100}
         self.expected_result = {'A': 66.66667694, 'B': 133.33332306}
+        self.configuration = pepapot.Configuration()
+
+michaelis_menton_biopepa_model = """
+delta = 1.0;
+gamma = 0.1 * delta;
+
+kineticLawOf r : fMA(delta);
+kineticLawOf rm : fMA(gamma);
+kineticLawOf s : fMA(delta);
+
+E = (r, 1) << + (rm, 1) >> + (s, 1) >>;
+S = (r, 1) << + (rm, 1) >>;
+ES = (r, 1) >> + (rm, 1) << + (s, 1) <<;
+P = (s, 1) >>;
+
+E[100] <*> S[100] <*> ES[0] <*> P[0]
+"""
+
+
+class TestMMBioModel(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = michaelis_menton_biopepa_model
+        self.expected_number_species = 4
+        self.expected_populations = {'E': 100, 'S': 100, 'ES': 0.0, 'P': 0.0}
+        self.expected_result = {'E': 99.995274249890841,
+                                'S': 4.7736425237154927e-06,
+                                'ES': 0.0047257501091977306,
+                                'P': 99.995269476248424
+                                }
         self.configuration = pepapot.Configuration()
 
 

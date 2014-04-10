@@ -292,6 +292,29 @@ expr_grammar << pyparsing.operatorPrecedence(atom_expr, grammar_precedences)
 rate_grammar = expr_grammar
 
 
+# TODO: Can we make an abstract base class for definitions?
+# TODO: We can at least do this for constants, currently the PEPA
+# implementation above does not allow for constant declarations, one problem
+# is that in PEPA, it is difficult to distinguish between an expression and
+# a process, for example:
+# P = Q + R;
+# Could be either, unless we insist that rates are lower case and processes
+# are upper case? Not sure I wish to do that.
+class ConstantDefinition(object):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    grammar = identifier + "=" + expr_grammar + ";"
+    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[2])
+
+ConstantDefinition.grammar.setParseAction(ConstantDefinition.from_tokens)
+
+
 class ProcessIdentifier(object):
     def __init__(self, name):
         self.name = name
@@ -989,29 +1012,6 @@ class ModelSolver(object):
 # Bio-PEPA stuff
 
 
-# TODO: Can we make an abstract base class for definitions?
-# TODO: We can at least do this for constants, currently the PEPA
-# implementation above does not allow for constant declarations, one problem
-# is that in PEPA, it is difficult to distinguish between an expression and
-# a process, for example:
-# P = Q + R;
-# Could be either, unless we insist that rates are lower case and processes
-# are upper case? Not sure I wish to do that.
-class BioRateConstant(object):
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-
-    grammar = identifier + "=" + expr_grammar + ";"
-    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
-
-    @classmethod
-    def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[2])
-
-BioRateConstant.grammar.setParseAction(BioRateConstant.from_tokens)
-
-
 class BioRateDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -1160,7 +1160,7 @@ class ParsedBioModel(object):
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    grammar = (BioRateConstant.list_grammar +
+    grammar = (ConstantDefinition.list_grammar +
                BioRateDefinition.list_grammar +
                BioSpeciesDefinition.list_grammar +
                pyparsing.Group(biosystem_grammar))

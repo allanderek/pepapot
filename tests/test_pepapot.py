@@ -73,7 +73,7 @@ class TestConstantDefinitions(unittest.TestCase):
                          }
 
     def test_evaluation(self):
-        grammar = pepapot.BioRateConstant.list_grammar
+        grammar = pepapot.ConstantDefinition.list_grammar
         parse_result = grammar.parseString(self.source, parseAll=True)
         defs = parse_result[0]
         environment = dict()

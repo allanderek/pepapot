@@ -34,10 +34,10 @@ class NumExpression(Expression):
         super(NumExpression, self).__init__()
         self.number = number
 
-    def __eq__(self, other_expression):
-        # TODO: A touch questionable, we should decide whether we want
-        # *equivalent* expressions to equal each other.
-        return self.get_value() == other_expression.get_value()
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.number == other.number
+        return NotImplemented
 
     def visit(self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
@@ -53,6 +53,11 @@ class NameExpression(Expression):
     def __init__(self, name):
         super(NameExpression, self).__init__()
         self.name = name
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented
 
     def visit(self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
@@ -306,13 +311,39 @@ class ConstantDefinition(object):
         self.rhs = rhs
 
     grammar = identifier + "=" + expr_grammar + ";"
-    list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
+    list_grammar = pyparsing.Group(pyparsing.ZeroOrMore(grammar))
 
     @classmethod
     def from_tokens(cls, tokens):
         return cls(tokens[0], tokens[2])
 
 ConstantDefinition.grammar.setParseAction(ConstantDefinition.from_tokens)
+
+
+# Theoretically we could allow non-constant definitions, such as:
+# r = 2.0 * P;
+# Where 'P' is a process identifier (or species in a Bio model). If we allow
+# that then what we really want to do is *reduce* the constant expressions
+# as far as is possible, rather than entirely evaluate them. This would also
+# mean that we could do this iteratively to allow for out-of-order definitions
+# such as:
+# r = 2.0 * s;
+# s = 1.0;
+# For now, both of these things are not quite being asked for, so I can easily
+# do this when it is asked for. Hence, I am doing the simplest thing that
+# could work and simply assuming that all constant definitions can be reduced
+# to a single value, this still allows references to variables defined above
+# r = 1.0;
+# s = r * 2.0;
+def constant_def_environment(definitions, environment=None):
+    if environment is None:
+        environment = dict()
+
+    for constant_def in definitions:
+        name = constant_def.lhs
+        value = constant_def.rhs.get_value(environment=environment)
+        environment[name] = value
+    return environment
 
 
 class ProcessIdentifier(object):
@@ -357,7 +388,7 @@ class PrefixNode(object):
         return [Action(self.action, self.rate, str(self.successor))]
 
     def concretise_actions(self, environment=None):
-        self.rate = self.rate.get_value()
+        self.rate = self.rate.get_value(environment=environment)
 
     def format(self):
         return "".join(["(", self.action, ", ", str(self.rate),
@@ -385,8 +416,8 @@ class ChoiceNode(object):
         return left_actions + right_actions
 
     def concretise_actions(self, environment=None):
-        self.lhs.concretise_actions(environment)
-        self.rhs.concretise_actions(environment)
+        self.lhs.concretise_actions(environment=environment)
+        self.rhs.concretise_actions(environment=environment)
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -558,19 +589,22 @@ system_equation_grammar.setParseAction(ParsedSystemCooperation.from_tokens)
 
 
 class ParsedModel(object):
-    def __init__(self, proc_defs, sys_equation):
+    def __init__(self, constant_defs, proc_defs, sys_equation):
+        self.constant_defs = constant_defs
         self.process_definitions = proc_defs
         self.system_equation = sys_equation
 
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    grammar = ProcessDefinition.list_grammar + system_equation_grammar
+    grammar = (ConstantDefinition.list_grammar +
+               ProcessDefinition.list_grammar +
+               system_equation_grammar)
     whole_input_grammar = grammar + pyparsing.StringEnd()
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[1])
+        return cls(tokens[0], tokens[1], tokens[2])
 
     def get_process_definition(self, name):
         """ Returns the process definition which defines the given name.
@@ -895,11 +929,17 @@ class ModelSolver(object):
     """
     def __init__(self, model):
         self.model = model
-        # TODO: Clearly we should be passing in some kind of environment to
-        # concretise_actions, that environment should come from the rate
-        # constant definitions of the model.
+
+        # In theory we could allow functional rates, and having done so we
+        # could allow those to be defined in a 'constant' definition such as
+        # r = P * 2.0; where P is a process name and hence refers to a
+        # current population. But since that is not yet being asked for, we
+        # will simply reduce all the constant definitions to values and then
+        # apply those throughout the process definitions.
+        environment = constant_def_environment(self.model.constant_defs)
+
         for proc_def in self.model.process_definitions:
-            proc_def.rhs.concretise_actions()
+            proc_def.rhs.concretise_actions(environment=environment)
 
     @lazy
     def initial_state(self):
@@ -1274,13 +1314,13 @@ class BioModelSolver(object):
         # variables which are assigned to constants (even if indirectly).
         # If we did this, we could have a new environment created inside
         # 'get_rhs' and this would only be used to create the initials.
-        environment = self.model.populations.copy()
-
-        # For now though we will just add the constants to the environment
-        for constant_def in self.model.constants:
-            name = constant_def.lhs
-            value = constant_def.rhs.get_value(environment=environment)
-            environment[name] = value
+        # We get the environment of constants *first* since if (later) we
+        # allow those constants to contain species variables we would not wish
+        # to reduce them using the initial populations.
+        environment = constant_def_environment(self.model.constants)
+        # So with the environment containing the constant definitions we add
+        # the initial populations, these will be overridden at each step.
+        environment.update(self.model.populations)
 
         # TODO: Check what happens if we have (d, 2) (+) E; that is a
         # stoichiometry that is not one for a modifier, rather than a reactant

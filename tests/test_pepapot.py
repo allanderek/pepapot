@@ -258,9 +258,9 @@ R <b> (P || Q)
         self.expected_used_process_names = set_of_names
         self.expected_defined_process_names = set_of_names
 
-        self.expected_actions_dictionary = dict()
         two_expr = pepapot.NumExpression(2.0)
         ten_expr = pepapot.NumExpression(10.0)
+        self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
         self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P")]
         self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
@@ -307,6 +307,16 @@ R1 = (b, t).R;
 
 R <b> (P || Q)
         """
+        r_expr = pepapot.NameExpression("r")
+        s_expr = pepapot.NameExpression("s")
+        t_expr = pepapot.NameExpression("t")
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", r_expr, "P")]
+        self.expected_actions_dictionary["Q"] = [Action("a", r_expr, "Q1")]
+        self.expected_actions_dictionary["Q1"] = [Action("b", s_expr, "Q")]
+        self.expected_actions_dictionary["R"] = [Action("a", r_expr, "R1")]
+        self.expected_actions_dictionary["R1"] = [Action("b", t_expr, "R")]
 
 
 class TestSimpleArray(TestSimpleNoCoop):
@@ -566,7 +576,9 @@ class RandomPepa(object):
     def generate_model(self):
         self.generate_process_definitions()
         self.generate_system_equation()
-        self.model = pepapot.ParsedModel(self.process_definitions,
+        # TODO: We should generate some constant definitions and possibly
+        # use them in the rates
+        self.model = pepapot.ParsedModel([], self.process_definitions,
                                          self.system_equation)
 
     def get_model_source(self):

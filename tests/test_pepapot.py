@@ -295,7 +295,7 @@ class TestApparentRateWithConstantDefs(TestApparentRate):
         self.model_source = """
 r = 1.0;
 s = 2.0;
-t = 10.0
+t = 10.0;
 P = (a, r).P1;
 P1 = (b, r).P;
 

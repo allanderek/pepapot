@@ -1102,9 +1102,6 @@ class BioSpeciesDefinition(object):
     def from_tokens(cls, tokens):
         return cls(tokens[0], tokens[2])
 
-    def format(self):
-        behaviours_string = " + ".join([b.format() for b in self.rhs])
-        return " ".join([self.lhs, "=", behaviours_string, ";"])
 
 BioSpeciesDefinition.grammar.setParseAction(BioSpeciesDefinition.from_tokens)
 

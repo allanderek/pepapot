@@ -289,6 +289,26 @@ R <b> (P || Q)
                                             ("Q1", 0.602739726027)])]
 
 
+class TestApparentRateWithConstantDefs(TestApparentRate):
+    def setUp(self):
+        super(TestApparentRateWithConstantDefs, self).setUp()
+        self.model_source = """
+r = 1.0;
+s = 2.0;
+t = 10.0
+P = (a, r).P1;
+P1 = (b, r).P;
+
+Q = (a, r).Q1;
+Q1 = (b, s).Q;
+
+R = (a, r).R1;
+R1 = (b, t).R;
+
+R <b> (P || Q)
+        """
+
+
 class TestSimpleArray(TestSimpleNoCoop):
     def setUp(self):
         super(TestSimpleArray, self).setUp()

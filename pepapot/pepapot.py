@@ -259,55 +259,47 @@ floatnumber = Combine(integer + Optional(decimal_fraction) +
                       Optional(scientific_enotation))
 
 
-expr_grammar = pyparsing.Forward()
-num_expr = floatnumber.copy()
-num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
-
-
 # A helper to create grammar element which must be surrounded by parentheses
 # but you then wish to ignore the parentheses
 def parenthetical_grammar(element_grammar):
     return Suppress("(") + element_grammar + Suppress(")")
 
 
-def apply_expr_parse_action(tokens):
-    if len(tokens) == 1:
-        return NameExpression(tokens[0])
-    else:
-        return ApplyExpression(tokens[0], tokens[1:])
-arg_expr_list = pyparsing.delimitedList(expr_grammar)
-apply_expr = identifier + Optional(parenthetical_grammar(arg_expr_list))
-apply_expr.setParseAction(apply_expr_parse_action)
+def create_expression_grammar(identifier_grammar):
+    expr_grammar = pyparsing.Forward()
+    num_expr = floatnumber.copy()
+    num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
+
+    def apply_expr_parse_action(tokens):
+        if len(tokens) == 1:
+            return NameExpression(tokens[0])
+        else:
+            return ApplyExpression(tokens[0], tokens[1:])
+    arg_expr_list = pyparsing.delimitedList(expr_grammar)
+    opt_arg_list = Optional(parenthetical_grammar(arg_expr_list))
+    apply_expr = identifier_grammar + opt_arg_list
+    apply_expr.setParseAction(apply_expr_parse_action)
+
+    atom_expr = Or([num_expr, apply_expr])
+
+    multop = pyparsing.oneOf('* /')
+    plusop = pyparsing.oneOf('+ -')
+
+    def binop_parse_action(tokens):
+        elements = tokens[0]
+        return ApplyExpression(elements[1], [elements[0], elements[2]])
+
+    precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
+                   (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
+                   (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
+                   ]
+    expr_grammar << pyparsing.operatorPrecedence(atom_expr, precedences)
+    return expr_grammar
+
+lower_expr_grammar = create_expression_grammar(lower_identifier)
+expr_grammar = create_expression_grammar(identifier)
 
 
-atom_expr = Or([num_expr, apply_expr])
-
-
-multop = pyparsing.oneOf('* /')
-plusop = pyparsing.oneOf('+ -')
-
-
-def binop_parse_action(tokens):
-    elements = tokens[0]
-    return ApplyExpression(elements[1], [elements[0], elements[2]])
-
-grammar_precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
-                       (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
-                       (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
-                       ]
-expr_grammar << pyparsing.operatorPrecedence(atom_expr, grammar_precedences)
-rate_grammar = expr_grammar
-
-
-# One problem that we still have is that in PEPA, it is difficult to
-# distinguish between an expression and a process, for example:
-# P = Q + R;
-# Could be either, unless we insist that rates are lower case and processes
-# are upper case? However if we wanted to allow functional rates then `Q + R`
-# becomes a reasonable rate expression. One solution is to allow that in a
-# prefix but not in a constant definition. Another is to have a separate
-# syntax for rate constants which is a little bit of a shame that we would
-# then not be backwards compatible with existing PEPA software.
 class ConstantDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -321,6 +313,35 @@ class ConstantDefinition(object):
         return cls(tokens[0], tokens[2])
 
 ConstantDefinition.grammar.setParseAction(ConstantDefinition.from_tokens)
+
+
+# One problem that we still have is that in PEPA, it is difficult to
+# distinguish between an expression and a process, for example:
+# P = Q + R;
+# Could be either, unless we insist that rates are lower case and processes
+# are upper case? This is what we do, so here we have a separate class for
+# PEPA specific constant definitions which is desparingly similar to the
+# generic constant definition above, but only allows lower-case identifiers
+# in the associated expressions.
+#
+# However if we wanted to allow functional rates then `Q + R`
+# becomes a reasonable rate expression. One solution is to allow that in a
+# prefix but not in a constant definition. Another is to have a separate
+# syntax for rate constants which is a little bit of a shame that we would
+# then not be backwards compatible with existing PEPA software.
+class PEPAConstantDef(object):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    grammar = identifier + "=" + lower_expr_grammar + ";"
+    list_grammar = pyparsing.Group(pyparsing.ZeroOrMore(grammar))
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        return cls(tokens[0], tokens[2])
+
+PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
 
 
 # Theoretically we could allow non-constant definitions, such as:
@@ -378,7 +399,9 @@ class PrefixNode(object):
         self.rate = rate
         self.successor = successor
 
-    grammar = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
+    # This grammar then acutally allows for functional rates because it is
+    # allowing any identifier via the use of 'expr_grammar'.
+    grammar = "(" + identifier + "," + expr_grammar + ")" + "." + process_leaf
 
     @classmethod
     def from_tokens(cls, tokens):
@@ -600,7 +623,7 @@ class ParsedModel(object):
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
     # which might indeed be what you are wishing for.
-    grammar = (ConstantDefinition.list_grammar +
+    grammar = (PEPAConstantDef.list_grammar +
                ProcessDefinition.list_grammar +
                system_equation_grammar)
     whole_input_grammar = grammar + pyparsing.StringEnd()
@@ -1060,7 +1083,7 @@ class BioRateDefinition(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    grammar = "kineticLawOf" + identifier + ":" + rate_grammar + ";"
+    grammar = "kineticLawOf" + identifier + ":" + expr_grammar + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
 
     @classmethod

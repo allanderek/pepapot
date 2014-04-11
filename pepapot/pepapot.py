@@ -161,7 +161,26 @@ class ApplyExpression(Expression):
             raise ValueError("Unknown function name: " + self.name)
 
 
-class ExpressionVisitor(object):
+class Visitor(object):
+    def __init__(self):
+        self.result = None
+
+    def generic_visit(self, entity):
+        """ The main entry for visiting generic entities whose kind (of that
+            entity) we do not yet know, this is the most klutchy part of this,
+            but there is no way around this.
+        """
+        entity.visit(self)
+
+    def generic_visit_get_results(self, entity):
+        """ Performs the visit and also returns the result, sort of useful
+            for doing this within a list comprehension.
+        """
+        self.generic_visit(entity)
+        return self.result
+
+
+class ExpressionVisitor(Visitor):
     """ A parent class for classes which descend through the abstract syntax
         of expressions, generally storing a result along the way.
         There are two kinds of expression visitors, ones which do not modify
@@ -173,21 +192,7 @@ class ExpressionVisitor(object):
         ExpressionModifierVisitor for that kind of visitor.
     """
     def __init__(self):
-        self.result = None
-
-    def generic_visit(self, expression):
-        """ The main entry for visiting generic expression whose type we do
-            not yet know, this is the most klutchy part of this, but there is
-            no way around this.
-        """
-        expression.visit(self)
-
-    def generic_visit_get_results(self, expression):
-        """ Performs the visit and also returns the result, sort of useful
-            for doing this within a list comprehension.
-        """
-        self.generic_visit(expression)
-        return self.result
+        super(ExpressionVisitor, self).__init__()
 
     def visit_NumExpression(self, expression):
         """Visit a NumExpression element"""
@@ -376,6 +381,9 @@ class ProcessIdentifier(object):
 
     grammar = identifier.copy()
 
+    def visit(self, visitor):
+        visitor.visit_ProcessIdentifier(self)
+
     @classmethod
     def from_tokens(cls, tokens):
         return cls(tokens[0])
@@ -395,8 +403,6 @@ class ProcessIdentifier(object):
     def format(self):
         return self.name
 
-    def get_immediate_aliases(self):
-        return [self.name]
 
 ProcessIdentifier.grammar.setParseAction(ProcessIdentifier.from_tokens)
 process_leaf = pyparsing.Forward()
@@ -416,6 +422,9 @@ class PrefixNode(object):
     def from_tokens(cls, tokens):
         return cls(tokens[1], tokens[3], tokens[6])
 
+    def visit(self, visitor):
+        visitor.visit_PrefixNode(self)
+
     def get_used_process_names(self):
         return self.successor.get_used_process_names()
 
@@ -429,9 +438,6 @@ class PrefixNode(object):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
 
-    def get_immediate_aliases(self):
-        return []
-
 PrefixNode.grammar.setParseAction(PrefixNode.from_tokens)
 process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
 
@@ -441,12 +447,8 @@ class ChoiceNode(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    # TODO: This is now getting silly, we should implement visitors for
-    # processes and implement some of these as visitors.
-    def get_immediate_aliases(self):
-        left = self.lhs.get_immediate_aliases()
-        right = self.rhs.get_immediate_aliases()
-        return left + right
+    def visit(self, visitor):
+        visitor.visit_ChoiceNode(self)
 
     def get_possible_actions(self):
         left_actions = self.lhs.get_possible_actions()
@@ -476,6 +478,36 @@ class ChoiceNode(object):
         # P = (a, r).Q + R could be either P = ((a.r).P) + R; or
         # P = (a, r).(Q + R);
         return " ".join([self.lhs.format(), "+", self.rhs.format()])
+
+
+class ProcessVisitor(Visitor):
+    def visit_ProcessIdentifier(self, process):
+        pass
+
+    def visit_PrefixNode(self, process):
+        process.successor.visit(self)
+
+    def visit_ChoiceNode(self, process):
+        process.lhs.visit(self)
+        process.rhs.visit(self)
+
+
+class ProcessImmediateAliasesVisitor(ProcessVisitor):
+    def __init__(self):
+        super(ProcessImmediateAliasesVisitor, self).__init__()
+        self.result = []
+
+    def visit_ProcessIdentifier(self, process):
+        self.result.append(process.name)
+
+    def visit_PrefixNode(self, process):
+        # Note here that we do not recursively visit the successor, because
+        # we are looking for immediate aliases here. We do not *add* to the
+        # aliases here, but note that we do not set result to []. Because it
+        # might be that we have, for example: P = P1 + (a, r).P2; Whilst
+        # visiting the prefix we would not wish to overwrite the result of
+        # visiting the left hand node.
+        pass
 
 
 class ProcessDefinition(object):
@@ -674,7 +706,9 @@ class ParsedModel(object):
         for definition in self.process_definitions:
             name = definition.lhs
             process = definition.rhs
-            aliases[name] = process.get_immediate_aliases()
+            visitor = ProcessImmediateAliasesVisitor()
+            process.visit(visitor)
+            aliases[name] = visitor.result
         # TODO: We should be able to do the closure here, without going back
         # to the definitions but simply from the dictionary itself.
         return aliases

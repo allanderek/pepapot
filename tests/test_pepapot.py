@@ -454,17 +454,6 @@ class TestSimpleAlias(TestSimpleNoCoop):
         a_actions = self.expected_actions_dictionary["P"]
         self.expected_actions_dictionary["A"] = a_actions
 
-    # Note, if you expect everything to fail, you can decorate the class with
-    # unittest.expectedFailure, however I prefer this as if you decorate the
-    # entire class, then it is essentially the same as skipping the tests, that
-    # is no report is given saying how many expected failures there were.
-    # Additionally note that I would like to be able to have more fine-grained
-    # control on what I expect to fail here. For example I do not expect
-    # parsing to fail here.
-    @unittest.expectedFailure
-    def test_everything(self):
-        super(TestSimpleAlias, self).test_actions()
-
 
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
@@ -515,9 +504,16 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_initial_state = "P"
         self.expected_state_space_size = 4
 
+    # Note, if you expect everything to fail, you can decorate the class with
+    # unittest.expectedFailure, however I prefer this as if you decorate the
+    # entire class, then it is essentially the same as skipping the tests, that
+    # is no report is given saying how many expected failures there were.
+    # Additionally note that I would like to be able to have more fine-grained
+    # control on what I expect to fail here. For example I do not expect
+    # parsing to fail here.
     @unittest.expectedFailure
     def test_everything(self):
-        super(TestChoiceAlias, self).test_actions()
+        super(TestChoiceAlias, self).test_everything()
 
 
 # The goal is to build a method which will generate a random PEPA model. This

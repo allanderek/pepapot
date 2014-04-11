@@ -240,10 +240,15 @@ class ExpressionModifierVisitor(ExpressionVisitor):
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
 
-identifier_start = pyparsing.Word(pyparsing.alphas + "_", exact=1)
-identifier_remainder = pyparsing.Word(pyparsing.alphanums + "_")
-identifier = pyparsing.Combine(identifier_start +
-                               Optional(identifier_remainder))
+def make_identifier_grammar(start_characters):
+    identifier_start = pyparsing.Word(start_characters, exact=1)
+    identifier_remainder = Optional(pyparsing.Word(pyparsing.alphanums + "_"))
+    identifier_grammar = identifier_start + identifier_remainder
+    return pyparsing.Combine(identifier_grammar)
+
+lower_identifier = make_identifier_grammar("abcdefghijklmnopqrstuvwxyz")
+upper_identifier = make_identifier_grammar("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+identifier = make_identifier_grammar(pyparsing.alphas)
 
 plusorminus = Literal('+') | Literal('-')
 number = pyparsing.Word(pyparsing.nums)

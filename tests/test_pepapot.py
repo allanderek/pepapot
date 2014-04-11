@@ -97,6 +97,7 @@ P2 = (d, 1.0).P;
 """
 
 one_expr = pepapot.NumExpression(1.0)
+two_expr = pepapot.NumExpression(2.0)
 
 
 def is_valid_gen_matrix(testcase, model_solver):
@@ -257,7 +258,6 @@ R <b> (P || Q)
         self.expected_used_process_names = set_of_names
         self.expected_defined_process_names = set_of_names
 
-        two_expr = pepapot.NumExpression(2.0)
         ten_expr = pepapot.NumExpression(10.0)
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
@@ -485,7 +485,7 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.model_source = """P = P1 + P2;
                                P1 = (a, 1.0).P3;
                                P2 = (b, 1.0).P3;
-                               P3 = (c, 1.0).P;
+                               P3 = (c, 2.0).P;
                                P
                             """
 
@@ -499,21 +499,13 @@ class TestChoiceAlias(TestSimpleNoCoop):
                                                  Action("b", one_expr, "P3")]
         self.expected_actions_dictionary["P1"] = [Action("a", one_expr, "P3")]
         self.expected_actions_dictionary["P2"] = [Action("b", one_expr, "P3")]
-        self.expected_actions_dictionary["P3"] = [Action("c", one_expr, "P")]
+        self.expected_actions_dictionary["P3"] = [Action("c", two_expr, "P")]
 
         self.expected_initial_state = "P"
-        self.expected_state_space_size = 4
+        self.expected_state_space_size = 2
 
-    # Note, if you expect everything to fail, you can decorate the class with
-    # unittest.expectedFailure, however I prefer this as if you decorate the
-    # entire class, then it is essentially the same as skipping the tests, that
-    # is no report is given saying how many expected failures there were.
-    # Additionally note that I would like to be able to have more fine-grained
-    # control on what I expect to fail here. For example I do not expect
-    # parsing to fail here.
-    @unittest.expectedFailure
-    def test_everything(self):
-        super(TestChoiceAlias, self).test_everything()
+        self.expected_solution = [("P", 0.5), ("P3", 0.5)]
+        self.expected_utilisations = [dict(self.expected_solution)]
 
 
 # The goal is to build a method which will generate a random PEPA model. This

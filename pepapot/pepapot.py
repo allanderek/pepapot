@@ -386,8 +386,17 @@ class ProcessIdentifier(object):
     def get_used_process_names(self):
         return set([self.name])
 
+    def get_possible_actions(self):
+        return []
+
+    def concretise_actions(self, environment=None):
+        pass
+
     def format(self):
         return self.name
+
+    def get_immediate_aliases(self):
+        return [self.name]
 
 ProcessIdentifier.grammar.setParseAction(ProcessIdentifier.from_tokens)
 process_leaf = pyparsing.Forward()
@@ -420,6 +429,9 @@ class PrefixNode(object):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
 
+    def get_immediate_aliases(self):
+        return []
+
 PrefixNode.grammar.setParseAction(PrefixNode.from_tokens)
 process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
 
@@ -428,6 +440,13 @@ class ChoiceNode(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
+
+    # TODO: This is now getting silly, we should implement visitors for
+    # processes and implement some of these as visitors.
+    def get_immediate_aliases(self):
+        left = self.lhs.get_immediate_aliases()
+        right = self.rhs.get_immediate_aliases()
+        return left + right
 
     def get_possible_actions(self):
         left_actions = self.lhs.get_possible_actions()
@@ -638,6 +657,28 @@ class ParsedModel(object):
         """
         return next(x for x in self.process_definitions if x.lhs == name)
 
+    def get_immediate_aliases(self):
+        """ Builds a dictionary which maps a process name to the process
+            names which it can become without doing any activities. So:
+            A = P;
+            A can become a P without any activities, similarly:
+            A = P + Q;
+            A can 'become' a P or a Q without doing any activities. The point
+            here being that if we wish to know what activities A can perform
+            then need to know what activities P and Q can perform.
+        """
+        # TODO: Have not yet implemented closure here, so if we had:
+        # A = P; B = A; then P should be an immediate alias of B but we will
+        # not determine that fact here, but we should.
+        aliases = dict()
+        for definition in self.process_definitions:
+            name = definition.lhs
+            process = definition.rhs
+            aliases[name] = process.get_immediate_aliases()
+        # TODO: We should be able to do the closure here, without going back
+        # to the definitions but simply from the dictionary itself.
+        return aliases
+
     def get_components(self):
         """Returns a dictionary mapping each name used in the system equation
            to a list of names reachable via actions from that name.
@@ -680,6 +721,28 @@ class ParsedModel(object):
         for definition in self.process_definitions:
             actions = definition.rhs.get_possible_actions()
             actions_dictionary[definition.lhs] = actions
+
+        # A slight problem, if we have A = B; and B = P; and P = (a,r).P1;
+        # we do *not* wish for A to have *two* copies of the action
+        # (a,r).P1. But the aliases for A will be B and P, so we cannot simply
+        # say "get all the immediate aliases of A and add their actions as
+        # actions that A can do, because B will be able to do (a,r).P1 as well
+        # as P, so we will conclude that A can perform (a,r).P1 twice. Instead
+        # we build up a dictionary of aliased actions and only add those.
+        aliased_actions = dict()
+        for name, aliases in self.get_immediate_aliases().items():
+            these_aliased_actions = []
+            for alias in aliases:
+                these_aliased_actions += actions_dictionary[alias]
+            aliased_actions[name] = these_aliased_actions
+
+        # Unfortunately we cannot simply say:
+        # actions_dictionary.update(aliased_actions)
+        # Because of the choice operator a process may have both:
+        # P = (a,r).P1 + B;
+        for name, entry in aliased_actions.items():
+            actions_list = actions_dictionary.get(name, []) + entry
+            actions_dictionary[name] = actions_list
         return actions_dictionary
 
     def defined_process_names(self):

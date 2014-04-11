@@ -245,9 +245,6 @@ identifier_remainder = pyparsing.Word(pyparsing.alphanums + "_")
 identifier = pyparsing.Combine(identifier_start +
                                Optional(identifier_remainder))
 
-# TODO: Check out pyparsing.operatorPrecedence and pyparsing.nestedExpr
-# http://pyparsing.wikispaces.com/file/view/simpleArith.py/
-# http://pyparsing.wikispaces.com/file/view/nested.py/32064753/nested.py
 plusorminus = Literal('+') | Literal('-')
 number = pyparsing.Word(pyparsing.nums)
 integer = Combine(Optional(plusorminus) + number)
@@ -297,14 +294,15 @@ expr_grammar << pyparsing.operatorPrecedence(atom_expr, grammar_precedences)
 rate_grammar = expr_grammar
 
 
-# TODO: Can we make an abstract base class for definitions?
-# TODO: We can at least do this for constants, currently the PEPA
-# implementation above does not allow for constant declarations, one problem
-# is that in PEPA, it is difficult to distinguish between an expression and
-# a process, for example:
+# One problem that we still have is that in PEPA, it is difficult to
+# distinguish between an expression and a process, for example:
 # P = Q + R;
 # Could be either, unless we insist that rates are lower case and processes
-# are upper case? Not sure I wish to do that.
+# are upper case? However if we wanted to allow functional rates then `Q + R`
+# becomes a reasonable rate expression. One solution is to allow that in a
+# prefix but not in a constant definition. Another is to have a separate
+# syntax for rate constants which is a little bit of a shame that we would
+# then not be backwards compatible with existing PEPA software.
 class ConstantDefinition(object):
     def __init__(self, lhs, rhs):
         self.lhs = lhs

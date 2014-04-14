@@ -716,9 +716,7 @@ class ParsedModel(object):
         for definition in self.process_definitions:
             name = definition.lhs
             process = definition.rhs
-            visitor = ProcessImmediateAliasesVisitor()
-            process.visit(visitor)
-            aliases[name] = visitor.result
+            aliases[name] = ProcessImmediateAliasesVisitor.get_result(process)
         # TODO: We should be able to do the closure here, without going back
         # to the definitions but simply from the dictionary itself.
         return aliases

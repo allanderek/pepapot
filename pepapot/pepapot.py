@@ -179,6 +179,12 @@ class Visitor(object):
         self.generic_visit(entity)
         return self.result
 
+    @classmethod
+    def get_result(cls, entity):
+        visitor = cls()
+        entity.visit(visitor)
+        return visitor.result
+
 
 class ExpressionVisitor(Visitor):
     """ A parent class for classes which descend through the abstract syntax
@@ -758,9 +764,7 @@ class ParsedModel(object):
     def get_process_actions(self):
         actions_dictionary = dict()
         for definition in self.process_definitions:
-            visitor = ProcessPossibleActionsVisitor()
-            definition.rhs.visit(visitor)
-            actions = visitor.result
+            actions = ProcessPossibleActionsVisitor.get_result(definition.rhs)
             actions_dictionary[definition.lhs] = actions
 
         # A slight problem, if we have A = B; and B = P; and P = (a,r).P1;

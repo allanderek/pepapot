@@ -397,9 +397,6 @@ class ProcessIdentifier(object):
     def get_possible_actions(self):
         return []
 
-    def concretise_actions(self, environment=None):
-        pass
-
     def format(self):
         return self.name
 
@@ -431,9 +428,6 @@ class PrefixNode(object):
     def get_possible_actions(self):
         return [Action(self.action, self.rate, str(self.successor))]
 
-    def concretise_actions(self, environment=None):
-        self.rate = self.rate.get_value(environment=environment)
-
     def format(self):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
@@ -461,10 +455,6 @@ class ChoiceNode(object):
         # In fact they would not need to be duplicates, simply sum the rates,
         # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         return left_actions + right_actions
-
-    def concretise_actions(self, environment=None):
-        self.lhs.concretise_actions(environment=environment)
-        self.rhs.concretise_actions(environment=environment)
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -508,6 +498,15 @@ class ProcessImmediateAliasesVisitor(ProcessVisitor):
         # visiting the prefix we would not wish to overwrite the result of
         # visiting the left hand node.
         pass
+
+
+class ProcessConcretiseActionsVisitor(ProcessVisitor):
+    def __init__(self, environment=None):
+        super(ProcessConcretiseActionsVisitor, self).__init__()
+        self.environment = environment
+
+    def visit_PrefixNode(self, process):
+        process.rate = process.rate.get_value(environment=self.environment)
 
 
 class ProcessDefinition(object):
@@ -1061,8 +1060,9 @@ class ModelSolver(object):
         # apply those throughout the process definitions.
         environment = constant_def_environment(self.model.constant_defs)
 
+        concretiser = ProcessConcretiseActionsVisitor(environment)
         for proc_def in self.model.process_definitions:
-            proc_def.rhs.concretise_actions(environment=environment)
+            proc_def.rhs.visit(concretiser)
 
     @lazy
     def initial_state(self):

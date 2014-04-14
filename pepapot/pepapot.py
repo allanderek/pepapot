@@ -180,8 +180,8 @@ class Visitor(object):
         return self.result
 
     @classmethod
-    def get_result(cls, entity):
-        visitor = cls()
+    def get_result(cls, entity, *args):
+        visitor = cls(*args)
         entity.visit(visitor)
         return visitor.result
 
@@ -1293,8 +1293,9 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
 class RemoveRateLawsVisitor(ExpressionModifierVisitor):
     """ Removes the rate laws syntax sugar from an expression. Currently only
         fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
-        if you call this you will likely used 'generic_visit_get_results' as
-        the original expression may not be modified but a new one returned
+        if you call this you will likely use:
+        RemoveRateLawsVisitor.get_results(expr)
+        as the original expression may not be modified but a new one returned
         in its place. For fMA we could arguably do this using an ordinary
         ExpressionVisitor since the result is still going to be an
         ApplyExpression anyway, but this seems cleaner.
@@ -1370,8 +1371,9 @@ class ParsedBioModel(object):
                         multipliers[behaviour.reaction_name] = entry_list
                     entry_list.append(entry)
         for kinetic_law in self.kinetic_laws:
-            visitor = RemoveRateLawsVisitor(multipliers[kinetic_law.lhs])
-            new_expr = visitor.generic_visit_get_results(kinetic_law.rhs)
+            rhs_multipliers = multipliers[kinetic_law.lhs]
+            new_expr = RemoveRateLawsVisitor.get_result(kinetic_law.rhs,
+                                                        rhs_multipliers)
             kinetic_law.rhs = new_expr
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)

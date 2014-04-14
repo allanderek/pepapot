@@ -172,11 +172,11 @@ class Visitor(object):
         """
         entity.visit(self)
 
-    def generic_visit_get_results(self, entity):
+    def visit_get_results(self, entity):
         """ Performs the visit and also returns the result, sort of useful
             for doing this within a list comprehension.
         """
-        self.generic_visit(entity)
+        entity.visit(self)
         return self.result
 
     @classmethod
@@ -244,8 +244,7 @@ class ExpressionModifierVisitor(ExpressionVisitor):
             Also note that if you really wish to leave the original expression
             untouched then you need to do the recursive calling yourself.
         """
-        expression.args = [self.generic_visit_get_results(e)
-                           for e in expression.args]
+        expression.args = [self.visit_get_results(e) for e in expression.args]
         self.result = expression
 
 Action = namedtuple('Action', ["action", "rate", "successor"])

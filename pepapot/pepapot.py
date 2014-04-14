@@ -818,29 +818,36 @@ Transition = namedtuple('Transition', ["action", "rate", "successor"])
 StateInfo = namedtuple('StateInfo', ["state_number", "transitions"])
 
 
-class InitialStateBuilderHelper(object):
+class InitialStateVisitor(ComponentVisitor):
     def __init__(self, components):
+        super(InitialStateVisitor, self).__init__()
         self.components = components
+        self.result = None
 
-    def leaf(self, identifier):
-        # A leaf state is simply an identifier
-        return identifier
+    def visit_NamedComponent(self, component):
+        self.result = component.identifier
 
-    def aggregation(self, lhs, amount):
+    def visit_Aggregation(self, component):
+        component.lhs.visit(self)
         # This assumes that lhs will be an identifier, which as I write this
         # is enforced by the parser, but ultimately it would be good to allow
         # (P <*> Q)[X]
-        initial_name = lhs.get_builder(self)
+        initial_name = self.result
         state_names = self.components[initial_name]
-        pairs = [(x, amount if x == initial_name else 0) for x in state_names]
+        pairs = [(x, component.amount if x == initial_name else 0)
+                 for x in state_names]
         # An aggregation state is a tuple consisting of pairs. Each pair is
         # the name of a local state and the number of components in that state
-        return tuple(pairs)
+        self.result = tuple(pairs)
 
-    def cooperation(self, lhs, _coop_set, rhs):
+    def visit_SystemCooperation(self, component):
+        component.lhs.visit(self)
+        lhs = self.result
+        component.rhs.visit(self)
+        rhs = self.result
         # A cooperation state is simply a pair consisting of the left and
         # right sub-states
-        return (lhs.get_builder(self), rhs.get_builder(self))
+        self.result = (lhs, rhs)
 
 
 class MemoisationBuilder(object):
@@ -1080,8 +1087,9 @@ class ModelSolver(object):
     @lazy
     def initial_state(self):
         components = self.model.get_components()
-        builder_helper = InitialStateBuilderHelper(components)
-        self._initial_state = self.model.get_builder(builder_helper)
+        system_equation = self.model.system_equation
+        self._initial_state = InitialStateVisitor.get_result(system_equation,
+                                                             components)
         return self._initial_state
 
     @lazy

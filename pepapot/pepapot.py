@@ -447,7 +447,7 @@ class ChoiceNode(object):
 
 
 class ProcessVisitor(Visitor):
-    def visit_ProcessIdentifier(self, process):
+    def visit_ProcessIdentifier(self, _process):
         pass
 
     def visit_PrefixNode(self, process):
@@ -537,8 +537,8 @@ class ParsedNamedComponent(object):
     def from_tokens(cls, tokens):
         return cls(tokens[0])
 
-    def get_used_process_names(self):
-        return set([self.identifier])
+    def visit(self, visitor):
+        visitor.visit_NamedComponent(self)
 
     def get_shared_actions(self):
         """Mostly for testing purposes we return all activities shared
@@ -580,8 +580,8 @@ class ParsedAggregation(object):
         else:
             return tokens
 
-    def get_used_process_names(self):
-        return self.lhs.get_used_process_names()
+    def visit(self, visitor):
+        visitor.visit_Aggregation(self)
 
     def get_shared_actions(self):
         return self.lhs.get_shared_actions()
@@ -632,10 +632,8 @@ class ParsedSystemCooperation(object):
         else:
             return tokens
 
-    def get_used_process_names(self):
-        lhs = self.lhs.get_used_process_names()
-        rhs = self.rhs.get_used_process_names()
-        return lhs.union(rhs)
+    def visit(self, visitor):
+        visitor.visit_SystemCooperation(self)
 
     def get_shared_actions(self):
         """Mostly for testing purposes we return all activities shared
@@ -657,6 +655,27 @@ class ParsedSystemCooperation(object):
 
 system_equation_grammar << ParsedSystemCooperation.grammar
 system_equation_grammar.setParseAction(ParsedSystemCooperation.from_tokens)
+
+
+class ComponentVisitor(Visitor):
+    def visit_NamedComponent(self, _component):
+        pass
+
+    def visit_Aggregation(self, component):
+        component.lhs.visit(self)
+
+    def visit_SystemCooperation(self, component):
+        component.lhs.visit(self)
+        component.rhs.visit(self)
+
+
+class CompUsedProcessNames(ComponentVisitor):
+    def __init__(self):
+        super(CompUsedProcessNames, self).__init__()
+        self.result = set()
+
+    def visit_NamedComponent(self, component):
+        self.result.add(component.identifier)
 
 
 class ParsedModel(object):
@@ -712,7 +731,7 @@ class ParsedModel(object):
         # Note that we could do a bit of memoisation here, since
         # 'get_components' is used in both 'used_process_names' and
         # 'get_initial_state', but we do not expect this to take a long time.
-        used_processes = self.system_equation.get_used_process_names()
+        used_processes = CompUsedProcessNames.get_result(self.system_equation)
         components = dict()
         for name in used_processes:
             # Closure is a list and not a set, because we wish for the order

@@ -146,7 +146,8 @@ class TestSimpleNoCoop(unittest.TestCase):
         model = pepapot.parse_model(self.model_source)
 
         # Test the parser
-        shared_actions = model.system_equation.get_shared_actions()
+        system_equation = model.system_equation
+        shared_actions = pepapot.CompSharedActions.get_result(system_equation)
         self.assertEqual(shared_actions, self.expected_shared_actions)
 
        # Test the defined names

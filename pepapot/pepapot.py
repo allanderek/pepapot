@@ -540,11 +540,6 @@ class ParsedNamedComponent(object):
     def visit(self, visitor):
         visitor.visit_NamedComponent(self)
 
-    def get_shared_actions(self):
-        """Mostly for testing purposes we return all activities shared
-           at least once"""
-        return set()
-
     def get_builder(self, builder_helper):
         return builder_helper.leaf(self.identifier)
 
@@ -582,9 +577,6 @@ class ParsedAggregation(object):
 
     def visit(self, visitor):
         visitor.visit_Aggregation(self)
-
-    def get_shared_actions(self):
-        return self.lhs.get_shared_actions()
 
     def get_builder(self, builder_helper):
         return builder_helper.aggregation(self.lhs, self.amount)
@@ -635,14 +627,6 @@ class ParsedSystemCooperation(object):
     def visit(self, visitor):
         visitor.visit_SystemCooperation(self)
 
-    def get_shared_actions(self):
-        """Mostly for testing purposes we return all activities shared
-           at least once"""
-        left = self.lhs.get_shared_actions()
-        right = self.rhs.get_shared_actions()
-        these = set(self.cooperation_set)
-        return these.union(left).union(right)
-
     def get_builder(self, builder_helper):
         return builder_helper.cooperation(self.lhs,
                                           self.cooperation_set,
@@ -676,6 +660,22 @@ class CompUsedProcessNames(ComponentVisitor):
 
     def visit_NamedComponent(self, component):
         self.result.add(component.identifier)
+
+
+class CompSharedActions(ComponentVisitor):
+    """ This visitor is mostly for testing purposes. It allows us to test that
+        the model we parsed is indeed the one we were thinking of. It is
+        also conceivable that some other operation will wish to know all of
+        the actions which are involved in at least one cooperation.
+    """
+    def __init__(self):
+        super(CompSharedActions, self).__init__()
+        self.result = set()
+
+    def visit_SystemCooperation(self, component):
+        component.lhs.visit(self)
+        component.rhs.visit(self)
+        self.result.update(component.cooperation_set)
 
 
 class ParsedModel(object):

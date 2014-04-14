@@ -396,9 +396,6 @@ class ProcessIdentifier(object):
     def __str__(self):
         return self.name
 
-    def get_used_process_names(self):
-        return set([self.name])
-
     def format(self):
         return self.name
 
@@ -424,9 +421,6 @@ class PrefixNode(object):
     def visit(self, visitor):
         visitor.visit_PrefixNode(self)
 
-    def get_used_process_names(self):
-        return self.successor.get_used_process_names()
-
     def format(self):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
@@ -442,11 +436,6 @@ class ChoiceNode(object):
 
     def visit(self, visitor):
         visitor.visit_ChoiceNode(self)
-
-    def get_used_process_names(self):
-        lhs = self.lhs.get_used_process_names()
-        rhs = self.rhs.get_used_process_names()
-        return lhs.union(rhs)
 
     def format(self):
         # I believe there is no need for  parentheses, since we cannot make
@@ -491,6 +480,15 @@ class ProcessPossibleActionsVisitor(ProcessVisitor):
         # In fact they would not need to be duplicates, simply sum the rates,
         # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
         self.result = left_actions + right_actions
+
+
+class UsedProcessNamesVisitor(ProcessVisitor):
+    def __init__(self):
+        super(UsedProcessNamesVisitor, self).__init__()
+        self.result = set()
+
+    def visit_ProcessIdentifier(self, process):
+        self.result.add(process.name)
 
 
 class ProcessImmediateAliasesVisitor(ProcessVisitor):
@@ -741,7 +739,8 @@ class ParsedModel(object):
                 if name not in closure:
                     closure.append(name)
                     definition = self.get_process_definition(name)
-                    new_names = definition.rhs.get_used_process_names()
+                    process = definition.rhs
+                    new_names = UsedProcessNamesVisitor.get_result(process)
                     name_queue.update(new_names)
             components[name] = closure
         return components

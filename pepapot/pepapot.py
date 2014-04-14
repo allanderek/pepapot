@@ -970,19 +970,25 @@ class CoopBuilder(MemoisationBuilder):
         return transitions
 
 
-class StateBuilderHelper(object):
+class StateBuilderHelper(ComponentVisitor):
     def __init__(self, actions_dictionary):
+        super(StateBuilderHelper, self).__init__()
         self.actions_dictionary = actions_dictionary
+        self.result = None
 
-    def leaf(self, _identifier):
-        return LeafBuilder(self.actions_dictionary)
+    def visit_NamedComponent(self, _component):
+        self.result = LeafBuilder(self.actions_dictionary)
 
-    def aggregation(self, lhs, _amount):
-        return AggregationBuilder(lhs.get_builder(self))
+    def visit_Aggregation(self, component):
+        component.lhs.visit(self)
+        self.result = AggregationBuilder(self.result)
 
-    def cooperation(self, lhs, coop_set, rhs):
-        return CoopBuilder(lhs.get_builder(self), coop_set,
-                           rhs.get_builder(self))
+    def visit_SystemCooperation(self, component):
+        component.lhs.visit(self)
+        lhs = self.result
+        component.rhs.visit(self)
+        rhs = self.result
+        self.result = CoopBuilder(lhs, component.cooperation_set, rhs)
 
 
 class LeafUtilisations(object):
@@ -1059,8 +1065,10 @@ class UtilisationsBuilderHelper(object):
 # example call `model.get_process_actions()` before you inspect the
 # `initial_state`, eg. if the concretising were done in the
 # `initial_state` method, we could *not* do:
-#       builder_helper = StateBuilderHelper(self.model.get_process_actions())
-#       state_builder = self.model.get_builder(builder_helper)
+#        system_equation = self.model.system_equation
+#        process_actions = self.model.get_process_actions()
+#        state_builder = StateBuilderHelper.get_result(system_equation,
+#                                                      process_actions)
 #       explore_queue = set([self.initial_state])
 
 
@@ -1094,8 +1102,10 @@ class ModelSolver(object):
 
     @lazy
     def state_space(self):
-        builder_helper = StateBuilderHelper(self.model.get_process_actions())
-        state_builder = self.model.get_builder(builder_helper)
+        system_equation = self.model.system_equation
+        process_actions = self.model.get_process_actions()
+        state_builder = StateBuilderHelper.get_result(system_equation,
+                                                      process_actions)
         explore_queue = set([self.initial_state])
         explored = set()
         while (explore_queue):

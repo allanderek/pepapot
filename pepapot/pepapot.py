@@ -394,9 +394,6 @@ class ProcessIdentifier(object):
     def get_used_process_names(self):
         return set([self.name])
 
-    def get_possible_actions(self):
-        return []
-
     def format(self):
         return self.name
 
@@ -425,9 +422,6 @@ class PrefixNode(object):
     def get_used_process_names(self):
         return self.successor.get_used_process_names()
 
-    def get_possible_actions(self):
-        return [Action(self.action, self.rate, str(self.successor))]
-
     def format(self):
         return "".join(["(", self.action, ", ", str(self.rate),
                         ").", self.successor.format()])
@@ -443,18 +437,6 @@ class ChoiceNode(object):
 
     def visit(self, visitor):
         visitor.visit_ChoiceNode(self)
-
-    def get_possible_actions(self):
-        left_actions = self.lhs.get_possible_actions()
-        right_actions = self.rhs.get_possible_actions()
-        # Because we are not using sets here it is possible that we have
-        # duplicates, this is interesting, I'm not sure what to make of,
-        # for example, "P = (a,r).P1 + (a,r).P1",
-        # should it occur at twice the rate?
-        # We could detect duplicates at this stage and multiply the rate.
-        # In fact they would not need to be duplicates, simply sum the rates,
-        # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
-        return left_actions + right_actions
 
     def get_used_process_names(self):
         lhs = self.lhs.get_used_process_names()
@@ -480,6 +462,30 @@ class ProcessVisitor(Visitor):
     def visit_ChoiceNode(self, process):
         process.lhs.visit(self)
         process.rhs.visit(self)
+
+
+class ProcessPossibleActionsVisitor(ProcessVisitor):
+    def __init__(self):
+        super(ProcessPossibleActionsVisitor, self).__init__()
+        self.result = []
+
+    def visit_PrefixNode(self, process):
+        action = Action(process.action, process.rate, str(process.successor))
+        self.result = [action]
+
+    def visit_ChoiceNode(self, process):
+        process.lhs.visit(self)
+        left_actions = self.result
+        process.rhs.visit(self)
+        right_actions = self.result
+        # Because we are not using sets here it is possible that we have
+        # duplicates, this is interesting, I'm not sure what to make of,
+        # for example, "P = (a,r).P1 + (a,r).P1",
+        # should it occur at twice the rate?
+        # We could detect duplicates at this stage and multiply the rate.
+        # In fact they would not need to be duplicates, simply sum the rates,
+        # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
+        self.result = left_actions + right_actions
 
 
 class ProcessImmediateAliasesVisitor(ProcessVisitor):
@@ -752,7 +758,9 @@ class ParsedModel(object):
     def get_process_actions(self):
         actions_dictionary = dict()
         for definition in self.process_definitions:
-            actions = definition.rhs.get_possible_actions()
+            visitor = ProcessPossibleActionsVisitor()
+            definition.rhs.visit(visitor)
+            actions = visitor.result
             actions_dictionary[definition.lhs] = actions
 
         # A slight problem, if we have A = B; and B = P; and P = (a,r).P1;

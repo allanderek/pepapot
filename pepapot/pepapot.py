@@ -465,21 +465,7 @@ class ProcessPossibleActionsVisitor(ProcessVisitor):
 
     def visit_PrefixNode(self, process):
         action = Action(process.action, process.rate, str(process.successor))
-        self.result = [action]
-
-    def visit_ChoiceNode(self, process):
-        process.lhs.visit(self)
-        left_actions = self.result
-        process.rhs.visit(self)
-        right_actions = self.result
-        # Because we are not using sets here it is possible that we have
-        # duplicates, this is interesting, I'm not sure what to make of,
-        # for example, "P = (a,r).P1 + (a,r).P1",
-        # should it occur at twice the rate?
-        # We could detect duplicates at this stage and multiply the rate.
-        # In fact they would not need to be duplicates, simply sum the rates,
-        # ie.: "P = (a,r).P1 + (a,t).P1" is equivalent to "P = (a, r+t).P1".
-        self.result = left_actions + right_actions
+        self.result.append(action)
 
 
 class UsedProcessNamesVisitor(ProcessVisitor):

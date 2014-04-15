@@ -404,6 +404,10 @@ ProcessIdentifier.grammar.setParseAction(ProcessIdentifier.from_tokens)
 process_leaf = pyparsing.Forward()
 
 
+class TopRate(object):
+    pass
+
+
 class PrefixNode(object):
     def __init__(self, action, rate, successor):
         self.action = action

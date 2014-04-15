@@ -98,7 +98,7 @@ P2 = (d, 1.0).P;
 
 one_expr = pepapot.NumExpression(1.0)
 two_expr = pepapot.NumExpression(2.0)
-
+top_rate = pepapot.TopRate()
 
 def is_valid_gen_matrix(testcase, model_solver):
     for (row_number, row) in enumerate(model_solver.gen_matrix):
@@ -516,6 +516,23 @@ class TestAwkwardAlias(TestSimpleNoCoop):
     @unittest.expectedFailure
     def test_everything(self):
         super(TestAwkwardAlias, self).test_everything()
+
+
+# TODO: In addition to this test we should have a test which actually has
+# a complex apparent rate calculation using the T rate.
+class TestTopRate(TestSimpleNoCoop):
+    """ Just a very simple test to get started on the development of support
+        for the top rate T.
+    """
+    def setUp(self):
+        super(TestTopRate, self).setUp()
+        self.model_source = """P  = (a, 1.0).P1;
+                               P1 = (b, 1.0).P;
+                               Q  = (a, T).Q1;
+                               Q1 = (b, 1.0).Q;
+                               P || Q
+                            """
+        self.expected_actions_dictionary["Q"] = [Action("a", top_rate, "Q1")]
 
 
 class TestSimpleChoice(TestSimpleNoCoop):

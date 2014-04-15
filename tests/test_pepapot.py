@@ -450,10 +450,37 @@ class TestSimpleAlias(TestSimpleNoCoop):
     """
     def setUp(self):
         super(TestSimpleAlias, self).setUp()
-        self.model_source = "A = P;\n" + simple_components + "\nP || Q"
+        self.model_source = """A = P;
+                               P = (a,1.0).P1;
+                               P1 = (b, 1.0).A;
+
+                               Q = (a,1.0).Q1;
+                               Q1 = (b, 1.0).Q;
+
+                               A || Q
+                            """
         self.expected_defined_process_names.add("A")
-        a_actions = self.expected_actions_dictionary["P"]
-        self.expected_actions_dictionary["A"] = a_actions
+        self.expected_used_process_names.add("A")
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "A")]
+        self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
+        self.expected_actions_dictionary["A"] = [Action("a", one_expr, "P1")]
+
+        self.expected_initial_state = ("A", "Q")
+        self.expected_state_space_size = 4
+
+        self.expected_solution = [(("A", "Q"), 0.25),
+                                  (("P1", "Q"), 0.25),
+                                  (("A", "Q1"), 0.25),
+                                  (("P1", "Q1"), 0.25)]
+
+        self.expected_utilisations = [dict([("A", 0.5),
+                                            ("P1", 0.5)]),
+                                      dict([("Q", 0.5),
+                                            ("Q1", 0.5)])]
 
 
 class TestSimpleChoice(TestSimpleNoCoop):

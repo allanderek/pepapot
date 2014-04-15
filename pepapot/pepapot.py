@@ -969,7 +969,13 @@ class CoopBuilder(MemoisationBuilder):
 
         return transitions
 
-
+# So the StateBuilderHelper builds up an object of Leaf, Aggregation and
+# CoopBuilders which has the same structure as the PEPA model. Hence the
+# structure of the PEPA model is captured in this object and remains static
+# whilst the state space is built. Each kind of builder knows how to
+# build the statespace for its portion of the tree of the PEPA model structure
+# whether that requires recursively building the state-space of the subtrees
+# or not. To build up that 
 class StateBuilderHelper(ComponentVisitor):
     def __init__(self, actions_dictionary):
         super(StateBuilderHelper, self).__init__()

@@ -414,7 +414,7 @@ class PrefixNode(object):
         self.rate = rate
         self.successor = successor
 
-    # This grammar then acutally allows for functional rates because it is
+    # This grammar then actually allows for functional rates because it is
     # allowing any identifier via the use of 'expr_grammar'.
     grammar = "(" + identifier + "," + expr_grammar + ")" + "." + process_leaf
 

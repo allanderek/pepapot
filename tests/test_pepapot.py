@@ -483,6 +483,41 @@ class TestSimpleAlias(TestSimpleNoCoop):
                                             ("Q1", 0.5)])]
 
 
+class TestAwkwardAlias(TestSimpleNoCoop):
+    def setUp(self):
+        self.model_source = """A  = P;
+                               P  = (a, 1.0).P1;
+                               P1 = (b, 1.0).P;
+                               A
+                            """
+        self.expected_defined_process_names = set(["A", "P", "P1"])
+        self.expected_used_process_names = set(["A", "P", "P1"])
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["A"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P")]
+
+        self.expected_shared_actions = set([])
+
+        self.expected_initial_state = ("A")
+        self.expected_state_space_size = 2
+
+        self.expected_solution = [(("A"), 0.5),
+                                  (("P1"), 0.5)]
+
+        self.expected_utilisations = [dict([("A", 0.5), ("P1", 0.5)])]
+
+    # This test is non-trivial to get correct. The problem is that we end up
+    # with three states rather than two. These correspond to the states:
+    # A, P and P1. Of course A and P are the same state. So we need away of
+    # noting that. The alternative is just to accept that this has some
+    # transient states to begin with.
+    @unittest.expectedFailure
+    def test_everything(self):
+        super(TestAwkwardAlias, self).test_everything()
+
+
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"

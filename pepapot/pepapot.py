@@ -1034,18 +1034,28 @@ class CoopUtilisations(object):
         return self.lhs.get_utilisations() + self.rhs.get_utilisations()
 
 
-class UtilisationsBuilderHelper(object):
+class UtilisationsBuilderHelper(ComponentVisitor):
     def __init__(self):
-        pass
+        super(UtilisationsBuilderHelper, self).__init__()
+        self.result = None
 
-    def leaf(self, _identifier):
-        return LeafUtilisations()
+    def visit_NamedComponent(self, _component):
+        self.result = LeafUtilisations()
 
-    def aggregation(self, lhs, _amount):
-        return AggregationUtilisations()
+    def visit_Aggregation(self, component):
+        # Currently we do not need to visit the lhs of an aggregation,
+        # however, that is because we only allow the lhs to be a name,
+        # something that is enforced by the parser. If we were to allow
+        # any component, eg (P <*> Q)[10] then we would have to visit the lhs
+        self.result = AggregationUtilisations()
 
-    def cooperation(self, lhs, _coop_set, rhs):
-        return CoopUtilisations(lhs.get_builder(self), rhs.get_builder(self))
+    def visit_SystemCooperation(self, component):
+        component.lhs.visit(self)
+        lhs = self.result
+        component.rhs.visit(self)
+        rhs = self.result
+        self.result = CoopUtilisations(lhs, rhs)
+
 
 # Note, we must concretise the actions now such that all later operations
 # need not worry about the fact that rates and populations might have
@@ -1187,8 +1197,8 @@ class ModelSolver(object):
         """ From the steady state create a dictionary of utilisations for
             each component in the system equation
         """
-        builder_helper = UtilisationsBuilderHelper()
-        utilisation_builder = self.model.get_builder(builder_helper)
+        sys_eqn = self.model.system_equation
+        utilisation_builder = UtilisationsBuilderHelper.get_result(sys_eqn)
         for (state, (state_number, transitions)) in self.state_space.items():
             probability = self.steady_solution[state_number]
             utilisation_builder.utilise_state(state, probability)

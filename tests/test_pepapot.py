@@ -530,7 +530,7 @@ class TestTopRate(TestSimpleNoCoop):
                                P1 = (b, 1.0).P;
                                Q  = (a, T).Q1;
                                Q1 = (b, 1.0).Q;
-                               P || Q
+                               P <a> Q
                             """
         self.expected_actions_dictionary["Q"] = [Action("a", top_rate, "Q1")]
 

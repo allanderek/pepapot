@@ -536,6 +536,18 @@ class TestTopRate(TestSimpleSingleCoop):
         self.expected_actions_dictionary["Q"] = [Action("a", top_rate, "Q1")]
 
 
+class TestTopRatePassiveCoop(TestSimpleNoCoop):
+    def setUp(self):
+        self.model_source = """ P  = (a, 1.0).P1;
+                                P1 = (b, 1.0).P;
+                                Q  = (a, 1.0).Q1;
+                                Q1 = (b, T).Q;
+                                S  = (a, 1.0).S1;
+                                S1 = (b, T).S;
+                                P <b> (Q <b> S)
+                            """
+
+
 class TestSimpleChoice(TestSimpleNoCoop):
     def setUp(self):
         self.model_source = simple_choice_component + "\nP"

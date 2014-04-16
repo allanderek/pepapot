@@ -108,8 +108,8 @@ def is_valid_gen_matrix(testcase, model_solver):
 
 
 class TestSimpleNoCoop(unittest.TestCase):
-    """This tests a very simple test model. It also serves as a base class from
-       which all other cases testing particular models should derive.
+    """This tests a very simple test model. It also serves as a base class
+       from which all other cases testing particular models should derive.
        A subclass should re-write the setup method populating all of the
        expected values with appropriate ones.
     """

@@ -575,14 +575,12 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
                                   (('P', ('Q', 'R1')), 0.0588235294118),
                                   (('P1', ('Q', 'R1')), 0.117647058824)]
 
-
         self.expected_utilisations = [dict([("P", 0.35294117647058831),
                                             ("P1", 0.64705882352941169)]),
                                       dict([("Q", 0.35294117647058831),
                                             ("Q1", 0.64705882352941191)]),
                                       dict([("R", 0.35294117647058831),
                                             ("R1", 0.64705882352941191)])]
-
 
 
 # TODO: Add a test, for which there is a choice between a passive and active

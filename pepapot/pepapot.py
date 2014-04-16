@@ -512,7 +512,9 @@ class ProcessConcretiseActionsVisitor(ProcessVisitor):
         self.environment = environment
 
     def visit_PrefixNode(self, process):
-        process.rate = process.rate.get_value(environment=self.environment)
+        if process.rate != TopRate():
+            env = self.environment
+            process.rate = process.rate.get_value(environment=env)
 
 
 class ProcessDefinition(object):

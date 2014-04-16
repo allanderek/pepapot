@@ -409,6 +409,30 @@ class TopRate(object):
     def __eq__(self, other):
         return isinstance(other, self.__class__)
 
+    def __lt__(self, other):
+        return False
+
+    def __gt__(self, other):
+        return True
+
+    def __add__(self, other):
+        return self
+
+    def __radd__(self, other):
+        return self
+
+    def __truediv__(self, other):
+        if other == self:
+            return 1
+        else:
+            return self
+
+    def __rtruediv__(self, other):
+        if other == self:
+            return 1
+        else:
+            return 0
+
 
 class PrefixNode(object):
     def __init__(self, action, rate, successor):
@@ -964,6 +988,13 @@ class CoopBuilder(MemoisationBuilder):
                 new_transition = transition._replace(successor=new_state)
                 transitions.append(new_transition)
         for action in self.coop_set:
+            # This then implements the so-called "apparent rate" for this
+            # shared activity. This is calculated as:
+            # (r1/ra(lhs)) * (r2/ra(rhs)) * min(ra(lhs), ra(rhs))
+            # Where r1 is the rate of the left transition, and r2 is the
+            # rate of the right transition, ra(lhs) is the total rate at which
+            # the left-hand process can perform the given action and similarly
+            # for ra(rhs).
             left_shared = [t for t in left_transitions if t.action == action]
             right_shared = [t for t in right_transitions if t.action == action]
             left_rate = sum([t.rate for t in left_shared])
@@ -982,13 +1013,14 @@ class CoopBuilder(MemoisationBuilder):
 
         return transitions
 
+
 # So the StateBuilderHelper builds up an object of Leaf, Aggregation and
 # CoopBuilders which has the same structure as the PEPA model. Hence the
 # structure of the PEPA model is captured in this object and remains static
 # whilst the state space is built. Each kind of builder knows how to
 # build the statespace for its portion of the tree of the PEPA model structure
 # whether that requires recursively building the state-space of the subtrees
-# or not. To build up that 
+# or not. To build up that
 class StateBuilderHelper(ComponentVisitor):
     def __init__(self, actions_dictionary):
         super(StateBuilderHelper, self).__init__()

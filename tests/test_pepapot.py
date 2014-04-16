@@ -100,6 +100,7 @@ one_expr = pepapot.NumExpression(1.0)
 two_expr = pepapot.NumExpression(2.0)
 top_rate = pepapot.TopRate()
 
+
 def is_valid_gen_matrix(testcase, model_solver):
     for (row_number, row) in enumerate(model_solver.gen_matrix):
         testcase.assertAlmostEqual(0.0, sum(row))

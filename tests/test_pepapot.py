@@ -542,10 +542,20 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
                                 P1 = (b, 1.0).P;
                                 Q  = (a, 1.0).Q1;
                                 Q1 = (b, T).Q;
-                                S  = (a, 1.0).S1;
-                                S1 = (b, T).S;
-                                P <b> (Q <b> S)
+                                R  = (a, 1.0).R1;
+                                R1 = (b, T).R;
+                                P <b> (Q <b> R)
                             """
+
+
+# TODO: Add a test, for which there is a choice between a passive and active
+# version of the same action. This would test that the apparent rate
+# calculation can handle this. An easy way would be to do:
+# P = (a, 1.0).P1 + (a, T).P2; An alternative way is:
+# P = (a, 2.0).P1; Q = (a, 1.0).Q1); R = (a, T).R1;
+# P <a> (Q || R)
+# Here in the initial state there is a choice P to cooperate with either the
+# Q or the R process but it should *always* choose the 'R' process.
 
 
 class TestSimpleChoice(TestSimpleNoCoop):

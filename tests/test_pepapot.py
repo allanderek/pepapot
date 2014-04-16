@@ -520,7 +520,7 @@ class TestAwkwardAlias(TestSimpleNoCoop):
 
 # TODO: In addition to this test we should have a test which actually has
 # a complex apparent rate calculation using the T rate.
-class TestTopRate(TestSimpleNoCoop):
+class TestTopRate(TestSimpleSingleCoop):
     """ Just a very simple test to get started on the development of support
         for the top rate T.
     """

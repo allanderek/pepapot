@@ -547,6 +547,10 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
                                 P <b> (Q <b> R)
                             """
 
+        self.expected_shared_actions = set(["b"])
+        self.expected_defined_process_names = set(["P", "P1", "Q", "Q1",
+                                                   "R", "R1"])
+
 
 # TODO: Add a test, for which there is a choice between a passive and active
 # version of the same action. This would test that the apparent rate

@@ -181,6 +181,9 @@ class TestSimpleNoCoop(unittest.TestCase):
         steady_solution = model_solver.steady_solution
         self.assertAlmostEqual(sum(steady_solution), 1.0,
                                msg="Probabilities do not add up to one")
+        # Note that this means that if you set 'self.expected_solution' to []
+        # you are going to pass this part of the test, but the above might be
+        # enough anyway.
         for (state, expected_probability) in self.expected_solution:
             state_number, transitions = model_solver.state_space[state]
             probability = steady_solution[state_number]
@@ -548,8 +551,38 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
                             """
 
         self.expected_shared_actions = set(["b"])
-        self.expected_defined_process_names = set(["P", "P1", "Q", "Q1",
-                                                   "R", "R1"])
+        process_names = set(["P", "P1", "Q", "Q1", "R", "R1"])
+        self.expected_defined_process_names = process_names
+        self.expected_used_process_names = process_names
+        actions_dictionary = dict()
+        actions_dictionary["P"] = [Action("a", one_expr, "P1")]
+        actions_dictionary["P1"] = [Action("b", one_expr, "P")]
+        actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        actions_dictionary["Q1"] = [Action("b", top_rate, "Q")]
+        actions_dictionary["R"] = [Action("a", one_expr, "R1")]
+        actions_dictionary["R1"] = [Action("b", top_rate, "R")]
+        self.expected_actions_dictionary = actions_dictionary
+
+        self.expected_initial_state = ('P', ('Q', 'R'))
+        self.expected_state_space_size = 8
+
+        self.expected_solution = [(('P', ('Q', 'R')), 0.117647058824),
+                                  (('P1', ('Q', 'R')), 0.0588235294118),
+                                  (('P', ('Q1', 'R')), 0.0588235294118),
+                                  (('P1', ('Q1', 'R')), 0.117647058824),
+                                  (('P', ('Q1', 'R1')), 0.117647058824),
+                                  (('P1', ('Q1', 'R1')), 0.352941176471),
+                                  (('P', ('Q', 'R1')), 0.0588235294118),
+                                  (('P1', ('Q', 'R1')), 0.117647058824)]
+
+
+        self.expected_utilisations = [dict([("P", 0.35294117647058831),
+                                            ("P1", 0.64705882352941169)]),
+                                      dict([("Q", 0.35294117647058831),
+                                            ("Q1", 0.64705882352941191)]),
+                                      dict([("R", 0.35294117647058831),
+                                            ("R1", 0.64705882352941191)])]
+
 
 
 # TODO: Add a test, for which there is a choice between a passive and active

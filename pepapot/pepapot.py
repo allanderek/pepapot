@@ -421,6 +421,12 @@ class TopRate(object):
     def __radd__(self, other):
         return self
 
+    def __mul__(self, other):
+        return self
+
+    def __rmul__(self, other):
+        return self
+
     def __truediv__(self, other):
         if other == self:
             return 1

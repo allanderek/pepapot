@@ -405,7 +405,9 @@ process_leaf = pyparsing.Forward()
 
 
 class TopRate(object):
-    pass
+    # TopRate is only equal to another TopRate
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
 
 
 class PrefixNode(object):
@@ -414,9 +416,14 @@ class PrefixNode(object):
         self.rate = rate
         self.successor = successor
 
+    top_rate_grammar = Literal("T")
+    top_rate_grammar.setParseAction(lambda _t: TopRate())
+
+    rate_grammar = Or([top_rate_grammar, expr_grammar])
+
     # This grammar then actually allows for functional rates because it is
     # allowing any identifier via the use of 'expr_grammar'.
-    grammar = "(" + identifier + "," + expr_grammar + ")" + "." + process_leaf
+    grammar = "(" + identifier + "," + rate_grammar + ")" + "." + process_leaf
 
     @classmethod
     def from_tokens(cls, tokens):

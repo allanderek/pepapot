@@ -59,6 +59,28 @@ class TestMissingNameExpression(TestExpression):
         self.assertRaises(KeyError, self.evaluate_expression)
 
 
+class TestBinopClassMethods(unittest.TestCase):
+    """ Mostly here just to make sure the convenience class methods for
+        creating binary operator expressions work as expected.
+    """
+    def setUp(self):
+        # Test the expression: 1 + (2 * 3) - (10 / 5)
+        self.expected_result = 5.0
+        left = pepapot.NumExpression(2.0)
+        right = pepapot.NumExpression(3.0)
+        multexp = pepapot.ApplyExpression.multiply(left, right)
+        left = pepapot.NumExpression(10.0)
+        right = pepapot.NumExpression(5.0)
+        divexp = pepapot.ApplyExpression.divide(left, right)
+        subexp = pepapot.ApplyExpression.subtract(multexp, divexp)
+        left = pepapot.NumExpression(1.0)
+        add_exp = pepapot.ApplyExpression.addition(left, subexp)
+        self.expression = add_exp
+
+    def test_evaulation(self):
+        self.assertEqual(self.expression.get_value(), self.expected_result)
+
+
 class TestConstantDefinitions(unittest.TestCase):
     def setUp(self):
         self.source = """a = 1.0;

@@ -583,14 +583,48 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
                                             ("R1", 0.64705882352941191)])]
 
 
-# TODO: Add a test, for which there is a choice between a passive and active
-# version of the same action. This would test that the apparent rate
-# calculation can handle this. An easy way would be to do:
-# P = (a, 1.0).P1 + (a, T).P2; An alternative way is:
-# P = (a, 2.0).P1; Q = (a, 1.0).Q1); R = (a, T).R1;
-# P <a> (Q || R)
-# Here in the initial state there is a choice P to cooperate with either the
-# Q or the R process but it should *always* choose the 'R' process.
+class TestPassiveActiveChoice(TestSimpleNoCoop):
+    def setUp(self):
+        self.model_source = """ P  = (a, 2.0).P1;
+                                P1 = (b, 1.0).P;
+                                Q  = (a, 1.0).Q1;
+                                Q1 = (b, 1.0).Q;
+                                R  = (a, T).R1;
+                                R1 = (b, 1.0).R;
+                                P <a> (Q || R)
+                            """
+        self.expected_shared_actions = set(["a"])
+
+        process_names = set(["P", "P1", "Q", "Q1", "R", "R1"])
+        self.expected_defined_process_names = process_names
+        self.expected_used_process_names = process_names
+        actions_dictionary = dict()
+        actions_dictionary["P"] = [Action("a", two_expr, "P1")]
+        actions_dictionary["P1"] = [Action("b", one_expr, "P")]
+        actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
+        actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
+        actions_dictionary["R"] = [Action("a", top_rate, "R1")]
+        actions_dictionary["R1"] = [Action("b", one_expr, "R")]
+        self.expected_actions_dictionary = actions_dictionary
+
+        self.expected_initial_state = ('P', ('Q', 'R'))
+        self.expected_state_space_size = 8
+
+        self.expected_solution = [(('P', ('Q', 'R')), 0.21359223301),
+                                  (('P1', ('Q', 'R')), 0.2718446601942),
+                                  (('P', ('Q1', 'R')), 0.0194174757282),
+                                  (('P1', ('Q1', 'R')), 0.0291262135922),
+                                  (('P', ('Q1', 'R1')), 0.0291262135922),
+                                  (('P1', ('Q1', 'R1')), 0.0582524271845),
+                                  (('P', ('Q', 'R1')), 0.135922330097),
+                                  (('P1', ('Q', 'R1')), 0.242718446602)]
+
+        self.expected_utilisations = [dict([("P", 0.39805825242718446),
+                                            ("P1", 0.60194174757281549)]),
+                                      dict([("Q", 0.86407766990291268),
+                                            ("Q1", 0.13592233009708737)]),
+                                      dict([("R", 0.53398058252427183),
+                                            ("R1", 0.46601941747572811)])]
 
 
 class TestSimpleChoice(TestSimpleNoCoop):

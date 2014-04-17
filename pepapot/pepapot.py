@@ -576,9 +576,6 @@ class ParsedNamedComponent(object):
     def visit(self, visitor):
         visitor.visit_NamedComponent(self)
 
-    def get_builder(self, builder_helper):
-        return builder_helper.leaf(self.identifier)
-
     def format(self):
         return self.identifier
 
@@ -614,8 +611,6 @@ class ParsedAggregation(object):
     def visit(self, visitor):
         visitor.visit_Aggregation(self)
 
-    def get_builder(self, builder_helper):
-        return builder_helper.aggregation(self.lhs, self.amount)
 
 ParsedAggregation.grammar.setParseAction(ParsedAggregation.from_tokens)
 system_equation_grammar = pyparsing.Forward()
@@ -662,11 +657,6 @@ class ParsedSystemCooperation(object):
 
     def visit(self, visitor):
         visitor.visit_SystemCooperation(self)
-
-    def get_builder(self, builder_helper):
-        return builder_helper.cooperation(self.lhs,
-                                          self.cooperation_set,
-                                          self.rhs)
 
     def format(self):
         coop_string = "<" + ", ".join(self.cooperation_set) + ">"

@@ -29,8 +29,8 @@ class TestExpression(unittest.TestCase):
     def evaluate_expression(self):
         parsed = pepapot.expr_grammar.parseString(self.expression_source,
                                                   parseAll=True)
-        expr = parsed[0]
-        result = expr.get_value(environment=self.environment)
+        self.expression = parsed[0]
+        result = self.expression.get_value(environment=self.environment)
         return result
 
     def test_evaluation(self):
@@ -90,6 +90,21 @@ class TestBinopClassMethods(unittest.TestCase):
 
     def test_evaulation(self):
         self.assertEqual(self.expression.get_value(), self.expected_result)
+
+
+class TestBaseExpressionVisitor(TestExpression):
+    """ Just a simple test case to make sure that our base expression visitor
+        does not fold over. We really should somehow check that all of the
+        expressions are actually visited.
+    """
+    def setUp(self):
+        self.expression_source = "plus(x, 1.0, times(2.0, y))"
+        self.environment = {"x": 10, "y": 5}
+        self.expected_result = 21.0
+
+    def test_evaulation(self):
+        self.evaluate_expression()
+        self.expression.visit(pepapot.ExpressionVisitor())
 
 
 class TestConstantDefinitions(unittest.TestCase):

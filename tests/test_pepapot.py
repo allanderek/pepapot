@@ -1005,6 +1005,23 @@ class TestBioFMASyntax(TestBioSyntaxSugar):
         A[100] <*> B[100]
         """
 
+
+class TestBioActiviator(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = """ kineticLawOf a: fMA(1.0);
+
+                                A = a >> ;
+                                B = a (+) ;
+
+                                A[0] <*> B[100]
+                            """
+        self.expected_number_species = 2
+        self.expected_populations = {'A': 0, 'B': 100}
+        self.expected_result = {'A': 999.99999999999977,
+                                'B': 100,
+                                }
+        self.configuration = pepapot.Configuration()
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

@@ -822,9 +822,6 @@ class ParsedModel(object):
         names = [definition.lhs for definition in self.process_definitions]
         return set(names)
 
-    def get_builder(self, builder_helper):
-        return self.system_equation.get_builder(builder_helper)
-
     def format(self):
         proc_def_strings = [p.format() for p in self.process_definitions]
         proc_defs = "\n".join(proc_def_strings)

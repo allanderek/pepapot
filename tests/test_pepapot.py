@@ -17,9 +17,8 @@ import functools
 from pepapot import pepapot
 Action = pepapot.Action
 
+
 ## We begin with testing for the expression parser and evaluator
-
-
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.expression_source = "1 + 2"
@@ -132,6 +131,56 @@ class TestConstantDefinitions(unittest.TestCase):
         self.assertDictEqual(environment, self.expected)
 
 
+top_rate = pepapot.TopRate()
+
+
+class TestTopRateArithmetic(unittest.TestCase):
+    """ Just some simple tests on the arithmetic involved with TopRate.
+        Essentially we are testing that the arithmetic which will be used in
+        the apparent rate calculations works correctly.
+    """
+    def test_everything(self):
+        value = top_rate + 10
+        self.assertEqual(value, top_rate)
+        value = 10 + top_rate
+        self.assertEqual(value, top_rate)
+
+        value = sum([1.0, 2.0, 3.0, top_rate])
+        self.assertEqual(value, top_rate)
+
+        value = 2.0 / top_rate
+        self.assertEqual(value, 0)
+
+        value = top_rate / 2.0
+        self.assertEqual(value, top_rate)
+
+        value = top_rate / top_rate
+        self.assertEqual(value, 1)
+
+        value = 3.0 * top_rate
+        self.assertEqual(value, top_rate)
+
+        value = (3.0 * top_rate) / top_rate
+        self.assertEqual(value, 1)
+
+        value = 3.0 * (top_rate / top_rate)
+        self.assertEqual(value, 3)
+
+        # It is just possible, that the left hand rate of a cooperation is 0
+        # and the right hand rate of a cooperation is T, in which case the
+        # shared action should have rate 0. Although the way the apparent
+        # rate calculation is currently done:
+        # r1/r_a1 * r2/r_a2 * min(r_a1, r_a2)
+        # If say r1 was 0 and r2 was T, then min(r_a1, r_a2) would be zero
+        # and r2/r_a2 would be 1, so we would not actually multiply T by
+        # anything. However, in case we refactor that, it is good to keep this
+        # test here.
+        value = 0 * top_rate
+        self.assertEqual(value, 0)
+        value = top_rate * 0
+        self.assertEqual(value, 0)
+
+
 simple_components = """
 P = (a,1.0).P1;
 P1 = (b, 1.0).P;
@@ -145,10 +194,8 @@ P = (a, 1.0).P1 + (b, 1.0).P2;
 P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
-
 one_expr = pepapot.NumExpression(1.0)
 two_expr = pepapot.NumExpression(2.0)
-top_rate = pepapot.TopRate()
 
 
 def is_valid_gen_matrix(testcase, model_solver):

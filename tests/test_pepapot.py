@@ -55,7 +55,7 @@ class TestMissingNameExpression(TestExpression):
 
         # Now test that it raises KeyError also if we do not provide an
         # environment, this should occur for any name in the expression
-        self.environment=None
+        self.environment = None
         self.assertRaises(KeyError, self.evaluate_expression)
 
 
@@ -949,10 +949,9 @@ class TestBioFMASyntax(TestBioSyntaxSugar):
         self.configuration = pepapot.Configuration()
         self.left_model_source = reverse_reaction_biopepa_model
         self.right_model_source = """
-        delta = 1.0;
         gamma = 0.5;
 
-        kineticLawOf r : fMA(delta);
+        kineticLawOf r : fMA(1.0);
         kineticLawOf rm : fMA(gamma);
 
         A = (r, 1) << A + (rm, 1) >> A;

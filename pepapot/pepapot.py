@@ -1389,9 +1389,12 @@ class RemoveRateLawsVisitor(ExpressionModifierVisitor):
             for (species, stoich) in self.multipliers:
                 species_expr = NameExpression(species)
                 if stoich != 1:
-                    num_expr = NumExpression(stoich)
-                    species_expr = ApplyExpression.multiply(num_expr,
-                                                            species_expr)
+                    # If the stoichiometry is not 1, then we have to raise the
+                    # speices to the power of the stoichiometry. So if we have
+                    # fMA(1.0), on a reaction X + Y -> ..., where X has
+                    # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
+                    arguments = [species_expr, NumExpression(stoich)]
+                    species_expr = ApplyExpression("**", arguments) 
                 expr = ApplyExpression.multiply(expr, species_expr)
             self.result = expr
 

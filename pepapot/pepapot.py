@@ -399,6 +399,10 @@ process_leaf = pyparsing.Forward()
 
 class TopRate(object):
     # TopRate is only equal to another TopRate
+    # Note that we would almost get the same behaviour has here if we simply
+    # said TopRate was equal to float("inf"). However unfortunately:
+    # float("inf") / float("inf") = nan, not, as we would wish, 1.0. Similarly
+    # 0.0 * float("inf") = nan, and not, 0.0 as we would wish.
     def __eq__(self, other):
         return isinstance(other, self.__class__)
 
@@ -415,10 +419,12 @@ class TopRate(object):
         return self
 
     def __mul__(self, other):
+        if other == 0.0:
+            return 0.0
         return self
 
     def __rmul__(self, other):
-        return self
+        return self.__mul__(other)
 
     def __truediv__(self, other):
         if other == self:

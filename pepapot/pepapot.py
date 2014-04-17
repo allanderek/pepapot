@@ -1394,7 +1394,7 @@ class RemoveRateLawsVisitor(ExpressionModifierVisitor):
                     # fMA(1.0), on a reaction X + Y -> ..., where X has
                     # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
                     arguments = [species_expr, NumExpression(stoich)]
-                    species_expr = ApplyExpression("**", arguments) 
+                    species_expr = ApplyExpression("**", arguments)
                 expr = ApplyExpression.multiply(expr, species_expr)
             self.result = expr
 

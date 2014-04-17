@@ -165,13 +165,6 @@ class Visitor(object):
     def __init__(self):
         self.result = None
 
-    def generic_visit(self, entity):
-        """ The main entry for visiting generic entities whose kind (of that
-            entity) we do not yet know, this is the most klutchy part of this,
-            but there is no way around this.
-        """
-        entity.visit(self)
-
     def visit_get_results(self, entity):
         """ Performs the visit and also returns the result, sort of useful
             for doing this within a list comprehension.

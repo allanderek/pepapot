@@ -362,15 +362,27 @@ PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
 # to a single value, this still allows references to variables defined above
 # r = 1.0;
 # s = r * 2.0;
-def constant_def_environment(definitions, environment=None):
+def definition_environment(definitions, environment=None, rhs_fun=None):
     if environment is None:
         environment = dict()
 
-    for constant_def in definitions:
-        name = constant_def.lhs
-        value = constant_def.rhs.get_value(environment=environment)
-        environment[name] = value
+    for definition in definitions:
+        rhs = definition.rhs
+        value = rhs_fun(rhs, environment) if rhs_fun else rhs
+        environment[definition.lhs] = value
     return environment
+
+
+def constant_def_environment(definitions, environment=None):
+    def rhs_fun(rhs, env):
+        return rhs.get_value(environment=env)
+    return definition_environment(definitions, environment, rhs_fun)
+
+
+def reduce_definitions(definitions):
+    # TODO: To implement, we obviously need to implement reduction of
+    # expressions which I think will use ExpressionModifierVisitor
+    pass
 
 
 class ProcessIdentifier(object):

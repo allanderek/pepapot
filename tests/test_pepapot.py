@@ -131,6 +131,40 @@ class TestConstantDefinitions(unittest.TestCase):
         self.assertDictEqual(environment, self.expected)
 
 
+class TestReductions(unittest.TestCase):
+    """ Tests the reduction of a set of constant definitions. Note that there
+        are deliberately some variables which are *not* in the environment,
+        such that some of the expressions cannot be wholly reduced to a
+        to a number.
+    """
+    def setUp(self):
+        self.source = """x = 1.0;
+                         y = x + 2.0;
+                         z = q + 2.0 * 3.0;
+                         a = plus(x, y);
+                         b = plus(x, y, z);
+                      """
+        self.expected = """ x = 1.0;
+                            y = 3.0;
+                            z = q + 6.0;
+                            a = 4.0;
+                            b = plus(1.0, 3.0, q + 6.0);
+                        """
+
+    def test_reduction(self):
+        grammar = pepapot.ConstantDefinition.list_grammar
+        source_parse = grammar.parseString(self.source, parseAll=True)
+        source_defs = source_parse[0]
+
+        expected_parse = grammar.parseString(self.expected, parseAll=True)
+        expected_defs = expected_parse[0]
+
+        pepapot.reduce_definitions(source_defs)
+        source_env = pepapot.definition_environment(source_defs)
+        expected_env = pepapot.definition_environment(expected_defs)
+        self.assertDictEqual(source_env, expected_env)
+
+
 top_rate = pepapot.TopRate()
 
 

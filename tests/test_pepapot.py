@@ -79,11 +79,8 @@ class TestConstantDefinitions(unittest.TestCase):
     def test_evaluation(self):
         grammar = pepapot.ConstantDefinition.list_grammar
         parse_result = grammar.parseString(self.source, parseAll=True)
-        defs = parse_result[0]
-        environment = dict()
-        for definition in defs:
-            value = definition.rhs.get_value(environment=environment)
-            environment[definition.lhs] = value
+        definitions = parse_result[0]
+        environment = pepapot.constant_def_environment(definitions)
         self.assertDictEqual(environment, self.expected)
 
 

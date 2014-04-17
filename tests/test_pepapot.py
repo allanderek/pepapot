@@ -59,6 +59,17 @@ class TestMissingNameExpression(TestExpression):
         self.assertRaises(KeyError, self.evaluate_expression)
 
 
+class TestUnknownFunctionExpression(TestExpression):
+    """ Simply tests we do not evaluate an unknown function to some default
+    """
+    def setUp(self):
+        self.expression_source = "apr(1.0, x)"
+        self.environment = {"x": 10}
+
+    def test_evaluation(self):
+        self.assertRaises(ValueError, self.evaluate_expression)
+
+
 class TestBinopClassMethods(unittest.TestCase):
     """ Mostly here just to make sure the convenience class methods for
         creating binary operator expressions work as expected.

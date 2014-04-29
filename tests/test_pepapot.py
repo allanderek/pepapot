@@ -153,7 +153,7 @@ class TestReductions(unittest.TestCase):
                             y = 3.0;
                             z = q + 6.0;
                             a = 4.0;
-                            b = 1.0 + 3.0 + q + 6.0;
+                            b = 4.0 + (q + 6.0);
                         """
 
     def test_reduction(self):

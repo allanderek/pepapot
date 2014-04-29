@@ -469,6 +469,10 @@ class ReduceExprVisitor(ExpressionModifierVisitor):
                      'power': operator.pow,
                      '**': operator.pow,
                      }
+        # NOTE: We should be careful here, this essentially causes us to
+        # associate to the left, which might not be what we want, in
+        # particular for the "pow" operator. If we have arguments [1,2,3]
+        # and say the plus operator we will get (1 + 2) + 3
         if apply_expr.name in operators:
             operator_fun = operators[apply_expr.name]
             self.result = functools.reduce(operator_fun, apply_expr.args)
@@ -1609,6 +1613,11 @@ def get_time_grid(configuration):
 class BioModelSolver(object):
     def __init__(self, model):
         self.model = model
+
+    # TODO: When I am confident that the expression reduction implementation
+    # is mature and sound, then I should apply it somewhere here. I probably
+    # want a separate method so that all solver methods (odes, ssa, etc.) do
+    # not need to re-implement it again. Should be quite simple.
 
     def solve_odes(self, configuration):
         """ Solves the model, to give a timeseries, by converting the model

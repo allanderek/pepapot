@@ -145,7 +145,7 @@ class ApplyExpression(Expression):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.name == other.name # and self.args == other.args
+            return self.name == other.name and self.args == other.args
         return NotImplemented
 
     @classmethod
@@ -356,7 +356,6 @@ def create_expression_grammar(identifier_grammar):
             result_expr = ApplyExpression(oper, [result_expr, expression])
         return result_expr
 
-
     precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
                    (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
                    (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
@@ -462,14 +461,14 @@ class ReduceExprVisitor(ExpressionModifierVisitor):
         operators = {'plus': operator.add,
                      '+': operator.add,
                      'times': operator.mul,
-                     '*' : operator.mul,
-                     'minus' : operator.sub,
-                     '-' : operator.sub,
-                     'divide' : operator.truediv,
-                     '/' : operator.truediv,
-                     'power' : operator.pow,
-                     '**' : operator.pow,
-                    }
+                     '*': operator.mul,
+                     'minus': operator.sub,
+                     '-': operator.sub,
+                     'divide': operator.truediv,
+                     '/': operator.truediv,
+                     'power': operator.pow,
+                     '**': operator.pow,
+                     }
         if apply_expr.name in operators:
             operator_fun = operators[apply_expr.name]
             self.result = functools.reduce(operator_fun, apply_expr.args)

@@ -12,6 +12,7 @@ Options:
 import logging
 from collections import namedtuple
 import functools
+import operator
 
 from docopt import docopt
 import pyparsing
@@ -27,6 +28,18 @@ class Expression:
     def __init__(self):
         pass
 
+    def __add__(self, other):
+        return ApplyExpression("+", [self, other])
+
+    def __radd__(self, other):
+        return ApplyExpression("+", [other, self])
+
+    def __mul__(self, other):
+        return ApplyExpression("*", [self, other])
+
+    def __rmul__(self, other):
+        return ApplyExpression("*", [other, self])
+
 
 class NumExpression(Expression):
     """A class to represent the AST of an number literal expression"""
@@ -38,6 +51,38 @@ class NumExpression(Expression):
         if isinstance(other, self.__class__):
             return self.number == other.number
         return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, self.__class__):
+            return NumExpression(self.number + other.number)
+        else:
+            return super(NumExpression, self).__add__(other)
+
+    def __radd__(self, other):
+        if isinstance(other, self.__class__):
+            return NumExpression(self.number + other.number)
+        else:
+            return super(NumExpression, self).__radd__(other)
+
+    def __mul__(self, other):
+        if self.number == 0:
+            return self
+        elif self.number == 1:
+            return other
+        elif isinstance(other, self.__class__):
+            return NumExpression(self.number * other.number)
+        else:
+            return super(NumExpression, self).__mul__(other)
+
+    def __rmul__(self, other):
+        if self.number == 0:
+            return self
+        elif self.number == 1:
+            return other
+        elif isinstance(other, self.__class__):
+            return NumExpression(self.number * other.number)
+        else:
+            return super(NumExpression, self).__rmul__(other)
 
     def visit(self, visitor):
         """Implements the visit method allowing ExpressionVisitors to work"""
@@ -97,6 +142,11 @@ class ApplyExpression(Expression):
         super(ApplyExpression, self).__init__()
         self.name = name
         self.args = args
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name # and self.args == other.args
+        return NotImplemented
 
     @classmethod
     def addition(cls, left, right):
@@ -290,7 +340,22 @@ def create_expression_grammar(identifier_grammar):
 
     def binop_parse_action(tokens):
         elements = tokens[0]
-        return ApplyExpression(elements[1], [elements[0], elements[2]])
+        operators = elements[1::2]
+        exprs = elements[::2]
+        assert len(exprs) - len(operators) == 1
+        exprs_iter = iter(exprs)
+        result_expr = next(exprs_iter)
+        # Note: iterating in this order would not be correct if the binary
+        # operator associates to the right, as with **, since for
+        # [2, ** , 3, ** 2] we would get build up the apply expression
+        # corresponding to (2 ** 3) ** 2, which is not what we want. However,
+        # pyparsing seems to do the correct thing and give this function
+        # two separate calls one for [3, **, 2] and then again for
+        # [2, ** , Apply(**, [3,2])].
+        for oper, expression in zip(operators, exprs_iter):
+            result_expr = ApplyExpression(oper, [result_expr, expression])
+        return result_expr
+
 
     precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
                    (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
@@ -379,10 +444,45 @@ def constant_def_environment(definitions, environment=None):
     return definition_environment(definitions, environment, rhs_fun)
 
 
-def reduce_definitions(definitions):
-    # TODO: To implement, we obviously need to implement reduction of
-    # expressions which I think will use ExpressionModifierVisitor
-    pass
+class ReduceExprVisitor(ExpressionModifierVisitor):
+    """ Reduces an expression
+    """
+    def __init__(self, environment):
+        super(ReduceExprVisitor, self).__init__()
+        self.environment = environment
+
+    def visit_NameExpression(self, expression):
+        """Visit a NameExpression"""
+        # So, if the name is in the environment, set the result to whatever it
+        # is bound to, otherwise, set the result to the name expression.
+        self.result = self.environment.get(expression.name, expression)
+
+    def visit_ApplyExpression(self, apply_expr):
+        super(ReduceExprVisitor, self).visit_ApplyExpression(apply_expr)
+        operators = {'plus': operator.add,
+                     '+': operator.add,
+                     'times': operator.mul,
+                     '*' : operator.mul,
+                     'minus' : operator.sub,
+                     '-' : operator.sub,
+                     'divide' : operator.truediv,
+                     '/' : operator.truediv,
+                     'power' : operator.pow,
+                     '**' : operator.pow,
+                    }
+        if apply_expr.name in operators:
+            operator_fun = operators[apply_expr.name]
+            self.result = functools.reduce(operator_fun, apply_expr.args)
+
+
+def reduce_definitions(definitions, environment=None):
+    environment = dict()
+    reducer = ReduceExprVisitor(environment)
+
+    for definition in definitions:
+        definition.rhs.visit(reducer)
+        definition.rhs = reducer.result
+        environment[definition.lhs] = definition.rhs
 
 
 class ProcessIdentifier(object):

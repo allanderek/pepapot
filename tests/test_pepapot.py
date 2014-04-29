@@ -114,13 +114,17 @@ class TestConstantDefinitions(unittest.TestCase):
                          d = c * c;
                          e = d / 20.0;
                          f = 2.0 ** 3;
+                         g = 1.0 + 2.0 + 3.0;
+                         h = 2.0 ** 3.0 ** 2.0;
                       """
         self.expected = {"a": 1.0,
                          "b": 11.0,
                          "c": 10.0,
                          "d": 100.0,
                          "e": 5.0,
-                         "f": 8.0
+                         "f": 8.0,
+                         "g": 6.0,
+                         "h": 512.0
                          }
 
     def test_evaluation(self):
@@ -138,17 +142,18 @@ class TestReductions(unittest.TestCase):
         to a number.
     """
     def setUp(self):
+        self.maxDiff = 2000
         self.source = """x = 1.0;
                          y = x + 2.0;
                          z = q + 2.0 * 3.0;
-                         a = plus(x, y);
-                         b = plus(x, y, z);
+                         a = x + y;
+                         b = x + y + z;
                       """
         self.expected = """ x = 1.0;
                             y = 3.0;
                             z = q + 6.0;
                             a = 4.0;
-                            b = plus(1.0, 3.0, q + 6.0);
+                            b = 1.0 + 3.0 + q + 6.0;
                         """
 
     def test_reduction(self):

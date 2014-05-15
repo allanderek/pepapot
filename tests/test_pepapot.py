@@ -262,6 +262,9 @@ class TestSimpleNoCoop(unittest.TestCase):
 
         self.expected_shared_actions = set()
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = ("P", "Q")
         self.expected_state_space_size = 4
 
@@ -299,6 +302,12 @@ class TestSimpleNoCoop(unittest.TestCase):
         actual_actions = model.get_process_actions()
         self.assertEqual(actual_actions, self.expected_actions_dictionary)
 
+        # Test the static analysis
+        static_analysis = model.perform_static_analysis()
+        self.assertEqual(static_analysis.warnings, self.expected_warnings)
+        self.assertEqual(static_analysis.errors, self.expected_errors)
+
+        # Now it is time to actually build the state-space and solve the model
         model_solver = pepapot.ModelSolver(model)
 
         # Test the initial state
@@ -407,6 +416,9 @@ R <b> (P || Q)
         self.expected_actions_dictionary["Q1"] = [Action("b", two_expr, "Q")]
         self.expected_actions_dictionary["R"] = [Action("a", one_expr, "R1")]
         self.expected_actions_dictionary["R1"] = [Action("b", ten_expr, "R")]
+
+        self.expected_warnings = set()
+        self.expected_errors = set()
 
         self.expected_initial_state = ("R", ("P", "Q"))
         self.expected_state_space_size = 8
@@ -526,6 +538,10 @@ class TestSelfLoopArray(TestSimpleNoCoop):
         self.expected_actions_dictionary["Q"] = [Action("a", one_expr, "Q1")]
         self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
         self.expected_shared_actions = set(["a"])
+
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_state_space_size = 4
         self.expected_initial_state = ((('P', 3),),
                                        (('Q', 3), ('Q1', 0)))
@@ -564,6 +580,10 @@ class TestThreeStateArray(TestSimpleNoCoop):
         self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P2")]
         self.expected_actions_dictionary["P2"] = [Action("c", one_expr, "P")]
         self.expected_shared_actions = set([])
+
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_state_space_size = 10
         self.expected_initial_state = (('P', 3), ('P1', 0), ('P2', 0))
         self.expected_solution = [
@@ -640,6 +660,9 @@ class TestAwkwardAlias(TestSimpleNoCoop):
 
         self.expected_shared_actions = set([])
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = ("A")
         self.expected_state_space_size = 2
 
@@ -699,6 +722,9 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
         actions_dictionary["R1"] = [Action("b", top_rate, "R")]
         self.expected_actions_dictionary = actions_dictionary
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = ('P', ('Q', 'R'))
         self.expected_state_space_size = 8
 
@@ -743,6 +769,9 @@ class TestPassiveActiveChoice(TestSimpleNoCoop):
         actions_dictionary["R1"] = [Action("b", one_expr, "R")]
         self.expected_actions_dictionary = actions_dictionary
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = ('P', ('Q', 'R'))
         self.expected_state_space_size = 8
 
@@ -778,6 +807,9 @@ class TestSimpleChoice(TestSimpleNoCoop):
 
         self.expected_shared_actions = set()
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = "P"
         self.expected_state_space_size = 3
 
@@ -809,11 +841,22 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_actions_dictionary["P2"] = [Action("b", one_expr, "P3")]
         self.expected_actions_dictionary["P3"] = [Action("c", two_expr, "P")]
 
+        self.expected_warnings = set()
+        self.expected_errors = set()
+
         self.expected_initial_state = "P"
         self.expected_state_space_size = 2
 
         self.expected_solution = [("P", 0.5), ("P3", 0.5)]
         self.expected_utilisations = [dict(self.expected_solution)]
+
+
+class PepaUnusedRateName(TestSimpleNoCoop):
+    def setUp(self):
+        super(PepaUnusedRateName, self).setUp()
+        self.model_source = "j = 10.0;" + self.model_source
+        
+        self.expected_warnings = set([pepapot.PepaUnusedRateNameWarning("j")])
 
 
 # The goal is to build a method which will generate a random PEPA model. This

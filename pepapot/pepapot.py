@@ -825,6 +825,25 @@ class CompSharedActions(ComponentVisitor):
         self.result.update(component.cooperation_set)
 
 
+class PepaWarning(object):
+    pass
+
+
+class PepaUnusedRateNameWarning(PepaWarning):
+    def __init__(self, name):
+        self.name = name
+
+
+class PepaError(object):
+    pass
+
+
+class StaticAnalysis(object):
+    def __init__(self):
+        self.warnings = set()
+        self.errors = set()
+
+
 class ParsedModel(object):
     def __init__(self, constant_defs, proc_defs, sys_equation):
         self.constant_defs = constant_defs
@@ -942,6 +961,14 @@ class ParsedModel(object):
         """Return the list of defined process names"""
         names = [definition.lhs for definition in self.process_definitions]
         return set(names)
+
+    def perform_static_analysis(self):
+        results = StaticAnalysis()
+
+
+
+        return results
+
 
     def format(self):
         proc_def_strings = [p.format() for p in self.process_definitions]

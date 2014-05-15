@@ -656,6 +656,7 @@ class UsedProcessNamesVisitor(ProcessVisitor):
     def visit_ProcessIdentifier(self, process):
         self.result.add(process.name)
 
+
 class UsedRateNamesProcessVisitor(ProcessVisitor):
     def __init__(self):
         super(UsedRateNamesProcessVisitor, self).__init__()
@@ -1029,7 +1030,6 @@ class ParsedModel(object):
                 results.warnings.append(warning)
 
         return results
-
 
     def format(self):
         proc_def_strings = [p.format() for p in self.process_definitions]

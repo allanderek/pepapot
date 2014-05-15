@@ -855,7 +855,7 @@ class PepaUnusedRateName(TestSimpleNoCoop):
     def setUp(self):
         super(PepaUnusedRateName, self).setUp()
         self.model_source = "j = 10.0;" + self.model_source
-        
+
         self.expected_warnings = [pepapot.PepaUnusedRateNameWarning("j")]
 
 

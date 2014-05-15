@@ -244,7 +244,11 @@ class ExpressionVisitor(Visitor):
         super(ExpressionVisitor, self).__init__()
 
     def visit_NumExpression(self, expression):
-        """Visit a NumExpression element"""
+        """Visit a NumExpression expression"""
+        pass
+
+    def visit_TopRate(self, expression):
+        """Visit a TopRate expression"""
         pass
 
     def visit_NameExpression(self, expression):
@@ -276,6 +280,10 @@ class ExpressionModifierVisitor(ExpressionVisitor):
         """Visit a NumExpression element"""
         self.result = expression
 
+    def visit_TopRate(self, expression):
+        """Visit a TopRate expression"""
+        self.result = expression
+
     def visit_NameExpression(self, expression):
         """Visit a NameExpression"""
         self.result = expression
@@ -289,6 +297,19 @@ class ExpressionModifierVisitor(ExpressionVisitor):
         """
         expression.args = [self.visit_get_results(e) for e in expression.args]
         self.result = expression
+
+
+class ExpressionUsedNamesVisitor(ExpressionVisitor):
+    """ An expression visitor which builds up a set of the names used in the
+        expression
+    """
+    def __init__(self):
+        self.result = set()
+
+    def visit_NameExpression(self, expression):
+        """Visit a NameExpression"""
+        self.result.add(expression.name)
+
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
 
@@ -512,7 +533,7 @@ ProcessIdentifier.grammar.setParseAction(ProcessIdentifier.from_tokens)
 process_leaf = pyparsing.Forward()
 
 
-class TopRate(object):
+class TopRate(Expression):
     # TopRate is only equal to another TopRate
     # Note that we would almost get the same behaviour has here if we simply
     # said TopRate was equal to float("inf"). However unfortunately:
@@ -552,6 +573,10 @@ class TopRate(object):
         # we do in '__truediv__' above. However if other == TopRate, then that
         # is when '__truediv__' would have been called on 'other' anyway.
         return 0
+
+    def visit(self, visitor):
+        """Implements the visit method allowing ExpressionVisitors to work"""
+        visitor.visit_TopRate(self)
 
 
 class PrefixNode(object):
@@ -630,6 +655,16 @@ class UsedProcessNamesVisitor(ProcessVisitor):
 
     def visit_ProcessIdentifier(self, process):
         self.result.add(process.name)
+
+class UsedRateNamesProcessVisitor(ProcessVisitor):
+    def __init__(self):
+        super(UsedRateNamesProcessVisitor, self).__init__()
+        self.result = set()
+
+    def visit_PrefixNode(self, prefix):
+        used_rate_names = ExpressionUsedNamesVisitor.get_result(prefix.rate)
+        self.result.update(used_rate_names)
+        prefix.successor.visit(self)
 
 
 class ProcessImmediateAliasesVisitor(ProcessVisitor):
@@ -833,6 +868,11 @@ class PepaUnusedRateNameWarning(PepaWarning):
     def __init__(self, name):
         self.name = name
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented
+
 
 class PepaError(object):
     pass
@@ -840,8 +880,8 @@ class PepaError(object):
 
 class StaticAnalysis(object):
     def __init__(self):
-        self.warnings = set()
-        self.errors = set()
+        self.warnings = []
+        self.errors = []
 
 
 class ParsedModel(object):
@@ -962,10 +1002,31 @@ class ParsedModel(object):
         names = [definition.lhs for definition in self.process_definitions]
         return set(names)
 
+    def get_defined_rate_names(self):
+        """Return the list of defined rate names"""
+        return {definition.lhs for definition in self.constant_defs}
+
+    def get_used_rate_names(self):
+        used_names = set()
+        for definition in self.constant_defs:
+            names = ExpressionUsedNamesVisitor.get_result(definition.rhs)
+            used_names.update(names)
+
+        for definition in self.process_definitions:
+            names = UsedRateNamesProcessVisitor.get_result(definition.rhs)
+            used_names.update(names)
+
+        return used_names
+
     def perform_static_analysis(self):
         results = StaticAnalysis()
 
-
+        defined_rate_names = self.get_defined_rate_names()
+        used_rate_names = self.get_used_rate_names()
+        for rate_name in defined_rate_names:
+            if rate_name not in used_rate_names:
+                warning = PepaUnusedRateNameWarning(rate_name)
+                results.warnings.append(warning)
 
         return results
 

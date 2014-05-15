@@ -262,8 +262,8 @@ class TestSimpleNoCoop(unittest.TestCase):
 
         self.expected_shared_actions = set()
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = ("P", "Q")
         self.expected_state_space_size = 4
@@ -417,8 +417,8 @@ R <b> (P || Q)
         self.expected_actions_dictionary["R"] = [Action("a", one_expr, "R1")]
         self.expected_actions_dictionary["R1"] = [Action("b", ten_expr, "R")]
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = ("R", ("P", "Q"))
         self.expected_state_space_size = 8
@@ -539,8 +539,8 @@ class TestSelfLoopArray(TestSimpleNoCoop):
         self.expected_actions_dictionary["Q1"] = [Action("b", one_expr, "Q")]
         self.expected_shared_actions = set(["a"])
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_state_space_size = 4
         self.expected_initial_state = ((('P', 3),),
@@ -581,8 +581,8 @@ class TestThreeStateArray(TestSimpleNoCoop):
         self.expected_actions_dictionary["P2"] = [Action("c", one_expr, "P")]
         self.expected_shared_actions = set([])
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_state_space_size = 10
         self.expected_initial_state = (('P', 3), ('P1', 0), ('P2', 0))
@@ -660,8 +660,8 @@ class TestAwkwardAlias(TestSimpleNoCoop):
 
         self.expected_shared_actions = set([])
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = ("A")
         self.expected_state_space_size = 2
@@ -722,8 +722,8 @@ class TestTopRatePassiveCoop(TestSimpleNoCoop):
         actions_dictionary["R1"] = [Action("b", top_rate, "R")]
         self.expected_actions_dictionary = actions_dictionary
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = ('P', ('Q', 'R'))
         self.expected_state_space_size = 8
@@ -769,8 +769,8 @@ class TestPassiveActiveChoice(TestSimpleNoCoop):
         actions_dictionary["R1"] = [Action("b", one_expr, "R")]
         self.expected_actions_dictionary = actions_dictionary
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = ('P', ('Q', 'R'))
         self.expected_state_space_size = 8
@@ -807,8 +807,8 @@ class TestSimpleChoice(TestSimpleNoCoop):
 
         self.expected_shared_actions = set()
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = "P"
         self.expected_state_space_size = 3
@@ -841,8 +841,8 @@ class TestChoiceAlias(TestSimpleNoCoop):
         self.expected_actions_dictionary["P2"] = [Action("b", one_expr, "P3")]
         self.expected_actions_dictionary["P3"] = [Action("c", two_expr, "P")]
 
-        self.expected_warnings = set()
-        self.expected_errors = set()
+        self.expected_warnings = []
+        self.expected_errors = []
 
         self.expected_initial_state = "P"
         self.expected_state_space_size = 2
@@ -856,7 +856,7 @@ class PepaUnusedRateName(TestSimpleNoCoop):
         super(PepaUnusedRateName, self).setUp()
         self.model_source = "j = 10.0;" + self.model_source
         
-        self.expected_warnings = set([pepapot.PepaUnusedRateNameWarning("j")])
+        self.expected_warnings = [pepapot.PepaUnusedRateNameWarning("j")]
 
 
 # The goal is to build a method which will generate a random PEPA model. This

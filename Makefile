@@ -38,6 +38,9 @@ coverage:
 	coverage html
 	# open htmlcov/index.html
 
+profile:
+	python -m cProfile tests/test_pepapot.py | less
+
 docs:
 	rm -f docs/pepapot.rst
 	rm -f docs/modules.rst

@@ -78,6 +78,12 @@ class Expression:
         self.number = None
         self.arguments = []
 
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and 
+                self.name == other.name and
+                self.number == other.number and
+                self.arguments == other.arguments)
+
     @classmethod
     def num_expression(cls, number):
         expression = cls()
@@ -97,57 +103,39 @@ class Expression:
         expression.arguments = arguments
         return expression
 
-    def get_value(self, environment=None, inplace=False):
+    def get_value(self, environment=None):
         """ Returns the value of an expression in the given environment if
-            any. If the inplace argument is True then the expression and any
-            child-argument expressions also reduced in place. This means that
-            subsequent calls to 'get_value' will be faster. However if you
-            wish to evaluate the same expression in a separate environment
-            then you should set 'inplace' to 'False' and that is the default.
+            any. Raises an assertion error if the expression cannot be reduced
+            to a value.
         """
-        reduced_expression = self.reduce_expr(environment=environment,
-                                              inplace=inplace)
+        reduced_expression = self.reduce_expr(environment=environment)
         assert (reduced_expression.number is not None)
         return reduced_expression.number
 
-    def reduce_expr(self, environment=None, inplace=False):
+    def reduce_expr(self, environment=None):
         if self.number is not None:
             return self
         if not self.arguments:
-            if environment:
-                new_number = environment.get(self.name, None)
-                # If we are reducing in place then regardless of whether the
-                # name is in the environment or not we return the current
-                # expression with number set to the result of looking up the
-                # name in the environment (which is None if not present).
-                # Only if we are not reducing in place *and* the name is
-                # present in the environment do we return a new number
-                # expression
-                if inplace or new_number is None:
-                    self.number = new_number
-                    return self
-                else:
-                    return Expression.num_expression(new_number)
-            else:
+            # We have a name expression so if the environment is None or
+            # or the name is not in the environment then we cannot reduce
+            # any further so just return the current expression.
+            if not environment or self.name not in environment:
                 return self
+            expression = environment[self.name]
+            return expression.reduce_expr(environment=environment)
 
-        arguments = [a.reduce_expr(environment, inplace)
+        # If we get here then we have an application expression, so we must
+        # first reduce all the arguments and then we may or may not be able
+        # to reduce the entire expression to a number or not.
+        arguments = [a.reduce_expr(environment)
                      for a in self.arguments]
         arg_values = [a.number for a in arguments]
+
         if any(v is None for v in arg_values):
-            if inplace:
-                self.arguments = arguments
-                return self
-            else:
-                return Expression.apply_expression(self.name, arguments)
+            return Expression.apply_expression(self.name, arguments)
         else:
             result_number = evaluate_function_app(self.name, arg_values)
-            if inplace:
-                self.arguments = arguments
-                self.number = result_number
-                return self
-            else:
-                return Expression.num_expression(result_number)
+            return Expression.num_expression(result_number)
 
 
 class Visitor(object):
@@ -389,31 +377,34 @@ PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
 # to a single value, this still allows references to variables defined above
 # r = 1.0;
 # s = r * 2.0;
-def definition_environment(definitions, environment=None, rhs_fun=None):
+def reduce_definitions(definitions, environment=None, inplace=True):
+    """ Reduces the definitions and also puts those definitions into an
+        environment. If 'inplace' is True, it updates the right hand side of
+        each definition in place, otherwise it leaves the definitions as they
+        were and just returns the environment.
+    """
     if environment is None:
         environment = dict()
 
     for definition in definitions:
-        rhs = definition.rhs
-        value = rhs_fun(rhs, environment) if rhs_fun else rhs
-        environment[definition.lhs] = value
+        new_rhs = definition.rhs.reduce_expr(environment)
+        if inplace:
+            definition.rhs = new_rhs
+        environment[definition.lhs] = new_rhs
+
     return environment
 
 
 def constant_def_environment(definitions, environment=None):
-    def rhs_fun(rhs, env):
-        return rhs.get_value(environment=env)
-    return definition_environment(definitions, environment, rhs_fun)
-
-
-def reduce_definitions(definitions, environment=None):
-    environment = dict()
-    reducer = ReduceExprVisitor(environment)
-
-    for definition in definitions:
-        definition.rhs.visit(reducer)
-        definition.rhs = reducer.result
-        environment[definition.lhs] = definition.rhs
+    """ Turns a list of constant definitions into an environment which maps
+        the names defined in the definitions to values. This does not have
+        much use outside of testing
+    """
+    reduced_env = reduce_definitions(definitions, environment)
+    value_environment = dict()
+    for name, expression in reduced_env.items():
+        value_environment[name] = expression.get_value()
+    return value_environment
 
 
 class ProcessIdentifier(object):

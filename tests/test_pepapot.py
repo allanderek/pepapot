@@ -41,18 +41,18 @@ class TestNameExpression(TestExpression):
     def setUp(self):
         self.expression_source = "x * 10"
         self.expected_result = 100
-        self.environment = {"x": 10}
+        self.environment = {"x": pepapot.Expression.num_expression(10.0)}
 
 
 class TestMissingNameExpression(TestExpression):
     def setUp(self):
         self.expression_source = "x * y"
-        self.environment = {"x": 10}
+        self.environment = {"x": pepapot.Expression.num_expression(10.0)}
 
     def test_evaluation(self):
         self.assertRaises(AssertionError, self.evaluate_expression)
 
-        # Now test that it raises KeyError also if we do not provide an
+        # Now test that it raises AssertionError also if we do not provide an
         # environment, this should occur for any name in the expression
         self.environment = None
         self.assertRaises(AssertionError, self.evaluate_expression)
@@ -63,7 +63,7 @@ class TestUnknownFunctionExpression(TestExpression):
     """
     def setUp(self):
         self.expression_source = "apr(1.0, x)"
-        self.environment = {"x": 10}
+        self.environment = {"x": pepapot.Expression.num_expression(10.0)}
 
     def test_evaluation(self):
         self.assertRaises(ValueError, self.evaluate_expression)

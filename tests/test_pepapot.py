@@ -444,9 +444,9 @@ R1 = (b, t).R;
 
 R <b> (P || Q)
         """
-        r_expr = pepapot.NameExpression("r")
-        s_expr = pepapot.NameExpression("s")
-        t_expr = pepapot.NameExpression("t")
+        r_expr = pepapot.Expression.name_expression("r")
+        s_expr = pepapot.Expression.name_expression("s")
+        t_expr = pepapot.Expression.name_expression("t")
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
         self.expected_actions_dictionary["P1"] = [Action("b", r_expr, "P")]

@@ -1190,8 +1190,13 @@ class ModelSolver(object):
         # r = P * 2.0; where P is a process name and hence refers to a
         # current population. But since that is not yet being asked for, we
         # will simply reduce all the constant definitions to values and then
-        # apply those throughout the process definitions.
-        environment = constant_def_environment(self.model.constant_defs)
+        # apply those throughout the process definitions. Note that it is the
+        # concretiser which is now doing the actual changing from an
+        # expression representation to a value. In theory now it would be a
+        # simply change to use expr.get_value in the state builder using the
+        # current state's populations as the environment in which to get the
+        # value.
+        environment = reduce_definitions(self.model.constant_defs)
 
         concretiser = ProcessConcretiseActionsVisitor(environment)
         for proc_def in self.model.process_definitions:

@@ -103,6 +103,15 @@ class Expression:
         expression.arguments = arguments
         return expression
 
+    def used_names(self):
+        names = set()
+        if self.name:
+            names.add(self.name)
+        for arg in self.arguments:
+            names.update(arg.used_names())
+
+        return names
+
     def get_value(self, environment=None):
         """ Returns the value of an expression in the given environment if
             any. Raises an assertion error if the expression cannot be reduced
@@ -154,86 +163,6 @@ class Visitor(object):
         visitor = cls(*args)
         entity.visit(visitor)
         return visitor.result
-
-
-class ExpressionVisitor(Visitor):
-    """ A parent class for classes which descend through the abstract syntax
-        of expressions, generally storing a result along the way.
-        There are two kinds of expression visitors, ones which do not modify
-        the expressions but are merely used to descend through the expression
-        tree perhaps building up a result, such as the set of used variable
-        names. ExpressionVisitor implements that kind of Visitor. The second
-        kind of visitor is used to modify the given expression, for example
-        you may wish to reduce expressions or remove some kind of sugar. See
-        ExpressionModifierVisitor for that kind of visitor.
-    """
-    def __init__(self):
-        super(ExpressionVisitor, self).__init__()
-
-    def visit_NumExpression(self, expression):
-        """Visit a NumExpression expression"""
-        pass
-
-    def visit_TopRate(self, expression):
-        """Visit a TopRate expression"""
-        pass
-
-    def visit_NameExpression(self, expression):
-        """Visit a NameExpression"""
-        pass
-
-    def visit_ApplyExpression(self, expression):
-        """Visit an ApplyExpression element"""
-        for arg in expression.args:
-            arg.visit(self)
-
-
-class ExpressionModifierVisitor(ExpressionVisitor):
-    """ ExpressionModifierVisitor builds ontop of ExpressionVisitor to supply
-        a base class for the kind of visitor which needs to return a new,
-        possibly modified expression. The main difference is that in
-        ExpressionModifierVisitor the result is set to the expression itself.
-        In short, use this one if your visitor may need to return an entirely
-        new expression, rather than simply modify the current one in place.
-        So for example, 'reduce' might wish to turn a:
-        ApplyExpression('*', [NumExpression(1), expr])
-        into simply
-        expr
-        To do so it could not simply modify the given ApplyExpression in place
-        since that may be contained within another kind of expression itself
-        and 'expr' might be something other than an ApplyExpression.
-    """
-    def visit_NumExpression(self, expression):
-        """Visit a NumExpression element"""
-        self.result = expression
-
-    def visit_TopRate(self, expression):
-        """Visit a TopRate expression"""
-        self.result = expression
-
-    def visit_NameExpression(self, expression):
-        """Visit a NameExpression"""
-        self.result = expression
-
-    def visit_ApplyExpression(self, expression):
-        """ Visit an ApplyExpression element. Note that if you override this
-            you will likely still wish to recursively visit the argument
-            expressions, you can do this by calling this method using 'super'.
-            Also note that if you really wish to leave the original expression
-            untouched then you need to do the recursive calling yourself.
-        """
-        expression.args = [self.visit_get_results(e) for e in expression.args]
-        self.result = expression
-
-
-def used_names_of_expression(expression):
-    names = set()
-    if expression.name:
-        names.add(expression.name)
-    if expression.arguments:
-        [names.update(used_names_of_expression(arg))
-        for arg in expression.arguments]
-    return names
 
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
@@ -552,7 +481,7 @@ class UsedRateNamesProcessVisitor(ProcessVisitor):
         self.result = set()
 
     def visit_PrefixNode(self, prefix):
-        used_rate_names = ExpressionUsedNamesVisitor.get_result(prefix.rate)
+        used_rate_names = prefix.rate.used_names()
         self.result.update(used_rate_names)
         prefix.successor.visit(self)
 
@@ -1454,41 +1383,41 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
                                             delim="<*>")
 
 
-class RemoveRateLawsVisitor(ExpressionModifierVisitor):
-    """ Removes the rate laws syntax sugar from an expression. Currently only
-        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
-        if you call this you will likely use:
-        RemoveRateLawsVisitor.get_results(expr)
-        as the original expression may not be modified but a new one returned
-        in its place. For fMA we could arguably do this using an ordinary
-        ExpressionVisitor since the result is still going to be an
-        ApplyExpression anyway, but this seems cleaner.
-    """
-    def __init__(self, multipliers):
-        super(RemoveRateLawsVisitor, self).__init__()
-        self.multipliers = multipliers
+#class RemoveRateLawsVisitor(ExpressionModifierVisitor):
+#    """ Removes the rate laws syntax sugar from an expression. Currently only
+#        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
+#        if you call this you will likely use:
+#        RemoveRateLawsVisitor.get_results(expr)
+#        as the original expression may not be modified but a new one returned
+#        in its place. For fMA we could arguably do this using an ordinary
+#        ExpressionVisitor since the result is still going to be an
+#        ApplyExpression anyway, but this seems cleaner.
+#    """
+#    def __init__(self, multipliers):
+#        super(RemoveRateLawsVisitor, self).__init__()
+#        self.multipliers = multipliers
 
-    def visit_ApplyExpression(self, apply_expr):
-        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
-        # TODO: If there are no reactants? I think just the rate expression,
-        # which is what this does.
-        if apply_expr.name == "fMA":
-            assert(len(apply_expr.args) == 1)
-            arg_expression = apply_expr.args[0]
-            arg_expression.visit(self)
-            expr = arg_expression
+#    def visit_ApplyExpression(self, apply_expr):
+#        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
+#        # TODO: If there are no reactants? I think just the rate expression,
+#        # which is what this does.
+#        if apply_expr.name == "fMA":
+#            assert(len(apply_expr.args) == 1)
+#            arg_expression = apply_expr.args[0]
+#            arg_expression.visit(self)
+#            expr = arg_expression
 
-            for (species, stoich) in self.multipliers:
-                species_expr = NameExpression(species)
-                if stoich != 1:
-                    # If the stoichiometry is not 1, then we have to raise the
-                    # speices to the power of the stoichiometry. So if we have
-                    # fMA(1.0), on a reaction X + Y -> ..., where X has
-                    # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
-                    arguments = [species_expr, NumExpression(stoich)]
-                    species_expr = ApplyExpression("**", arguments)
-                expr = ApplyExpression.multiply(expr, species_expr)
-            self.result = expr
+#            for (species, stoich) in self.multipliers:
+#                species_expr = NameExpression(species)
+#                if stoich != 1:
+#                    # If the stoichiometry is not 1, then we have to raise the
+#                    # speices to the power of the stoichiometry. So if we have
+#                    # fMA(1.0), on a reaction X + Y -> ..., where X has
+#                    # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
+#                    arguments = [species_expr, NumExpression(stoich)]
+#                    species_expr = ApplyExpression("**", arguments)
+#                expr = ApplyExpression.multiply(expr, species_expr)
+#            self.result = expr
 
 
 class ParsedBioModel(object):

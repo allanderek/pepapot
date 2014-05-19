@@ -103,6 +103,22 @@ class Expression:
         expression.arguments = arguments
         return expression
 
+    @classmethod
+    def addition(cls, left, right):
+        return cls.apply_expression("+", [left, right])
+
+    @classmethod
+    def subtract(cls, left, right):
+        return cls.apply_expression("-", [left, right])
+
+    @classmethod
+    def multiply(cls, left, right):
+        return cls.apply_expression("*", [left, right])
+
+    @classmethod
+    def divide(cls, left, right):
+        return cls.apply_expression("/", [left, right])
+
     def used_names(self):
         names = set()
         if self.name:

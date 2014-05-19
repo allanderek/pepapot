@@ -76,15 +76,15 @@ class TestBinopClassMethods(unittest.TestCase):
     def setUp(self):
         # Test the expression: 1 + (2 * 3) - (10 / 5)
         self.expected_result = 5.0
-        left = pepapot.NumExpression(2.0)
-        right = pepapot.NumExpression(3.0)
-        multexp = pepapot.ApplyExpression.multiply(left, right)
-        left = pepapot.NumExpression(10.0)
-        right = pepapot.NumExpression(5.0)
-        divexp = pepapot.ApplyExpression.divide(left, right)
-        subexp = pepapot.ApplyExpression.subtract(multexp, divexp)
-        left = pepapot.NumExpression(1.0)
-        add_exp = pepapot.ApplyExpression.addition(left, subexp)
+        left = pepapot.Expression.num_expression(2.0)
+        right = pepapot.Expression.num_expression(3.0)
+        multexp = pepapot.Expression.multiply(left, right)
+        left = pepapot.Expression.num_expression(10.0)
+        right = pepapot.Expression.num_expression(5.0)
+        divexp = pepapot.Expression.divide(left, right)
+        subexp = pepapot.Expression.subtract(multexp, divexp)
+        left = pepapot.Expression.num_expression(1.0)
+        add_exp = pepapot.Expression.addition(left, subexp)
         self.expression = add_exp
 
     def test_evaulation(self):
@@ -393,7 +393,7 @@ R <b> (P || Q)
         self.expected_used_process_names = set_of_names
         self.expected_defined_process_names = set_of_names
 
-        ten_expr = pepapot.NumExpression(10.0)
+        ten_expr = pepapot.Expression.num_expression(10.0)
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", one_expr, "P1")]
         self.expected_actions_dictionary["P1"] = [Action("b", one_expr, "P")]

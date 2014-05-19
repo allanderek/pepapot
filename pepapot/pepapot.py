@@ -97,10 +97,18 @@ class Expression:
         expression.arguments = arguments
         return expression
 
-    def get_value(self, environment):
-        reduced_expression = self.reduce_expr(environment, inplace=False)
-        assert (self.number is not None)
-        return self.number
+    def get_value(self, environment=None, inplace=False):
+        """ Returns the value of an expression in the given environment if
+            any. If the inplace argument is True then the expression and any
+            child-argument expressions also reduced in place. This means that
+            subsequent calls to 'get_value' will be faster. However if you
+            wish to evaluate the same expression in a separate environment
+            then you should set 'inplace' to 'False' and that is the default.
+        """
+        reduced_expression = self.reduce_expr(environment=environment,
+                                              inplace=inplace)
+        assert (reduced_expression.number is not None)
+        return reduced_expression.number
 
     def reduce_expr(self, environment=None, inplace=False):
         if self.number is not None:

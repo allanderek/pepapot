@@ -233,8 +233,8 @@ P = (a, 1.0).P1 + (b, 1.0).P2;
 P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
-one_expr = pepapot.NumExpression(1.0)
-two_expr = pepapot.NumExpression(2.0)
+one_expr = pepapot.Expression.num_expression(1.0)
+two_expr = pepapot.Expression.num_expression(2.0)
 
 
 def is_valid_gen_matrix(testcase, model_solver):

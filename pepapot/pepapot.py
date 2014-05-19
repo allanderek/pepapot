@@ -22,107 +22,6 @@ from scipy.integrate import odeint
 from lazy import lazy
 
 
-class Expression:
-    """ The base class for all classes which represent the AST of some
-        kind of expression"""
-    def __init__(self):
-        pass
-
-    def __add__(self, other):
-        return ApplyExpression("+", [self, other])
-
-    def __radd__(self, other):
-        return ApplyExpression("+", [other, self])
-
-    def __mul__(self, other):
-        return ApplyExpression("*", [self, other])
-
-    def __rmul__(self, other):
-        return ApplyExpression("*", [other, self])
-
-
-class NumExpression(Expression):
-    """A class to represent the AST of an number literal expression"""
-    def __init__(self, number):
-        super(NumExpression, self).__init__()
-        self.number = number
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.number == other.number
-        return NotImplemented
-
-    def __add__(self, other):
-        if isinstance(other, self.__class__):
-            return NumExpression(self.number + other.number)
-        else:
-            return super(NumExpression, self).__add__(other)
-
-    def __radd__(self, other):
-        if isinstance(other, self.__class__):
-            return NumExpression(self.number + other.number)
-        else:
-            return super(NumExpression, self).__radd__(other)
-
-    def __mul__(self, other):
-        if self.number == 0:
-            return self
-        elif self.number == 1:
-            return other
-        elif isinstance(other, self.__class__):
-            return NumExpression(self.number * other.number)
-        else:
-            return super(NumExpression, self).__mul__(other)
-
-    def __rmul__(self, other):
-        if self.number == 0:
-            return self
-        elif self.number == 1:
-            return other
-        elif isinstance(other, self.__class__):
-            return NumExpression(self.number * other.number)
-        else:
-            return super(NumExpression, self).__rmul__(other)
-
-    def visit(self, visitor):
-        """Implements the visit method allowing ExpressionVisitors to work"""
-        visitor.visit_NumExpression(self)
-
-    def get_value(self, environment=None):
-        """Returns the underlying value of this expression"""
-        return self.number
-
-
-class NameExpression(Expression):
-    """A class to represent the AST of a variable (name) expression"""
-    def __init__(self, name):
-        super(NameExpression, self).__init__()
-        self.name = name
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.name == other.name
-        return NotImplemented
-
-    def visit(self, visitor):
-        """Implements the visit method allowing ExpressionVisitors to work"""
-        visitor.visit_NameExpression(self)
-
-    def get_value(self, environment=None):
-        """ Evalutes this expression based on the given variable_dictionary,
-            If the environment is given and defines the name which is this
-            expression then we return whatever the environment defines this
-            name to be. Otherwise, as per 'get_value' we raise the expception
-            KeyError.
-        """
-        # This is simple, we just do whatever looking up in the environment
-        # does, which is the advertised behaviour of get_value.
-        if environment is not None:
-            return environment[self.name]
-        else:
-            raise KeyError(self.name)
-
-
 def list_product(factors):
     """ Simple utility the same as 'sum' but for the product of the arguments.
         Note: returns 1 for the empty list, which seems reasonable, given that
@@ -134,81 +33,113 @@ def list_product(factors):
     return result
 
 
-class ApplyExpression(Expression):
-    """ A class to represent the AST of an apply expression, applying a
-        named function to a list of argument expressions
+def evaluate_function_app(name, arg_values):
+    if name == "plus" or name == "+":
+        return sum(arg_values)
+    elif name == "times" or name == "*":
+        return list_product(arg_values)
+    elif name == "minus" or name == "-":
+        # What should we do if there is only one argument, I think we
+        # should treat '(-) x' the same as '0 - x'.
+        answer = arg_values[0]
+        for arg in arg_values[1:]:
+            answer -= arg
+        return answer
+    elif name == "divide" or name == "/":
+        answer = arg_values[0]
+        for arg in arg_values[1:]:
+            answer /= arg
+        return answer
+    elif name == "power" or name == "**":
+        # power is interesting because it associates to the right
+        exponent = 1
+        # counts downwards from the last index to the 0.
+        # As an example, consider power(3,2,3), the answer should be
+        # 3 ** (2 ** 3) = 3 ** 8 = 6561, not (3 ** 2) ** 3 = 9 ** 3 = 81
+        # going through our loop here we have
+        # exp = 1
+        # exp = 3 ** exp = 3
+        # exp = 2 ** exp = 2 ** 3 = 8
+        # exp = 3 ** exp = 3 ** 8 = 6561
+        for i in range(len(arg_values) - 1, -1, -1):
+            exponent = arg_values[i] ** exponent
+        return exponent
+    else:
+        raise ValueError("Unknown function name: " + name)
+
+
+class Expression:
+    """ A new simpler representation of expressions in which we only have
+        one kind of expression. The idea is that reduce and get_value can be
+        coded as in terms of a single recursion.
     """
-    def __init__(self, name, args):
-        super(ApplyExpression, self).__init__()
-        self.name = name
-        self.args = args
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.name == other.name and self.args == other.args
-        return NotImplemented
+    def __init__(self):
+        self.name = None
+        self.number = None
+        self.arguments = []
 
     @classmethod
-    def addition(cls, left, right):
-        return cls("+", [left, right])
+    def num_expression(cls, number):
+        expression = cls()
+        expression.number = number
+        return expression
 
     @classmethod
-    def subtract(cls, left, right):
-        return cls("-", [left, right])
+    def name_expression (cls, name):
+        expression = cls()
+        expression.name = name
+        return expression
 
     @classmethod
-    def multiply(cls, left, right):
-        return cls("*", [left, right])
+    def apply_expression(cls, name, arguments):
+        expression = cls()
+        expression.name = name
+        expression.arguments = arguments
+        return expression
 
-    @classmethod
-    def divide(cls, left, right):
-        return cls("/", [left, right])
+    def get_value(self, environment):
+        reduced_expression = self.reduce_expr(environment, inplace=False)
+        assert (self.number is not None)
+        return self.number
 
-    def visit(self, visitor):
-        """Implements the visit method allowing ExpressionVisitors to work"""
-        visitor.visit_ApplyExpression(self)
+    def reduce_expr(self, environment=None, inplace=False):
+        if self.number is not None:
+            return self
+        if not self.arguments:
+            if environment:
+                new_number = environment.get(self.name, None)
+                # If we are reducing in place then regardless of whether the
+                # name is in the environment or not we return the current
+                # expression with number set to the result of looking up the
+                # name in the environment (which is None if not present).
+                # Only if we are not reducing in place *and* the name is
+                # present in the environment do we return a new number
+                # expression
+                if inplace or new_number is None:
+                    self.number = new_number
+                    return self
+                else:
+                    return Expression.num_expression(new_number)
+            else:
+                return self
 
-    def get_value(self, environment=None):
-        """ Return the value to which the expression evaluates. If any
-            environment is given it should be used to resolve any names in
-            the sub-expressions of this expression. If the expression is
-            irreducible, generally because it contains a name which is not
-            in the given environment (or none is given) then None is returned.
-        """
-        arg_values = [arg.get_value(environment=environment)
-                      for arg in self.args]
-        if self.name == "plus" or self.name == "+":
-            return sum(arg_values)
-        elif self.name == "times" or self.name == "*":
-            return list_product(arg_values)
-        elif self.name == "minus" or self.name == "-":
-            # What should we do if there is only one argument, I think we
-            # should treat '(-) x' the same as '0 - x'.
-            answer = arg_values[0]
-            for arg in arg_values[1:]:
-                answer -= arg
-            return answer
-        elif self.name == "divide" or self.name == "/":
-            answer = arg_values[0]
-            for arg in arg_values[1:]:
-                answer /= arg
-            return answer
-        elif self.name == "power" or self.name == "**":
-            # power is interesting because it associates to the right
-            exponent = 1
-            # counts downwards from the last index to the 0.
-            # As an example, consider power(3,2,3), the answer should be
-            # 3 ** (2 ** 3) = 3 ** 8 = 6561, not (3 ** 2) ** 3 = 9 ** 3 = 81
-            # going through our loop here we have
-            # exp = 1
-            # exp = 3 ** exp = 3
-            # exp = 2 ** exp = 2 ** 3 = 8
-            # exp = 3 ** exp = 3 ** 8 = 6561
-            for i in range(len(arg_values) - 1, -1, -1):
-                exponent = arg_values[i] ** exponent
-            return exponent
+        arguments = [a.reduce_expr(environment, inplace)
+                     for a in self.arguments]
+        arg_values = [a.number for a in arguments]
+        if any(v is None for v in arg_values):
+            if inplace:
+                self.arguments = arguments
+                return self
+            else:
+                return Expression.apply_expression(self.name, arguments)
         else:
-            raise ValueError("Unknown function name: " + self.name)
+            result_number = evaluate_function_app(self.name, arg_values)
+            if inplace:
+                self.arguments = arguments
+                self.number = result_number
+                return self
+            else:
+                return Expression.num_expression(result_number)
 
 
 class Visitor(object):
@@ -299,16 +230,14 @@ class ExpressionModifierVisitor(ExpressionVisitor):
         self.result = expression
 
 
-class ExpressionUsedNamesVisitor(ExpressionVisitor):
-    """ An expression visitor which builds up a set of the names used in the
-        expression
-    """
-    def __init__(self):
-        self.result = set()
-
-    def visit_NameExpression(self, expression):
-        """Visit a NameExpression"""
-        self.result.add(expression.name)
+def used_names_of_expression(expression):
+    names = set()
+    if expression.name:
+        names.add(expression.name)
+    if expression.arguments:
+        [names.update(used_names_of_expression(arg))
+        for arg in expression.arguments]
+    return names
 
 
 Action = namedtuple('Action', ["action", "rate", "successor"])
@@ -341,14 +270,18 @@ def parenthetical_grammar(element_grammar):
 
 def create_expression_grammar(identifier_grammar):
     expr_grammar = pyparsing.Forward()
+
+    def num_expr_parse_action(tokens):
+        return Expression.num_expression(float(tokens[0]))
+
     num_expr = floatnumber.copy()
-    num_expr.setParseAction(lambda tokens: NumExpression(float(tokens[0])))
+    num_expr.setParseAction(num_expr_parse_action)
 
     def apply_expr_parse_action(tokens):
         if len(tokens) == 1:
-            return NameExpression(tokens[0])
+            return Expression.name_expression(tokens[0])
         else:
-            return ApplyExpression(tokens[0], tokens[1:])
+            return Expression.apply_expression(tokens[0], tokens[1:])
     arg_expr_list = pyparsing.delimitedList(expr_grammar)
     opt_arg_list = Optional(parenthetical_grammar(arg_expr_list))
     apply_expr = identifier_grammar + opt_arg_list
@@ -374,7 +307,8 @@ def create_expression_grammar(identifier_grammar):
         # two separate calls one for [3, **, 2] and then again for
         # [2, ** , Apply(**, [3,2])].
         for oper, expression in zip(operators, exprs_iter):
-            result_expr = ApplyExpression(oper, [result_expr, expression])
+            args = [result_expr, expression]
+            result_expr = Expression.apply_expression(oper, args)
         return result_expr
 
     precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
@@ -462,41 +396,6 @@ def constant_def_environment(definitions, environment=None):
     def rhs_fun(rhs, env):
         return rhs.get_value(environment=env)
     return definition_environment(definitions, environment, rhs_fun)
-
-
-class ReduceExprVisitor(ExpressionModifierVisitor):
-    """ Reduces an expression
-    """
-    def __init__(self, environment):
-        super(ReduceExprVisitor, self).__init__()
-        self.environment = environment
-
-    def visit_NameExpression(self, expression):
-        """Visit a NameExpression"""
-        # So, if the name is in the environment, set the result to whatever it
-        # is bound to, otherwise, set the result to the name expression.
-        self.result = self.environment.get(expression.name, expression)
-
-    def visit_ApplyExpression(self, apply_expr):
-        super(ReduceExprVisitor, self).visit_ApplyExpression(apply_expr)
-        operators = {'plus': operator.add,
-                     '+': operator.add,
-                     'times': operator.mul,
-                     '*': operator.mul,
-                     'minus': operator.sub,
-                     '-': operator.sub,
-                     'divide': operator.truediv,
-                     '/': operator.truediv,
-                     'power': operator.pow,
-                     '**': operator.pow,
-                     }
-        # NOTE: We should be careful here, this essentially causes us to
-        # associate to the left, which might not be what we want, in
-        # particular for the "pow" operator. If we have arguments [1,2,3]
-        # and say the plus operator we will get (1 + 2) + 3
-        if apply_expr.name in operators:
-            operator_fun = operators[apply_expr.name]
-            self.result = functools.reduce(operator_fun, apply_expr.args)
 
 
 def reduce_definitions(definitions, environment=None):

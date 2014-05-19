@@ -391,7 +391,7 @@ def constant_def_environment(definitions, environment=None):
         the names defined in the definitions to values. This does not have
         much use outside of testing
     """
-    reduced_env = reduce_definitions(definitions, environment)
+    reduced_env = reduce_definitions(definitions, environment, inplace=False)
     value_environment = dict()
     for name, expression in reduced_env.items():
         value_environment[name] = expression.get_value()

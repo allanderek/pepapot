@@ -50,12 +50,12 @@ class TestMissingNameExpression(TestExpression):
         self.environment = {"x": 10}
 
     def test_evaluation(self):
-        self.assertRaises(KeyError, self.evaluate_expression)
+        self.assertRaises(AssertionError, self.evaluate_expression)
 
         # Now test that it raises KeyError also if we do not provide an
         # environment, this should occur for any name in the expression
         self.environment = None
-        self.assertRaises(KeyError, self.evaluate_expression)
+        self.assertRaises(AssertionError, self.evaluate_expression)
 
 
 class TestUnknownFunctionExpression(TestExpression):

@@ -859,7 +859,7 @@ class ParsedModel(object):
     def get_used_rate_names(self):
         used_names = set()
         for definition in self.constant_defs:
-            names = ExpressionUsedNamesVisitor.get_result(definition.rhs)
+            names = definition.rhs.used_names()
             used_names.update(names)
 
         for definition in self.process_definitions:

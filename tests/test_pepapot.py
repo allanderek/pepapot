@@ -91,21 +91,6 @@ class TestBinopClassMethods(unittest.TestCase):
         self.assertEqual(self.expression.get_value(), self.expected_result)
 
 
-class TestBaseExpressionVisitor(TestExpression):
-    """ Just a simple test case to make sure that our base expression visitor
-        does not fold over. We really should somehow check that all of the
-        expressions are actually visited.
-    """
-    def setUp(self):
-        self.expression_source = "plus(x, 1.0, times(2.0, y))"
-        self.environment = {"x": 10, "y": 5}
-        self.expected_result = 21.0
-
-    def test_evaulation(self):
-        self.evaluate_expression()
-        self.expression.visit(pepapot.ExpressionVisitor())
-
-
 class TestConstantDefinitions(unittest.TestCase):
     def setUp(self):
         self.source = """a = 1.0;
@@ -673,7 +658,7 @@ class TestAwkwardAlias(TestSimpleNoCoop):
 
     # This test is non-trivial to get correct. The problem is that we end up
     # with three states rather than two. These correspond to the states:
-    # A, P and P1. Of course A and P are the same state. So we need away of
+    # A, P and P1. Of course A and P are the same state. So we need a way of
     # noting that. The alternative is just to accept that this has some
     # transient states to begin with.
     @unittest.expectedFailure

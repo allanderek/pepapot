@@ -361,22 +361,11 @@ class PEPAConstantDef(object):
 
 PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
 
-
-# Theoretically we could allow non-constant definitions, such as:
-# r = 2.0 * P;
-# Where 'P' is a process identifier (or species in a Bio model). If we allow
-# that then what we really want to do is *reduce* the constant expressions
-# as far as is possible, rather than entirely evaluate them. This would also
-# mean that we could do this iteratively to allow for out-of-order definitions
-# such as:
-# r = 2.0 * s;
-# s = 1.0;
-# For now, both of these things are not quite being asked for, so I can easily
-# do this when it is asked for. Hence, I am doing the simplest thing that
-# could work and simply assuming that all constant definitions can be reduced
-# to a single value, this still allows references to variables defined above
-# r = 1.0;
-# s = r * 2.0;
+# Generally what we wish to do is *reduce* a set of definitions because some
+# of these will have functional rates. Currently we are not supporting that
+# for PEPA but we are for Bio-PEPA. This reduces a list of definitions which
+# for PEPA will mean (for a valid set of definitions) that we reduce all the
+# right hand sides to simple number expressions.
 def reduce_definitions(definitions, environment=None, inplace=True):
     """ Reduces the definitions and also puts those definitions into an
         environment. If 'inplace' is True, it updates the right hand side of
@@ -395,6 +384,8 @@ def reduce_definitions(definitions, environment=None, inplace=True):
     return environment
 
 
+# Unlike the above function, this assumes all the constants will reduce to a
+# simple number expression and then extracts that number.
 def constant_def_environment(definitions, environment=None):
     """ Turns a list of constant definitions into an environment which maps
         the names defined in the definitions to values. This does not have

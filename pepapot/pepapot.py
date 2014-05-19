@@ -1375,9 +1375,10 @@ class BioBehaviour(object):
 
         expr = kinetic_laws[self.reaction_name]
         if modifier == 0:
-            expr = NumExpression(0.0)
+            expr = Expression.num_expression(0.0)
         elif modifier != 1:
-            expr = ApplyExpression.multiply(NumExpression(modifier), expr)
+            modifier_expr = Expression.num_expression(modifier)
+            expr = Expression.multiply(modifier_expr, expr)
 
         return expr
 
@@ -1420,12 +1421,16 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
 
 
 def remove_rate_laws(expression, multipliers):
+    if not expression.arguments:
+        return expression
+    arguments = [remove_rate_laws(arg, multipliers)
+                 for arg in expression.arguments]
     if expression.name and expression.name == "fMA":
         # TODO: If there are no reactants? I think just the rate expression,
         # which is what this does.
-        assert(len(expression.arguments == 1))
-        result_expr = expression.arguments[0]
-        for (species, stoich) in self.multipliers:
+        assert(len(arguments) == 1)
+        result_expr = arguments[0]
+        for (species, stoich) in multipliers:
             species_expr = Expression.name_expression(species)
             if stoich != 1:
                 # If the stoichiometry is not 1, then we have to raise the
@@ -1434,8 +1439,13 @@ def remove_rate_laws(expression, multipliers):
                 # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
                 stoich_expr = Expression.num_expression(stoich)
                 species_expr = Expression.power(species_expr, stoich_expr)
-            result_expression = Expression.multiply(result_expr, species_expr)
+            result_expr = Expression.multiply(result_expr, species_expr)
         return result_expr
+    else:
+        # So we return a new expression with the new arguments. If we were
+        # doing this inplace, we could just replace the original expression's
+        # arguments.
+        return Expression.apply_expression(expression.name, arguments)
 
 
 class ParsedBioModel(object):
@@ -1443,9 +1453,9 @@ class ParsedBioModel(object):
         self.constants = constants
         self.kinetic_laws = kinetic_laws
         self.species_defs = species
-        self.populations = dict()
-        for population in populations:
-            self.populations[population.species_name] = population.amount
+        self.populations = populations # = dict()
+        # for population in populations:
+        #     self.populations[population.species_name] = population.amount
 
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,
@@ -1558,7 +1568,7 @@ class BioModelSolver(object):
             behaviours = species_def.rhs
             behaviour_exprs = [b.get_expression(kinetic_laws)
                                for b in behaviours]
-            add_exprs = lambda l, r: ApplyExpression("+", [l, r])
+            add_exprs = lambda l, r: Expression.addition(l, r)
             expr = functools.reduce(add_exprs, behaviour_exprs)
             species_gradients.append(expr)
 
@@ -1572,10 +1582,14 @@ class BioModelSolver(object):
         # We get the environment of constants *first* since if (later) we
         # allow those constants to contain species variables we would not wish
         # to reduce them using the initial populations.
-        environment = constant_def_environment(self.model.constants)
+        # environment = constant_def_environment(self.model.constants)
+        environment = reduce_definitions(self.model.constants)
         # So with the environment containing the constant definitions we add
         # the initial populations, these will be overridden at each step.
-        environment.update(self.model.populations)
+        for population in self.model.populations:
+            population_expr = Expression.num_expression(population.amount)
+            environment[population.species_name] = population_expr
+        # environment.update(self.model.populations)
 
         # TODO: Check what happens if we have (d, 2) (+) E; that is a
         # stoichiometry that is not one for a modifier, rather than a reactant
@@ -1590,14 +1604,15 @@ class BioModelSolver(object):
             """
             environment["time"] = time
             for species, population in zip(species_names, current_pops):
-                environment[species] = population
-                result = [expr.get_value(environment=environment)
-                          for expr in species_gradients]
+                environment[species] = Expression.num_expression(population)
+
+            result = [expr.get_value(environment=environment)
+                      for expr in species_gradients]
             return result
 
         # The difficulty here is that initials must be the same order as
         # 'results'
-        initials = [environment[name] for name in species_names]
+        initials = [environment[name].get_value() for name in species_names]
 
         time_grid = get_time_grid(configuration)
         # Solve the ODEs

@@ -980,7 +980,8 @@ class TestSimpleBioModel(unittest.TestCase):
         number_species = len(model.species_defs)
         self.assertEqual(number_species, self.expected_number_species)
 
-        self.assertEqual(model.populations, self.expected_populations)
+        population_env = {p.species_name: p.amount for p in model.populations}
+        self.assertEqual(population_env, self.expected_populations)
 
         # Test the solver
         model_solver = pepapot.BioModelSolver(model)

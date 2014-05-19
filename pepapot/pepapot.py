@@ -119,6 +119,11 @@ class Expression:
     def divide(cls, left, right):
         return cls.apply_expression("/", [left, right])
 
+    @classmethod
+    def power(cls, left, right):
+        return cls.apply_expression("**", [left, right])
+
+
     def used_names(self):
         names = set()
         if self.name:
@@ -1409,41 +1414,23 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
                                             delim="<*>")
 
 
-#class RemoveRateLawsVisitor(ExpressionModifierVisitor):
-#    """ Removes the rate laws syntax sugar from an expression. Currently only
-#        fMA(r) is implemented. Note this uses ExpressionModifierVisitor, so
-#        if you call this you will likely use:
-#        RemoveRateLawsVisitor.get_results(expr)
-#        as the original expression may not be modified but a new one returned
-#        in its place. For fMA we could arguably do this using an ordinary
-#        ExpressionVisitor since the result is still going to be an
-#        ApplyExpression anyway, but this seems cleaner.
-#    """
-#    def __init__(self, multipliers):
-#        super(RemoveRateLawsVisitor, self).__init__()
-#        self.multipliers = multipliers
-
-#    def visit_ApplyExpression(self, apply_expr):
-#        super(RemoveRateLawsVisitor, self).visit_ApplyExpression(apply_expr)
-#        # TODO: If there are no reactants? I think just the rate expression,
-#        # which is what this does.
-#        if apply_expr.name == "fMA":
-#            assert(len(apply_expr.args) == 1)
-#            arg_expression = apply_expr.args[0]
-#            arg_expression.visit(self)
-#            expr = arg_expression
-
-#            for (species, stoich) in self.multipliers:
-#                species_expr = NameExpression(species)
-#                if stoich != 1:
-#                    # If the stoichiometry is not 1, then we have to raise the
-#                    # speices to the power of the stoichiometry. So if we have
-#                    # fMA(1.0), on a reaction X + Y -> ..., where X has
-#                    # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
-#                    arguments = [species_expr, NumExpression(stoich)]
-#                    species_expr = ApplyExpression("**", arguments)
-#                expr = ApplyExpression.multiply(expr, species_expr)
-#            self.result = expr
+def remove_rate_laws(expression, multipliers):
+    if expression.name and expression.name == "fMA":
+        # TODO: If there are no reactants? I think just the rate expression,
+        # which is what this does.
+        assert(len(expression.arguments == 1))
+        result_expr = expression.arguments[0]
+        for (species, stoich) in self.multipliers:
+            species_expr = Expression.name_expression(species)
+            if stoich != 1:
+                # If the stoichiometry is not 1, then we have to raise the
+                # speices to the power of the stoichiometry. So if we have
+                # fMA(1.0), on a reaction X + Y -> ..., where X has
+                # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
+                stoich_expr = Expression.num_expression(stoich)
+                species_expr = Expression.power(species_expr, stoich_expr)
+            result_expression = Expression.multiply(result_expr, species_expr)
+        return result_expr
 
 
 class ParsedBioModel(object):
@@ -1494,8 +1481,7 @@ class ParsedBioModel(object):
                     entry_list.append(entry)
         for kinetic_law in self.kinetic_laws:
             rhs_multipliers = multipliers[kinetic_law.lhs]
-            new_expr = RemoveRateLawsVisitor.get_result(kinetic_law.rhs,
-                                                        rhs_multipliers)
+            new_expr = remove_rate_laws(kinetic_law.rhs, rhs_multipliers)
             kinetic_law.rhs = new_expr
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)

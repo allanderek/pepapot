@@ -295,22 +295,32 @@ PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
 # for PEPA but we are for Bio-PEPA. This reduces a list of definitions which
 # for PEPA will mean (for a valid set of definitions) that we reduce all the
 # right hand sides to simple number expressions.
+def definition_environment(definitions, environment=None,
+                           rhs_fun=None, inplace=True):
+    if environment is None:
+        environment = dict()
+
+    for definition in definitions:
+        rhs = definition.rhs
+        if rhs_fun:
+            rhs = rhs_fun(definition.rhs, environment)
+            if inplace:
+                definition.rhs = rhs
+        environment[definition.lhs] = rhs
+
+    return environment
+
+
 def reduce_definitions(definitions, environment=None, inplace=True):
     """ Reduces the definitions and also puts those definitions into an
         environment. If 'inplace' is True, it updates the right hand side of
         each definition in place, otherwise it leaves the definitions as they
         were and just returns the environment.
     """
-    if environment is None:
-        environment = dict()
-
-    for definition in definitions:
-        new_rhs = definition.rhs.reduce_expr(environment)
-        if inplace:
-            definition.rhs = new_rhs
-        environment[definition.lhs] = new_rhs
-
-    return environment
+    def rhs_fun(rhs, env):
+        return rhs.reduce_expr(environment=env)
+    return definition_environment(definitions, environment=environment,
+                                  rhs_fun=rhs_fun, inplace=inplace)
 
 
 # Unlike the above function, this assumes all the constants will reduce to a

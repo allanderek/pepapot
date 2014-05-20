@@ -422,10 +422,6 @@ class TopRate(Expression):
         # is when '__truediv__' would have been called on 'other' anyway.
         return 0
 
-    def visit(self, visitor):
-        """Implements the visit method allowing ExpressionVisitors to work"""
-        visitor.visit_TopRate(self)
-
 
 class PrefixNode(object):
     def __init__(self, action, rate, successor):
@@ -720,7 +716,7 @@ class PepaUnusedRateNameWarning(PepaWarning):
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.name == other.name
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
 
 class PepaError(object):

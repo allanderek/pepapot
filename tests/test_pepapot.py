@@ -432,7 +432,7 @@ class TestApparentRateWithConstantDefs(TestApparentRate):
         self.model_source = """
 r = 1.0;
 s = 2.0;
-t = 10.0;
+t = 5.0;
 P = (a, r).P1;
 P1 = (b, r).P;
 
@@ -440,20 +440,21 @@ Q = (a, r).Q1;
 Q1 = (b, s).Q;
 
 R = (a, r).R1;
-R1 = (b, t).R;
+R1 = (b, t * s).R;
 
 R <b> (P || Q)
         """
         r_expr = pepapot.Expression.name_expression("r")
         s_expr = pepapot.Expression.name_expression("s")
         t_expr = pepapot.Expression.name_expression("t")
+        t_s_expr = pepapot.Expression.multiply(t_expr, s_expr)
         self.expected_actions_dictionary = dict()
         self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
         self.expected_actions_dictionary["P1"] = [Action("b", r_expr, "P")]
         self.expected_actions_dictionary["Q"] = [Action("a", r_expr, "Q1")]
         self.expected_actions_dictionary["Q1"] = [Action("b", s_expr, "Q")]
         self.expected_actions_dictionary["R"] = [Action("a", r_expr, "R1")]
-        self.expected_actions_dictionary["R1"] = [Action("b", t_expr, "R")]
+        self.expected_actions_dictionary["R1"] = [Action("b", t_s_expr, "R")]
 
 
 class TestSimpleArray(TestSimpleNoCoop):

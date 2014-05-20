@@ -11,6 +11,7 @@ Options:
   """
 import logging
 from collections import namedtuple
+from collections import defaultdict
 import functools
 
 from docopt import docopt
@@ -1474,19 +1475,14 @@ class ParsedBioModel(object):
         """
         # First build up a dictionary mapping reaction names to reactants
         # and activators (together with their stoichiometry)
-        multipliers = dict()
+        multipliers = defaultdict(list)
         for species_def in self.species_defs:
             species_name = species_def.lhs
             behaviours = species_def.rhs
             for behaviour in behaviours:
                 if behaviour.role in ["<<", "(+)"]:
                     entry = (species_name, behaviour.stoichiometry)
-                    if behaviour.reaction_name in multipliers:
-                        entry_list = multipliers[behaviour.reaction_name]
-                    else:
-                        entry_list = []
-                        multipliers[behaviour.reaction_name] = entry_list
-                    entry_list.append(entry)
+                    multipliers[behaviour.reaction_name].append(entry)
         for kinetic_law in self.kinetic_laws:
             rhs_multipliers = multipliers[kinetic_law.lhs]
             new_expr = remove_rate_laws(kinetic_law.rhs, rhs_multipliers)

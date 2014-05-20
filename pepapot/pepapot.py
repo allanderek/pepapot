@@ -875,12 +875,16 @@ class ParsedModel(object):
     def perform_static_analysis(self):
         results = StaticAnalysis()
 
-        defined_rate_names = self.get_defined_rate_names()
-        used_rate_names = self.get_used_rate_names()
-        for rate_name in defined_rate_names:
-            if rate_name not in used_rate_names:
-                warning = PepaUnusedRateNameWarning(rate_name)
-                results.warnings.append(warning)
+        defined_rate_names = set(self.get_defined_rate_names())
+        used_rate_names = set(self.get_used_rate_names())
+        
+        for rate_name in defined_rate_names.difference(used_rate_names):
+            warning = PepaUnusedRateNameWarning(rate_name)
+            results.warnings.append(warning)
+
+        for rate_name in used_rate_names.difference(defined_rate_names):
+            error = PepaUndefinedRateNameError(rate_name)
+            results.errors.append(error)
 
         return results
 

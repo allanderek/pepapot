@@ -295,6 +295,11 @@ class TestSimpleNoCoop(unittest.TestCase):
         self.assertEqual(static_analysis.warnings, self.expected_warnings)
         self.assertEqual(static_analysis.errors, self.expected_errors)
 
+        # If there are any errors then we may abandon the rest of the test
+        # at this point, since we do not expect the model to compile
+        if static_analysis.errors or self.expected_errors:
+            return
+
         # Now it is time to actually build the state-space and solve the model
         model_solver = pepapot.ModelSolver(model)
 

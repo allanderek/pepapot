@@ -858,8 +858,8 @@ class PepaUndefinedRateName(TestSimpleNoCoop):
         self.expected_shared_actions = set()
 
         self.expected_actions_dictionary = dict()
-        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P3")]
-        self.expected_actions_dictionary["P1"] = [Action("a", s_expr, "P3")]
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", s_expr, "P")]
 
         self.expected_warnings = []
         self.expected_errors = [pepapot.PepaUndefinedRateNameError("s")]

@@ -722,6 +722,15 @@ class PepaUnusedRateNameWarning(PepaWarning):
             return self.name == other.name
         return NotImplemented  # pragma: no cover
 
+class PepaUnusedProcessDefWarning(PepaWarning):
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented  # pragma: no cover
+
 
 class PepaError(object):
     pass

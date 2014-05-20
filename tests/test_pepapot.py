@@ -874,6 +874,7 @@ class PepaUnusedProcessDefinition(TestSimpleNoCoop):
         super(PepaUnusedProcessDefinition, self).setUp()
         self.model_source = "PM1 = (a, 1.0).P;\n" + self.model_source
         self.expected_actions_dictionary["PM1"] = [Action("a", one_expr, "P")]
+        self.expected_defined_process_names.add("PM1")
 
         self.expected_warnings = [pepapot.PepaUnusedProcessDefWarning("PM1")]
 

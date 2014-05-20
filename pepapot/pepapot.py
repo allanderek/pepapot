@@ -827,12 +827,10 @@ class ParsedModel(object):
         # actions that A can do, because B will be able to do (a,r).P1 as well
         # as P, so we will conclude that A can perform (a,r).P1 twice. Instead
         # we build up a dictionary of aliased actions and only add those.
-        aliased_actions = dict()
+        aliased_actions = defaultdict(list)
         for name, aliases in self.get_immediate_aliases().items():
-            these_aliased_actions = []
             for alias in aliases:
-                these_aliased_actions += actions_dictionary[alias]
-            aliased_actions[name] = these_aliased_actions
+                aliased_actions[name].extend(actions_dictionary[alias])
 
         # Unfortunately we cannot simply say:
         # actions_dictionary.update(aliased_actions)

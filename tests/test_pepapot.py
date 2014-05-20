@@ -869,6 +869,7 @@ class PepaUndefinedRateName(TestSimpleNoCoop):
         self.expected_warnings = []
         self.expected_errors = [pepapot.PepaUndefinedRateNameError("s")]
 
+
 class PepaUnusedProcessDefinition(TestSimpleNoCoop):
     def setUp(self):
         super(PepaUnusedProcessDefinition, self).setUp()

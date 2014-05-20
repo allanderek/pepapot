@@ -880,6 +880,26 @@ class PepaUnusedProcessDefinition(TestSimpleNoCoop):
         self.expected_warnings = [pepapot.PepaUnusedProcessDefWarning("PM1")]
 
 
+class PepaUndefinedProcessName(TestSimpleNoCoop):
+    def setUp(self):
+        self.model_source = """r = 1.0;
+                               P = (a, r).P1;
+                               P1 = (b, r).P2;
+                               P
+                            """
+        self.expected_used_process_names = set(["P", "P1", "P2"])
+        self.expected_defined_process_names = set(["P", "P1"])
+
+        self.expected_shared_actions = set()
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", r_expr, "P2")]
+
+        self.expected_warnings = []
+        self.expected_errors = [pepapot.PepaUndefinedProcessNameError("P2")]
+
+
 # The goal is to build a method which will generate a random PEPA model. This
 # can then be used to do some randomised testing. To do that we require to
 # have some properties about the results which we can test. The first and

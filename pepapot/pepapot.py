@@ -747,6 +747,16 @@ class PepaUndefinedRateNameError(PepaError):
         return NotImplemented  # pragma: no cover
 
 
+class PepaUndefinedProcessNameError(PepaError):
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented  # pragma: no cover
+
+
 class StaticAnalysis(object):
     def __init__(self):
         self.warnings = []
@@ -776,6 +786,16 @@ class ParsedModel(object):
             This may raise StopIteration if no such definition exists
         """
         return next(x for x in self.process_definitions if x.lhs == name)
+
+    def get_process_used_names(self, name):
+        """ Returns the process names used within the definition of the
+            process with the given name. Uses 'get_process_definition'
+            so may raise 'StopIteration' if no such definition exists
+        """
+        definition = self.get_process_definition(name)
+        process = definition.rhs
+        names = UsedProcessNamesVisitor.get_result(process)
+        return names
 
     def get_immediate_aliases(self):
         """ Builds a dictionary which maps a process name to the process
@@ -818,10 +838,14 @@ class ParsedModel(object):
                 name = name_queue.pop()
                 if name not in closure:
                     closure.append(name)
-                    definition = self.get_process_definition(name)
-                    process = definition.rhs
-                    new_names = UsedProcessNamesVisitor.get_result(process)
-                    name_queue.update(new_names)
+                    try:
+                        new_names = self.get_process_used_names(name)
+                        name_queue.update(new_names)
+                    except StopIteration:
+                        # The process definition was not found, this should be
+                        # discovered by the static analysis and in any case
+                        # there is nothing we can do about this.
+                        pass
             components[name] = closure
         return components
 
@@ -904,6 +928,12 @@ class ParsedModel(object):
         for name in defined_process_names.difference(used_process_names):
             warning = PepaUnusedProcessDefWarning(name)
             results.warnings.append(warning)
+
+        for name in used_process_names.difference(defined_process_names):
+            error = PepaUndefinedProcessNameError(name)
+            results.errors.append(error)
+
+        # TODO: names defined more than once.
 
         return results
 

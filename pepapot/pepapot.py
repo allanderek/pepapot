@@ -1082,13 +1082,12 @@ class StateBuilderHelper(ComponentVisitor):
 
 class LeafUtilisations(object):
     def __init__(self):
-        self.utilisations = dict()
+        self.utilisations = defaultdict(float)
 
     def utilise_state(self, state, probability):
         # We assume that state is a string representing the local state of
         # the process.
-        previous_utilisation = self.utilisations.get(state, 0.0)
-        self.utilisations[state] = previous_utilisation + probability
+        self.utilisations[state] += probability
 
     def get_utilisations(self):
         return [self.utilisations]
@@ -1096,14 +1095,13 @@ class LeafUtilisations(object):
 
 class AggregationUtilisations(object):
     def __init__(self):
-        self.utilisations = dict()
+        self.utilisations = defaultdict(float)
 
     def utilise_state(self, state, probability):
         # We assume state is a tuple mapping names to numbers
         for local_state, num in state:
             additional_util = probability * num
-            previous_util = self.utilisations.get(local_state, 0.0)
-            self.utilisations[local_state] = previous_util + additional_util
+            self.utilisations[local_state] += additional_util
 
     def get_utilisations(self):
         return [self.utilisations]

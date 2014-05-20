@@ -880,7 +880,7 @@ class ParsedModel(object):
 
         defined_rate_names = set(self.get_defined_rate_names())
         used_rate_names = set(self.get_used_rate_names())
-        
+
         for rate_name in defined_rate_names.difference(used_rate_names):
             warning = PepaUnusedRateNameWarning(rate_name)
             results.warnings.append(warning)

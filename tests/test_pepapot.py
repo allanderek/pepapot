@@ -869,6 +869,14 @@ class PepaUndefinedRateName(TestSimpleNoCoop):
         self.expected_warnings = []
         self.expected_errors = [pepapot.PepaUndefinedRateNameError("s")]
 
+class PepaUnusedProcessDefinition(TestSimpleNoCoop):
+    def setUp(self):
+        super(PepaUnusedProcessDefinition, self).setUp()
+        self.model_source = "PM1 = (a, 1.0).P;\n" + self.model_source
+        self.expected_actions_dictionary["PM1"] = [Action("a", one_expr, "P")]
+
+        self.expected_warnings = [pepapot.PepaUnusedProcessDefWarning("PM1")]
+
 
 # The goal is to build a method which will generate a random PEPA model. This
 # can then be used to do some randomised testing. To do that we require to

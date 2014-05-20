@@ -12,7 +12,6 @@ Options:
 import logging
 from collections import namedtuple
 import functools
-import operator
 
 from docopt import docopt
 import pyparsing
@@ -79,7 +78,7 @@ class Expression:
         self.arguments = []
 
     def __eq__(self, other):
-        return (isinstance(other, self.__class__) and 
+        return (isinstance(other, self.__class__) and
                 self.name == other.name and
                 self.number == other.number and
                 self.arguments == other.arguments)
@@ -91,7 +90,7 @@ class Expression:
         return expression
 
     @classmethod
-    def name_expression (cls, name):
+    def name_expression(cls, name):
         expression = cls()
         expression.name = name
         return expression
@@ -122,7 +121,6 @@ class Expression:
     @classmethod
     def power(cls, left, right):
         return cls.apply_expression("**", [left, right])
-
 
     def used_names(self):
         names = set()
@@ -310,6 +308,7 @@ class PEPAConstantDef(object):
         return cls(tokens[0], tokens[2])
 
 PEPAConstantDef.grammar.setParseAction(PEPAConstantDef.from_tokens)
+
 
 # Generally what we wish to do is *reduce* a set of definitions because some
 # of these will have functional rates. Currently we are not supporting that
@@ -1453,9 +1452,7 @@ class ParsedBioModel(object):
         self.constants = constants
         self.kinetic_laws = kinetic_laws
         self.species_defs = species
-        self.populations = populations # = dict()
-        # for population in populations:
-        #     self.populations[population.species_name] = population.amount
+        self.populations = populations
 
     # Note, this parser does not insist on the end of the input text.
     # Which means in theory you could have something *after* the model text,

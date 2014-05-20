@@ -1579,14 +1579,14 @@ class BioModelSolver(object):
         # We get the environment of constants *first* since if (later) we
         # allow those constants to contain species variables we would not wish
         # to reduce them using the initial populations.
-        # environment = constant_def_environment(self.model.constants)
         environment = reduce_definitions(self.model.constants)
         # So with the environment containing the constant definitions we add
         # the initial populations, these will be overridden at each step.
+        # We must add them as expression because of the way expression
+        # reduction works.
         for population in self.model.populations:
             population_expr = Expression.num_expression(population.amount)
             environment[population.species_name] = population_expr
-        # environment.update(self.model.populations)
 
         # TODO: Check what happens if we have (d, 2) (+) E; that is a
         # stoichiometry that is not one for a modifier, rather than a reactant

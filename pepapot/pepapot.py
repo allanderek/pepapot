@@ -898,6 +898,12 @@ class ParsedModel(object):
             error = PepaUndefinedRateNameError(rate_name)
             results.errors.append(error)
 
+        defined_process_names = self.defined_process_names()
+        used_process_names = self.used_process_names()
+        for name in defined_process_names.difference(used_process_names):
+            warning = PepaUnusedProcessDefWarning(name)
+            results.warnings.append(warning)
+
         return results
 
     def format(self):

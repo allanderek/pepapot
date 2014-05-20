@@ -125,7 +125,10 @@ class Expression:
 
     def used_names(self):
         names = set()
-        if self.name:
+        # For now we do not add function names to the list of used rate names
+        # This seems correct, but if we did allow user-defined functions then
+        # obviously we might wish to know which ones are used.
+        if self.name and not self.arguments:
             names.add(self.name)
         for arg in self.arguments:
             names.update(arg.used_names())

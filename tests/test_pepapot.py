@@ -220,6 +220,9 @@ P2 = (d, 1.0).P;
 """
 one_expr = pepapot.Expression.num_expression(1.0)
 two_expr = pepapot.Expression.num_expression(2.0)
+r_expr = pepapot.Expression.name_expression("r")
+s_expr = pepapot.Expression.name_expression("s")
+
 
 
 def is_valid_gen_matrix(testcase, model_solver):
@@ -444,8 +447,6 @@ R1 = (b, t * s).R;
 
 R <b> (P || Q)
         """
-        r_expr = pepapot.Expression.name_expression("r")
-        s_expr = pepapot.Expression.name_expression("s")
         t_expr = pepapot.Expression.name_expression("t")
         t_s_expr = pepapot.Expression.multiply(t_expr, s_expr)
         self.expected_actions_dictionary = dict()
@@ -843,6 +844,25 @@ class PepaUnusedRateName(TestSimpleNoCoop):
         self.model_source = "j = 10.0;" + self.model_source
 
         self.expected_warnings = [pepapot.PepaUnusedRateNameWarning("j")]
+
+class PepaUndefinedRateName(TestSimpleNoCoop):
+    def setUp(self):
+        self.model_source = """r = 1.0;
+                               P = (a, r).P1;
+                               P1 = (b, s).P;
+                               P
+                            """
+        self.expected_used_process_names = set(["P", "P1"])
+        self.expected_defined_process_names = self.expected_used_process_names
+
+        self.expected_shared_actions = set()
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P3")]
+        self.expected_actions_dictionary["P1"] = [Action("a", s_expr, "P3")]
+
+        self.expected_warnings = []
+        self.expected_errors = [pepapot.PepaUndefinedRateNameError("s")]
 
 
 # The goal is to build a method which will generate a random PEPA model. This

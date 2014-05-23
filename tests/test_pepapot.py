@@ -912,7 +912,7 @@ class PepaRedefinedRateName(TestSimpleNoCoop):
         self.model_source = """r = 1.0;
                                s = 2.0;
                                r = 1.0;
-                               s = 4.0
+                               s = 4.0;
                                P = (a, r).P1;
                                P1 = (b, s).P;
                                P
@@ -941,7 +941,7 @@ class PepaRedefinedProcessName(TestSimpleNoCoop):
     """
     def setUp(self):
         self.model_source = """r = 1.0;
-                               s = 2.0
+                               s = 2.0;
                                P = (a, r).P1;
                                P1 = (b, s).P;
                                P = (a, r).P1;

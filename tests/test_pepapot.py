@@ -900,6 +900,68 @@ class PepaUndefinedProcessName(TestSimpleNoCoop):
         self.expected_errors = [pepapot.PepaUndefinedProcessNameError("P2")]
 
 
+class PepaRedefinedRateName(TestSimpleNoCoop):
+    """
+        Tests that we accurately raise an error if a rate name is redefined.
+        This means we have two conflicting definitions for a rate. This occurs
+        even if the two definitions are identical (this is debatable behaviour
+        but also the easiest to implement so until there is demand for
+        allowing identical definitions we will leave it like this.)
+    """
+    def setUp(self):
+        self.model_source = """r = 1.0;
+                               s = 2.0;
+                               r = 1.0;
+                               s = 4.0
+                               P = (a, r).P1;
+                               P1 = (b, s).P;
+                               P
+                            """
+        self.expected_used_process_names = set(["P", "P1"])
+        self.expected_defined_process_names = set(["P", "P1"])
+
+        self.expected_shared_actions = set()
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", s_expr, "P")]
+
+        self.expected_warnings = []
+        self.expected_errors = [pepapot.PepaRedefinedRateNameError("r"),
+                                pepapot.PepaRedefinedRateNameError("s")]
+
+
+class PepaRedefinedRateName(TestSimpleNoCoop):
+    """
+        Tests that we accurately raise an error if a process name is redefined
+        such that we have two conflicting definitions. As above we still do
+        this even if the definitions are identical, again, this is debatable
+        but until there is demand for alternative behaviour this seems
+        appropriate.
+    """
+    def setUp(self):
+        self.model_source = """r = 1.0;
+                               s = 2.0
+                               P = (a, r).P1;
+                               P1 = (b, s).P;
+                               P = (a, r).P1;
+                               P1 = (b, s).P1;
+                               P
+                            """
+        self.expected_used_process_names = set(["P", "P1"])
+        self.expected_defined_process_names = set(["P", "P1"])
+
+        self.expected_shared_actions = set()
+
+        self.expected_actions_dictionary = dict()
+        self.expected_actions_dictionary["P"] = [Action("a", r_expr, "P1")]
+        self.expected_actions_dictionary["P1"] = [Action("b", s_expr, "P1")]
+
+        self.expected_warnings = []
+        self.expected_errors = [pepapot.PepaRedefinedRateNameError("P"),
+                                pepapot.PepaRedefinedRateNameError("P1")]
+
+
 # The goal is to build a method which will generate a random PEPA model. This
 # can then be used to do some randomised testing. To do that we require to
 # have some properties about the results which we can test. The first and

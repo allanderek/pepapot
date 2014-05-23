@@ -747,7 +747,27 @@ class PepaUndefinedRateNameError(PepaError):
         return NotImplemented  # pragma: no cover
 
 
+class PepaRedefinedRateNameError(PepaError):
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented  # pragma: no cover
+
+
 class PepaUndefinedProcessNameError(PepaError):
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.name == other.name
+        return NotImplemented  # pragma: no cover
+
+
+class PepaRedefinedProcessNameError(PepaError):
     def __init__(self, name):
         self.name = name
 

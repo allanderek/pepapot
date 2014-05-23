@@ -932,6 +932,28 @@ class ParsedModel(object):
     def perform_static_analysis(self):
         results = StaticAnalysis()
 
+        # First check if any names are redefined, that is we have two rate
+        # definitions which define the same name or two process definitions
+        # which define the same name. Currently rate and process names are
+        # syntactically distinguished so it is not possible to redefine a rate
+        # name as a process. However in the interests of defensive programming
+        # I build up a list of names defined as anything so this will still
+        # work even if the above assumption is later broken.
+        defined_names = []
+
+        def calculate_redefinitions(definitions):
+            redefined = []
+            for definition in definitions:
+                if definition.lhs in defined_names:
+                    redefined.append(definition.lhs)
+                else:
+                    defined_names.append(definition.lhs)
+            return redefined
+        for r in calculate_redefinitions(self.constant_defs):
+            results.errors.append(PepaRedefinedRateNameError(r))
+        for p in calculate_redefinitions(self.process_definitions):
+            results.errors.append(PepaRedefinedProcessNameError(p))
+
         defined_rate_names = set(self.get_defined_rate_names())
         used_rate_names = set(self.get_used_rate_names())
 

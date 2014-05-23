@@ -958,8 +958,8 @@ class PepaRedefinedProcessName(TestSimpleNoCoop):
         self.expected_actions_dictionary["P1"] = [Action("b", s_expr, "P1")]
 
         self.expected_warnings = []
-        self.expected_errors = [pepapot.PepaRedefinedRateNameError("P"),
-                                pepapot.PepaRedefinedRateNameError("P1")]
+        self.expected_errors = [pepapot.PepaRedefinedProcessNameError("P"),
+                                pepapot.PepaRedefinedProcessNameError("P1")]
 
 
 # The goal is to build a method which will generate a random PEPA model. This

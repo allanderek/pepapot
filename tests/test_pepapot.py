@@ -931,7 +931,7 @@ class PepaRedefinedRateName(TestSimpleNoCoop):
                                 pepapot.PepaRedefinedRateNameError("s")]
 
 
-class PepaRedefinedRateName(TestSimpleNoCoop):
+class PepaRedefinedProcessName(TestSimpleNoCoop):
     """
         Tests that we accurately raise an error if a process name is redefined
         such that we have two conflicting definitions. As above we still do

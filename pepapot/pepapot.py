@@ -1643,15 +1643,17 @@ class Configuration(object):
 
 
 class TimeCourse(object):
-    def __init__(self, names, rows):
+    def __init__(self, names, time_grid, rows):
         self.column_names = names
+        self.time_grid = time_grid
         self.rows = rows
 
     def output(self, output_file):
-        output_file.write("# ")
+        output_file.write("# Time, ")
         output_file.write(", ".join(self.column_names))
         output_file.write("\n")
-        for row in self.rows:
+        for time, row in zip(self.time_grid, self.rows):
+            output_file.write(str(time) + ", ")
             value_strings = [str(v) for v in row]
             output_file.write(", ".join(value_strings))
             output_file.write("\n")
@@ -1748,7 +1750,7 @@ class BioModelSolver(object):
         # Solve the ODEs
         solution = odeint(get_rhs, initials, time_grid)
 
-        timecourse = TimeCourse(species_names, solution)
+        timecourse = TimeCourse(species_names, time_grid, solution)
         return timecourse
 
 

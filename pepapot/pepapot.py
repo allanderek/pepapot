@@ -1641,6 +1641,18 @@ class Configuration(object):
         self.stop_time = 10.0
         self.out_interval = 1.0
 
+    def get_time_grid(self):
+        """ From a solver configuration return the time points which should
+            be returned from the solver
+        """
+        # putting stop beyond the actual stop time means that the output
+        # will actually include the stop time. Note that in some cases this
+        # may result in stop_time + out_interval actually appearing in the
+        # output as well, see numpy.arange documentation.
+        return numpy.arange(start=self.start_time,
+                            stop=self.stop_time + self.out_interval,
+                            step=self.out_interval)
+
 
 class TimeCourse(object):
     def __init__(self, names, time_grid, rows):
@@ -1657,22 +1669,6 @@ class TimeCourse(object):
             value_strings = [str(v) for v in row]
             output_file.write(", ".join(value_strings))
             output_file.write("\n")
-
-
-def get_time_grid(configuration):
-    """ From a solver configuration return the time points which should
-        be returned from the solver
-    """
-    start_time = configuration.start_time
-    stop_time = configuration.stop_time
-    out_interval = configuration.out_interval
-    # putting stop beyond the actual stop time means that the output
-    # will actually include the stop time. Note that in some cases this
-    # may result in stop_time + out_interval actually appearing in the
-    # output as well, see numpy.arange documentation.
-    return numpy.arange(start=start_time,
-                        stop=stop_time + out_interval,
-                        step=out_interval)
 
 
 class BioModelSolver(object):
@@ -1746,7 +1742,7 @@ class BioModelSolver(object):
         # 'results'
         initials = [environment[name].get_value() for name in species_names]
 
-        time_grid = get_time_grid(configuration)
+        time_grid = configuration.get_time_grid()
         # Solve the ODEs
         solution = odeint(get_rhs, initials, time_grid)
 

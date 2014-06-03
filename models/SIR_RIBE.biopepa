@@ -31,13 +31,13 @@ SF = (N-D)/N;
 TD= I+R;
 
 //rates
-kineticLawOf damageH = p*beta*H*fW; //healthy to damaged (bystander)
-kineticLawOf killingH = (1-p)*beta*H*fW; //healthy to dead (bystander)
-kineticLawOf damageI = q*beta*I*fW; //damaged to further damaged (bystander)
-kineticLawOf killingI = [(1-q)*beta*I*fW]; //damaged to dead (bystander)
-kineticLawOf recover = [gamma*I]; // recovery
-kineticLawOf emit = [eps*I*(100-W)]; // release of signal
-kineticLawOf decay = [delta*W];
+kineticLawOf damageH: p*beta*H*fW; //healthy to damaged (bystander)
+kineticLawOf killingH: (1-p)*beta*H*fW; //healthy to dead (bystander)
+kineticLawOf damageI: q*beta*I*fW; //damaged to further damaged (bystander)
+kineticLawOf killingI: (1-q)*beta*I*fW; //damaged to dead (bystander)
+kineticLawOf recover: gamma*I; // recovery
+kineticLawOf emit: eps*I*(100-W); // release of signal
+kineticLawOf decay: delta*W;
 
 //system
 H = damageH << + killingH <<;

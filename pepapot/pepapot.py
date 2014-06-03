@@ -2,6 +2,7 @@
 
 Usage:
   pepapot.py steady util <name>...
+  pepapot.py timeseries <name>...
   pepapot.py -h | --help
   pepapot.py --version
 
@@ -9,6 +10,7 @@ Options:
   -h --help     Show this screen.
   --version     Show version.
   """
+import os.path
 import logging
 from collections import namedtuple
 from collections import defaultdict
@@ -1711,6 +1713,24 @@ class BioModelSolver(object):
         timecourse = TimeCourse(species_names, solution)
         return timecourse
 
+def analyse_pepa_file(filename, arguments):
+    if arguments['steady'] and arguments['util']:
+        with open(filename, "r") as modelfile:
+            model = parse_model(modelfile.read())
+        model_solver = ModelSolver(model)
+        model_solver.output_steady_utilisations(default_outfile)
+    else:
+        print("Unknown commands for a PEPA file")
+
+
+def analyse_biopepa_file(filename, arguments):
+    if arguments['timeseries']:
+        with open(filename, "r") as modelfile:
+            parse_biomodel(modelfile.read())
+        model_solver = BioModelSolver(model)
+        configuration = Configuration()
+        model_solver.solve_odes(configuration)
+
 
 # Now the command-line stuff
 def run_command_line(default_outfile, argv=None):
@@ -1722,11 +1742,13 @@ def run_command_line(default_outfile, argv=None):
     """
     arguments = docopt(__doc__, argv=argv, version='pepapot 0.1')
     for filename in arguments['<name>']:
-        if arguments['steady'] and arguments['util']:
-            with open(filename, "r") as file:
-                model = parse_model(file.read())
-            model_solver = ModelSolver(model)
-            model_solver.output_steady_utilisations(default_outfile)
+            rootname, extension = os.path.splitext(filename)
+            if extension == ".biopepa":
+                analyse_biopepa_file(filename, arguments)
+            else:
+                # Assume it's a .pepa file
+                analyse_pepa_file(filename, arguments)
+
 
 if __name__ == "__main__":  # pragma: no cover
     import sys

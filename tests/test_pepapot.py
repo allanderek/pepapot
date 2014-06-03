@@ -218,8 +218,10 @@ P = (a, 1.0).P1 + (b, 1.0).P2;
 P1 = (c, 1.0).P;
 P2 = (d, 1.0).P;
 """
+zero_expr = pepapot.Expression.num_expression(0.0)
 one_expr = pepapot.Expression.num_expression(1.0)
 two_expr = pepapot.Expression.num_expression(2.0)
+hundred_expr = pepapot.Expression.num_expression(100.0)
 r_expr = pepapot.Expression.name_expression("r")
 s_expr = pepapot.Expression.name_expression("s")
 
@@ -1087,7 +1089,7 @@ class TestSimpleBioModel(unittest.TestCase):
     def setUp(self):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
-        self.expected_populations = {'M': 1}
+        self.expected_populations = {'M': one_expr}
         self.expected_result = {'M': 4.54009266e-05}
         self.configuration = pepapot.Configuration()
 
@@ -1128,7 +1130,7 @@ class TestReverseBioModel(TestSimpleBioModel):
     def setUp(self):
         self.model_source = reverse_reaction_biopepa_model
         self.expected_number_species = 2
-        self.expected_populations = {'A': 100, 'B': 100}
+        self.expected_populations = {'A': hundred_expr, 'B': hundred_expr}
         self.expected_result = {'A': 66.66667694, 'B': 133.33332306}
         self.configuration = pepapot.Configuration()
 
@@ -1153,7 +1155,10 @@ class TestMMBioModel(TestSimpleBioModel):
     def setUp(self):
         self.model_source = michaelis_menton_biopepa_model
         self.expected_number_species = 4
-        self.expected_populations = {'E': 100, 'S': 100, 'ES': 0.0, 'P': 0.0}
+        self.expected_populations = {'E': hundred_expr,
+                                     'S': hundred_expr,
+                                     'ES': zero_expr,
+                                     'P': zero_expr}
         self.expected_result = {'E': 99.995274249890841,
                                 'S': 4.7736425237154927e-06,
                                 'ES': 0.0047257501091977306,
@@ -1249,7 +1254,7 @@ class TestBioActiviator(TestSimpleBioModel):
                                 A[0] <*> B[100]
                             """
         self.expected_number_species = 2
-        self.expected_populations = {'A': 0, 'B': 100}
+        self.expected_populations = {'A': zero_expr, 'B': hundred_expr}
         self.expected_result = {'A': 999.99999999999977,
                                 'B': 100,
                                 }
@@ -1267,7 +1272,7 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
                                 A[0] <*> B[100]
                             """
         self.expected_number_species = 2
-        self.expected_populations = {'A': 0, 'B': 100}
+        self.expected_populations = {'A': zero_expr, 'B': hundred_expr}
         self.expected_result = {'A': 7.0710678118656602,
                                 'B': 100,
                                 }

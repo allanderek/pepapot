@@ -1520,11 +1520,11 @@ class BioPopulation(object):
         self.species_name = species
         self.amount = amount
 
-    grammar = identifier + "[" + integer + "]"
+    grammar = identifier + "[" + expr_grammar + "]"
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], int(tokens[2]))
+        return cls(tokens[0], tokens[2])
 
 BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
 
@@ -1694,7 +1694,7 @@ class BioModelSolver(object):
         # We must add them as expression because of the way expression
         # reduction works.
         for population in self.model.populations:
-            population_expr = Expression.num_expression(population.amount)
+            population_expr = population.amount.reduce_expr(environment)
             environment[population.species_name] = population_expr
 
         # TODO: Check what happens if we have (d, 2) (+) E; that is a

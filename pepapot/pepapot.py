@@ -15,6 +15,7 @@ import logging
 from collections import namedtuple
 from collections import defaultdict
 import functools
+import math
 
 from docopt import docopt
 import pyparsing
@@ -79,6 +80,20 @@ def evaluate_function_app(name, arg_values):
         for i in range(len(arg_values) - 1, -1, -1):
             exponent = arg_values[i] ** exponent
         return exponent
+    elif name == "exp":
+        if len(arg_values) != 1:
+            raise ValueError("'exp' must have exactly one argument")
+        return math.exp(arg_values[0])
+    elif name == "floor":
+        if len(arg_values) != 1:
+            raise ValueError("'floor' must have exactly one argument")
+        return math.floor(arg_values[0])
+    elif name == "H" or name == "heavyside":
+        if len(arg_values) != 1:
+            raise ValueError("'" + name + "' must have exactly one argument")
+        # H is typically not actually defined for 0, here we have defined
+        # H(0) to be 0. Generally it won't matter much.
+        return 1 if arg_values[0] > 0 else 0
     else:
         raise ValueError("Unknown function name: " + name)
 

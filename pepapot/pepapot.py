@@ -1727,7 +1727,7 @@ class BioModelSolver(object):
         timecourse = TimeCourse(species_names, solution)
         return timecourse
 
-def analyse_pepa_file(filename, arguments):
+def analyse_pepa_file(filename, default_outfile, arguments):
     if arguments['steady'] and arguments['util']:
         with open(filename, "r") as modelfile:
             model = parse_model(modelfile.read())
@@ -1761,7 +1761,7 @@ def run_command_line(default_outfile, argv=None):
                 analyse_biopepa_file(filename, arguments)
             else:
                 # Assume it's a .pepa file
-                analyse_pepa_file(filename, arguments)
+                analyse_pepa_file(filename, default_outfile, arguments)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1740,7 +1740,7 @@ def analyse_pepa_file(filename, default_outfile, arguments):
 def analyse_biopepa_file(filename, arguments):
     if arguments['timeseries']:
         with open(filename, "r") as modelfile:
-            parse_biomodel(modelfile.read())
+            model = parse_biomodel(modelfile.read())
         model_solver = BioModelSolver(model)
         configuration = Configuration()
         model_solver.solve_odes(configuration)

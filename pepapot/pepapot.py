@@ -1562,6 +1562,7 @@ class ParsedBioModel(object):
                BioSpeciesDefinition.list_grammar +
                pyparsing.Group(biosystem_grammar))
     whole_input_grammar = grammar + pyparsing.StringEnd()
+    whole_input_grammar.ignore(pyparsing.dblSlashComment)
 
     @classmethod
     def from_tokens(cls, tokens):

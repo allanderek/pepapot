@@ -24,6 +24,16 @@ from scipy.integrate import odeint
 from lazy import lazy
 
 
+# This speeds up the parser *considerably*. For some models containing nested
+# parentheses in arithmetic expressions the parsing goes from around 1 minute
+# to effectively instantaneously. I confess I'm not sure *why* this works, but
+# more information is available here:
+# http://pyparsing.wikispaces.com/share/view/26068641?replyId=26084853
+# A bit more information available here:
+# http://pyparsing.sourcearchive.com/documentation/1.4.7/
+# classpyparsing_1_1ParserElement_81dd508823f0bf29dce996d788b1eeff.html
+# Note that essentially this is saying you should not have parse actions which
+# have side-effects. I would hope I do not use those anyway.
 pyparsing.ParserElement.enablePackrat()
 
 

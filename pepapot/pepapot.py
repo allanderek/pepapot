@@ -24,6 +24,9 @@ from scipy.integrate import odeint
 from lazy import lazy
 
 
+pyparsing.ParserElement.enablePackrat()
+
+
 def list_product(factors):
     """ Simple utility the same as 'sum' but for the product of the arguments.
         Note: returns 1 for the empty list, which seems reasonable, given that

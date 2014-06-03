@@ -1647,6 +1647,15 @@ class TimeCourse(object):
         self.column_names = names
         self.rows = rows
 
+    def output(self, output_file):
+        output_file.write("# ")
+        output_file.write(", ".join(self.column_names))
+        output_file.write("\n")
+        for row in self.rows:
+            value_strings = [str(v) for v in row]
+            output_file.write(", ".join(value_strings))
+            output_file.write("\n")
+
 
 def get_time_grid(configuration):
     """ From a solver configuration return the time points which should
@@ -1753,13 +1762,14 @@ def analyse_pepa_file(filename, default_outfile, arguments):
         print("Unknown commands for a PEPA file")
 
 
-def analyse_biopepa_file(filename, arguments):
+def analyse_biopepa_file(filename, default_outfile, arguments):
     if arguments['timeseries']:
         with open(filename, "r") as modelfile:
             model = parse_biomodel(modelfile.read())
         model_solver = BioModelSolver(model)
         configuration = Configuration()
-        model_solver.solve_odes(configuration)
+        timecourse = model_solver.solve_odes(configuration)
+        timecourse.output(default_outfile)
 
 
 # Now the command-line stuff
@@ -1774,7 +1784,7 @@ def run_command_line(default_outfile, argv=None):
     for filename in arguments['<name>']:
             rootname, extension = os.path.splitext(filename)
             if extension == ".biopepa":
-                analyse_biopepa_file(filename, arguments)
+                analyse_biopepa_file(filename, default_outfile, arguments)
             else:
                 # Assume it's a .pepa file
                 analyse_pepa_file(filename, default_outfile, arguments)

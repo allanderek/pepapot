@@ -1742,6 +1742,7 @@ class BioModelSolver(object):
         timecourse = TimeCourse(species_names, solution)
         return timecourse
 
+
 def analyse_pepa_file(filename, default_outfile, arguments):
     if arguments['steady'] and arguments['util']:
         with open(filename, "r") as modelfile:

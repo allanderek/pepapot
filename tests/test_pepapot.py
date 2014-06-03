@@ -1278,6 +1278,7 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
                                 }
         self.configuration = pepapot.Configuration()
 
+
 class TestCommandLineBioPEPA(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()

@@ -11,7 +11,7 @@ s=1; //conversion from Gy to hits
 dose=s*Gy; //conversion gray to number of hits FIXED
 
 initH=floor(N*exp(0-dose));
-initI=floor((N*(dose+((dose^2)/2)+((dose^3)/6)+((dose^4)/24)))*exp(0-dose));
+initI=floor((N*(dose+((dose**2)/2)+((dose**3)/6)+((dose**4)/24)))*exp(0-dose));
 initD=N-initH-initI; 
 
 // 6 parameters

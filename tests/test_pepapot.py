@@ -1273,6 +1273,15 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
                                 }
         self.configuration = pepapot.Configuration()
 
+class TestCommandLineBioPEPA(unittest.TestCase):
+    def test_simple(self):
+        memory_file = io.StringIO()
+        pepapot.run_command_line(memory_file, ["timeseries",
+                                               "models/SIR_RIBE.biopepa"])
+        actual_output = memory_file.getvalue()
+        actual_lines = actual_output.split("\n")
+        # TODO: We should of course actually check the output of these lines
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

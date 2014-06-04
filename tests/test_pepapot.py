@@ -1332,6 +1332,43 @@ class TestCommandLineBioPEPA(unittest.TestCase):
         self.assertEqual(actual_output, expected_output)
 
 
+class TestExceptionalErrors(TestExpression):
+    """ A simple test fixture used as something of a dump for testing
+        exceptional behaviour. Admittedly this is partly here to obtain allow
+        full test coverage by testing lines which handle exceptional cases.
+    """
+    def setUp(self):
+        self.expression_source = "exp(1, 2)"
+        self.expected_result = None
+        self.environment = None
+
+    def test_evaluation(self):
+        self.assertRaises(ValueError, self.evaluate_expression)
+        self.expression_source = "floor(1, 2)"
+        self.assertRaises(ValueError, self.evaluate_expression)
+        self.expression_source = "H(1, 2)"
+        self.assertRaises(ValueError, self.evaluate_expression)
+
+    # TODO: We'd really like to check that the error output is equal to what
+    # we think it should be. That may involve 'run_command_line' also taking
+    # in an error file object.
+    def test_invalid_biopepa_command(self):
+        memory_file = io.StringIO()
+        pepapot.run_command_line(memory_file, ["steady", "util",
+                                               "models/SIR_RIBE.biopepa"])
+        actual_output = memory_file.getvalue()
+        expected_output = ""
+        self.assertEqual(actual_output, expected_output)
+
+    def test_invalid_pepa_command(self):
+        memory_file = io.StringIO()
+        pepapot.run_command_line(memory_file, ["timeseries",
+                                               "models/simple.pepa"])
+        actual_output = memory_file.getvalue()
+        expected_output = ""
+        self.assertEqual(actual_output, expected_output)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()

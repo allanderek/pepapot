@@ -1776,8 +1776,7 @@ def analyse_biopepa_file(filename, default_outfile, arguments):
         timecourse = model_solver.solve_odes(configuration)
         timecourse.output(default_outfile)
     else:
-        print("We cannot perform steady-state or " +
-              "utilisations over Bio-PEPA models")
+        print("We cannot perform steady-state analysis over Bio-PEPA models")
 
 
 # Now the command-line stuff

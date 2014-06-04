@@ -2,13 +2,17 @@
 
 Usage:
   pepapot.py steady util <name>...
-  pepapot.py timeseries <name>...
+  pepapot.py timeseries <name> [--start-time=<t>][--stop-time=<t>]
+                               [--output-interval=<t>]
   pepapot.py -h | --help
   pepapot.py --version
 
 Options:
   -h --help     Show this screen.
   --version     Show version.
+  --stop-time=<t>  Set the stop time of the time series [default: 10.0]
+  --start-time=<t>  Set the start time of the time series [default: 0.0]
+  --output-interval=<t>  Set the output interval of time series [default: 1.0]
   """
 import os.path
 import logging
@@ -1639,7 +1643,7 @@ class Configuration(object):
     def __init__(self):
         self.start_time = 0.0
         self.stop_time = 10.0
-        self.out_interval = 1.0
+        self.output_interval = 1.0
 
     def get_time_grid(self):
         """ From a solver configuration return the time points which should
@@ -1650,8 +1654,8 @@ class Configuration(object):
         # may result in stop_time + out_interval actually appearing in the
         # output as well, see numpy.arange documentation.
         return numpy.arange(start=self.start_time,
-                            stop=self.stop_time + self.out_interval,
-                            step=self.out_interval)
+                            stop=self.stop_time + self.output_interval,
+                            step=self.output_interval)
 
 
 class TimeCourse(object):
@@ -1757,7 +1761,7 @@ def analyse_pepa_file(filename, default_outfile, arguments):
         model_solver = ModelSolver(model)
         model_solver.output_steady_utilisations(default_outfile)
     else:
-        print("Unknown commands for a PEPA file")
+        print("We cannot perform a time series operation over PEPA models")
 
 
 def analyse_biopepa_file(filename, default_outfile, arguments):
@@ -1766,8 +1770,14 @@ def analyse_biopepa_file(filename, default_outfile, arguments):
             model = parse_biomodel(modelfile.read())
         model_solver = BioModelSolver(model)
         configuration = Configuration()
+        configuration.start_time = float(arguments["--start-time"])
+        configuration.stop_time = float(arguments["--stop-time"])
+        configuration.output_interval = float(arguments["--output-interval"])
         timecourse = model_solver.solve_odes(configuration)
         timecourse.output(default_outfile)
+    else:
+        print("We cannot perform steady-state or " +
+              "utilisations over Bio-PEPA models")
 
 
 # Now the command-line stuff

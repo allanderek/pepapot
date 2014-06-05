@@ -1060,16 +1060,37 @@ class TestParseError(unittest.TestCase):
                           pepapot.parse_model, self.model_source)
 
 
-class TestCommandLine(unittest.TestCase):
+class CommandLine(unittest.TestCase):
+    def configure_output(self):
+        # For testing both output and error are written to a memory file so
+        # that we can easily compare the output with expected output
+        out_file = io.StringIO()
+        err_file = io.StringIO()
+        return pepapot.OutputConfiguration(out_file, err_file)
+
+    def execute_command(self, command):
+        output_conf = self.configure_output()
+        pepapot.run_command_line(output_conf, command)
+        actual_output = output_conf.default_outfile.getvalue()
+        actual_error = output_conf.error_file.getvalue()
+        return actual_output, actual_error
+
+    def check_command(self, command, expected_output, expected_error):
+        actual_output, actual_error = self.execute_command(command)
+        self.assertEqual(actual_output, expected_output)
+        self.assertEqual(actual_error, expected_error)
+
+
+class TestPepaCommandLine(CommandLine):
     def test_simple(self):
-        memory_file = io.StringIO()
-        pepapot.run_command_line(memory_file, ["steady", "util",
-                                               "models/simple.pepa"])
-        actual_output = memory_file.getvalue()
-        actual_lines = actual_output.split("\n")
+        command = ["steady", "util", "models/simple.pepa"]
+        expected_error = ""
         expected_lines = ["P1 : 0.4", "P : 0.6", "Q : 0.6", "Q1 : 0.4"]
+        actual_output, actual_error = self.execute_command(command)
+        actual_lines = actual_output.split("\n")
         for line in expected_lines:
             self.assertIn(line, actual_lines)
+        self.assertEqual(actual_error, expected_error)
 
 ## Now we test for Bio-PEPA models
 
@@ -1318,19 +1339,16 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         ode_result = self.get_ode_result(self.model_source)
         ssa_result = self.get_ssa_result(self.model_source)
 
-        left_final_row = list(left_result.rows[-1])
-        right_final_row = list(right_result.rows[-1])
+        ode_final_row = list(ode_result.rows[-1])
+        ssa_final_row = list(ssa_result.rows[-1])
         for left, right in zip(ode_final_row, ssa_final_row):
             difference = abs(left - right)
             self.assertLess(difference, self.tolerance)
 
 
-class TestCommandLineBioPEPA(unittest.TestCase):
+class TestCommandLineBioPEPA(CommandLine):
     def test_simple(self):
-        memory_file = io.StringIO()
-        pepapot.run_command_line(memory_file, ["timeseries",
-                                               "models/SIR_RIBE.biopepa"])
-        actual_output = memory_file.getvalue()
+        command = ["timeseries", "models/SIR_RIBE.biopepa"]
         expected_output = """# Time, H, I, R, D, W
 0.0, 367.0, 628.0, 0.0, 5.0, 0.0
 1.0, 367.0, 623.530178971, 4.46982102915, 5.0, 6.58967463619
@@ -1344,16 +1362,13 @@ class TestCommandLineBioPEPA(unittest.TestCase):
 9.0, 361.67434416, 580.352410696, 45.9536718053, 12.019573339, 41.7553603885
 10.0, 360.699140548, 574.668023523, 51.3460282856, 13.2868076435, 44.5452346715
 """
-        self.assertEqual(actual_output, expected_output)
+        expected_error = ""
+        self.check_command(command, expected_output, expected_error)
 
     def test_time_configuration(self):
-        memory_file = io.StringIO()
-        pepapot.run_command_line(memory_file, ["timeseries",
-                                               "models/SIR_RIBE.biopepa",
-                                               "--stop-time", "11.0",
-                                               "--start-time", "2.0",
-                                               "--output-interval", "0.5"])
-        actual_output = memory_file.getvalue()
+        command = ["timeseries", "models/SIR_RIBE.biopepa",
+                   "--stop-time", "11.0", "--start-time", "2.0",
+                   "--output-interval", "0.5"]
         expected_output = """# Time, H, I, R, D, W
 2.0, 367.0, 628.0, 0.0, 5.0, 0.0
 2.5, 367.0, 625.761098498, 2.2389015018, 5.0, 3.37311391223
@@ -1375,7 +1390,8 @@ class TestCommandLineBioPEPA(unittest.TestCase):
 10.5, 362.162934256, 583.215655046, 43.2388358424, 11.3825748551, 40.2574686097
 11.0, 361.674344168, 580.352410708, 45.9536717958, 12.019573329, 41.7553603888
 """
-        self.assertEqual(actual_output, expected_output)
+        expected_error = ""
+        self.check_command(command, expected_output, expected_error)
 
 
 class TestExceptionalErrors(TestExpression):
@@ -1395,24 +1411,19 @@ class TestExceptionalErrors(TestExpression):
         self.expression_source = "H(1, 2)"
         self.assertRaises(ValueError, self.evaluate_expression)
 
-    # TODO: We'd really like to check that the error output is equal to what
-    # we think it should be. That may involve 'run_command_line' also taking
-    # in an error file object.
+
+class ExceptionalErrorsCommandLine(CommandLine):
     def test_invalid_biopepa_command(self):
-        memory_file = io.StringIO()
-        pepapot.run_command_line(memory_file, ["steady", "util",
-                                               "models/SIR_RIBE.biopepa"])
-        actual_output = memory_file.getvalue()
+        command = ["steady", "util", "models/SIR_RIBE.biopepa"]
         expected_output = ""
-        self.assertEqual(actual_output, expected_output)
+        msg = "We cannot perform steady-state analysis over Bio-PEPA models\n"
+        self.check_command(command, expected_output, msg)
 
     def test_invalid_pepa_command(self):
-        memory_file = io.StringIO()
-        pepapot.run_command_line(memory_file, ["timeseries",
-                                               "models/simple.pepa"])
-        actual_output = memory_file.getvalue()
+        command = ["timeseries", "models/simple.pepa"]
         expected_output = ""
-        self.assertEqual(actual_output, expected_output)
+        msg = "We cannot perform a time series operation over PEPA models\n"
+        self.check_command(command, expected_output, msg)
 
 
 if __name__ == '__main__':

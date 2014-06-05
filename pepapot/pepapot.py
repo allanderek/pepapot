@@ -1754,17 +1754,24 @@ class BioModelSolver(object):
         return timecourse
 
 
-def analyse_pepa_file(filename, default_outfile, arguments):
+class OutputConfiguration(object):
+    def __init__(self, default_outfile, error_file):
+        self.default_outfile = default_outfile
+        self.error_file = error_file
+
+
+def analyse_pepa_file(filename, output_conf, arguments):
     if arguments['steady'] and arguments['util']:
         with open(filename, "r") as modelfile:
             model = parse_model(modelfile.read())
         model_solver = ModelSolver(model)
-        model_solver.output_steady_utilisations(default_outfile)
+        model_solver.output_steady_utilisations(output_conf.default_outfile)
     else:
-        print("We cannot perform a time series operation over PEPA models")
+        msg = "We cannot perform a time series operation over PEPA models"
+        output_conf.error_file.write(msg + "\n")
 
 
-def analyse_biopepa_file(filename, default_outfile, arguments):
+def analyse_biopepa_file(filename, output_conf, arguments):
     if arguments['timeseries']:
         with open(filename, "r") as modelfile:
             model = parse_biomodel(modelfile.read())
@@ -1774,13 +1781,14 @@ def analyse_biopepa_file(filename, default_outfile, arguments):
         configuration.stop_time = float(arguments["--stop-time"])
         configuration.output_interval = float(arguments["--output-interval"])
         timecourse = model_solver.solve_odes(configuration)
-        timecourse.output(default_outfile)
+        timecourse.output(output_conf.default_outfile)
     else:
-        print("We cannot perform steady-state analysis over Bio-PEPA models")
+        msg = "We cannot perform steady-state analysis over Bio-PEPA models"
+        output_conf.error_file.write(msg + "\n")
 
 
 # Now the command-line stuff
-def run_command_line(default_outfile, argv=None):
+def run_command_line(output_conf, argv=None):
     """The default_out argument is used to specify a *default* output file.
        We should also have a command-line option to specify the output file.
        The reason this method takes it in as an argument is to allow
@@ -1791,12 +1799,13 @@ def run_command_line(default_outfile, argv=None):
     for filename in arguments['<name>']:
             rootname, extension = os.path.splitext(filename)
             if extension == ".biopepa":
-                analyse_biopepa_file(filename, default_outfile, arguments)
+                analyse_biopepa_file(filename, output_conf, arguments)
             else:
                 # Assume it's a .pepa file
-                analyse_pepa_file(filename, default_outfile, arguments)
+                analyse_pepa_file(filename, output_conf, arguments)
 
 
 if __name__ == "__main__":  # pragma: no cover
     import sys
-    run_command_line(sys.stdout)
+    output_conf = OutputConfiguration(sys.stdout, sys.stderr)
+    run_command_line(output_conf)

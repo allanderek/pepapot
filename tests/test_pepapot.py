@@ -1310,14 +1310,7 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         similar results which is not always the case (eg. oscillators).
     """
     def setUp(self):
-        self.model_source = """ kineticLawOf a: fMA(1.0);
-                                kineticLawOf b: fMA(1.0);
-
-                                A = a >> + (b, 2) << ;
-                                B = a (+) ;
-
-                                A[0] <*> B[100]
-                            """
+        self.model_source = reverse_reaction_biopepa_model
         self.configuration = pepapot.Configuration()
         self.tolerance = 1.0
 

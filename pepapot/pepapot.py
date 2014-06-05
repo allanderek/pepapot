@@ -1679,11 +1679,6 @@ class BioModelSolver(object):
     def __init__(self, model):
         self.model = model
 
-    # TODO: When I am confident that the expression reduction implementation
-    # is mature and sound, then I should apply it somewhere here. I probably
-    # want a separate method so that all solver methods (odes, ssa, etc.) do
-    # not need to re-implement it again. Should be quite simple.
-
     def solve_odes(self, configuration):
         """ Solves the model, to give a timeseries, by converting the model
             to a series of ODEs.

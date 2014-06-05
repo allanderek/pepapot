@@ -20,6 +20,7 @@ from collections import namedtuple
 from collections import defaultdict
 import functools
 import math
+import random
 
 from docopt import docopt
 import pyparsing
@@ -1675,9 +1676,133 @@ class TimeCourse(object):
             output_file.write("\n")
 
 
+reverse_reaction_biopepa_model = """
+delta = 1.0;
+gamma = 0.5;
+
+kineticLawOf r : delta * A;
+kineticLawOf rm : gamma * B;
+
+A = (r, 1) << A + (rm, 1) >> A;
+B = (r, 1) >> B + (rm, 1) << B;
+
+A[100] <*> B[100]
+"""
+
+
+class SimulationAction(object):
+    def __init__(self, name, rate):
+        self.name = name
+        self.rate = rate
+
+class FakeSimulation(object):
+    def __init__(self):
+        self.state = {"A": 100.0, "B": 100.0}
+
+    def available_actions(self):
+        pop_a = self.state["A"]
+        pop_b = self.state["B"]
+        available_actions = []
+
+        if pop_a > 0:
+            available_actions.append(SimulationAction("r", pop_a * 1.0))
+        if pop_b > 0:
+            available_actions.append(SimulationAction("rm", pop_b * 0.5))
+
+        return available_actions
+
+    def perform_action(self, action):
+        if action.name == "r":
+            self.state["A"] -= 1
+            self.state["B"] += 1
+        elif action.name == "rm":
+            self.state["A"] += 1
+            self.state["B"] -= 1
+        else:
+            raise ValueError("No such action in simulation.")
+
+    def row_of_state(self):
+        return [self.state["A"], self.state["B"]]
+
+def exponential_delay(mean):
+    """From the given average length samples randomly to give an
+       exponentially distributed delay. Remember, the argument here is the
+       average *delay* so if you have a *rate* then take the recipriocal
+       to get the average delay, eg:
+       delay = exponential_delay(1.0 / rate)
+    """
+    return -mean * math.log(random.random())
+
+def average(values):
+    return sum(values) / len(values)
+
+class StochasticSimulator(object):
+    def __init__(self, configuration):
+        self.configuration = configuration
+        self.simulation = FakeSimulation()
+
+
+    def choose_action(self, actions):
+        total_rate = sum([a.rate for a in actions])
+        dice = random.random() * total_rate
+        counter = 0.0
+        for action in actions:
+            counter += action.rate
+            if counter >= dice:
+                chosen_action = action
+                break
+        else:
+            raise ValueError("Dice greater than total rate")
+        mean_delay = 1.0 / total_rate
+        delay = exponential_delay(mean_delay)
+        return (delay, chosen_action)
+
+
+    def run_single_simulation(self):
+        self.simulation = FakeSimulation()
+        time = 0.0
+        solution = [self.simulation.row_of_state()]
+
+        while time < self.configuration.stop_time:
+            actions = self.simulation.available_actions()
+            # Choose an action and a delay for that action
+            delay, action = self.choose_action(actions)
+            # Update the state based on that action
+            self.simulation.perform_action(action)
+            time += delay
+
+        solution.append(self.simulation.row_of_state())
+        return solution
+
+    def run_simulation(self):
+        solutions = [self.run_single_simulation() for i in range(100)]
+        solution = [[average([s[0][0] for s in solutions]),
+                     average([s[0][1] for s in solutions])],
+                    [average([s[1][0] for s in solutions]),
+                     average([s[1][1] for s in solutions])]
+                    ]
+
+        time_grid = [0.0, self.configuration.stop_time]
+        # self.configuration.get_time_grid()
+
+        # Okay this is obvious crap. I think the simulation will have to
+        # maintain the time course.
+        timecourse = TimeCourse(["A", "B"], time_grid, solution)
+
+        return timecourse
+
+     
+
+
+
 class BioModelSolver(object):
     def __init__(self, model):
         self.model = model
+
+    def stochastic_simulation(self, configuration):
+        """ Solve the model using stochastic simulation """
+        simulator = StochasticSimulator(configuration)
+        return simulator.run_simulation()
 
     def solve_odes(self, configuration):
         """ Solves the model, to give a timeseries, by converting the model

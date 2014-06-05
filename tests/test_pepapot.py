@@ -1279,6 +1279,52 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
         self.configuration = pepapot.Configuration()
 
 
+class TestStochasticSimulationBioPEPA(unittest.TestCase):
+    """ This fixture solves the specified model using both stochastic
+        simulation and the ODE solver. It then checks that the two results
+        are close enough to each other. Of course this is rather vaguely
+        specified as "close enough". It is up to the tester of a particular
+        model to determine what that means, and additionally that you really
+        do expect both the stochastic simulation and the ODE to produce
+        similar results which is not always the case (eg. oscillators).
+    """
+    def setUp(self):
+        self.model_source = """ kineticLawOf a: fMA(1.0);
+                                kineticLawOf b: fMA(1.0);
+
+                                A = a >> + (b, 2) << ;
+                                B = a (+) ;
+
+                                A[0] <*> B[100]
+                            """
+        self.configuration = pepapot.Configuration()
+        self.tolerance = 1.0
+
+    def get_ode_result(self, model_source):
+        model = pepapot.parse_biomodel(model_source)
+        model_solver = pepapot.BioModelSolver(model)
+        result = model_solver.solve_odes(self.configuration)
+        return result
+
+    def get_ssa_result(self, model_source):
+        model = pepapot.parse_biomodel(model_source)
+        model_solver = pepapot.BioModelSolver(model)
+        result = model_solver.stochastic_simulation(self.configuration)
+        return result
+
+    def test_agreement(self):
+        # Of course we could just parse the model once and even use the same
+        # ODE solver, but re-starting the entire process seems more defensive
+        ode_result = self.get_ode_result(self.model_source)
+        ssa_result = self.get_ssa_result(self.model_source)
+
+        left_final_row = list(left_result.rows[-1])
+        right_final_row = list(right_result.rows[-1])
+        for left, right in zip(ode_final_row, ssa_final_row):
+            difference = abs(left - right)
+            self.assertLess(difference, self.tolerance)
+
+
 class TestCommandLineBioPEPA(unittest.TestCase):
     def test_simple(self):
         memory_file = io.StringIO()

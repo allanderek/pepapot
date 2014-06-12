@@ -1497,14 +1497,32 @@ class BioBehaviour(object):
     def from_tokens(cls, tokens):
         return cls(tokens[0][0], tokens[0][1], tokens[1], tokens[2])
 
-    def get_expression(self, kinetic_laws):
-        if self.role == "<<":
-            modifier = -1 * self.stoichiometry
-        elif self.role == ">>":
-            modifier = 1 * self.stoichiometry
+    def get_population_precondition(self):
+        """ Returns the pre-condition to fire this behaviour in a discrete
+            simulation. So for example a reactant with stoichiometry 2 will
+            require a population of at least 2.
+        """
+        # TODO: Not quite sure what to do with general modifier here?
+        if self.role in ["<<", "(+)"]:
+            return self.stoichiometry
         else:
-            modifier = 0
+            return 0
 
+    def get_population_modifier(self):
+        """ Returns the effect this behaviour has on the associated population
+            if the behaviour were to be 'fired' once. So for example a
+            reactant with stoichiometry 2, will return a population modifier
+            of -2.
+        """
+        if self.role == "<<":
+            return -1 * self.stoichiometry
+        elif self.role == ">>":
+            return 1 * self.stoichiometry
+        else:
+            return 0
+
+    def get_expression(self, kinetic_laws):
+        modifier = self.get_population_modifier()
         expr = kinetic_laws[self.reaction_name]
         if modifier == 0:
             expr = Expression.num_expression(0.0)
@@ -1719,41 +1737,73 @@ B = (r, 1) >> B + (rm, 1) << B;
 A[100] <*> B[100]
 """
 
-
-class SimulationAction(object):
-    def __init__(self, name, rate):
-        self.name = name
-        self.rate = rate
+SimulationAction = namedtuple("SimulationAction", ["name", "rate",
+                                                   "pre_condition",
+                                                   "post_condition"])
 
 
-class FakeSimulation(object):
-    def __init__(self):
-        self.state = {"A": 100.0, "B": 100.0}
+class BioPepaSimulation(object):
+    def __init__(self, model):
+        self.model = model
+        self.state = {population.species_name: population.amount.get_value()
+                      for population in self.model.populations}
+        self.all_actions = self.calculate_all_actions()
+        self.environment = reduce_definitions(self.model.constants)
 
     def available_actions(self):
-        pop_a = self.state["A"]
-        pop_b = self.state["B"]
-        available_actions = []
-
-        if pop_a > 0:
-            available_actions.append(SimulationAction("r", pop_a * 1.0))
-        if pop_b > 0:
-            available_actions.append(SimulationAction("rm", pop_b * 0.5))
-
-        return available_actions
+        # TODO: This might be a bit inefficient, but it is not clear
+        # how else we can do this. Firstly we should be able to have a
+        # model reduction which takes the original model and reduces it as
+        # far as possible, in particular removing all constant names. But even
+        # then we might have non-constant names such as 'time'.
+        # Secondly, it is a shame that we have to convert the state into num
+        # expressions, but I cannot think of an elegant way around this. One
+        # possibility is to allow reduce_expr to work when given an
+        # environment which maps names to values (rather than expressions).
+        # We have a similar problem in the ODE solver.
+        for name, value in self.state.items():
+            self.environment[name] = Expression.num_expression(value)
+        return [a._replace(rate=a.rate.get_value(self.environment))
+                for a in self.all_actions if a.pre_condition(self.state)]
 
     def perform_action(self, action):
-        if action.name == "r":
-            self.state["A"] -= 1
-            self.state["B"] += 1
-        elif action.name == "rm":
-            self.state["A"] += 1
-            self.state["B"] -= 1
-        else:
-            raise ValueError("No such action in simulation.")
+        action.post_condition(self.state)
 
-    def row_of_state(self):
-        return [self.state["A"], self.state["B"]]
+    def row_of_state(self, names):
+        return [self.state[name] for name in names]
+
+    def action_of_kinetic_law(self, kinetic_law):
+        name = kinetic_law.lhs
+        pres = []
+        posts = []
+        for species_def in self.model.species_defs:
+            species = species_def.lhs
+            behaviours = [b for b in species_def.rhs
+                          if b.reaction_name == name]
+            for behaviour in behaviours:
+                precondition = behaviour.get_population_precondition()
+                if precondition:
+                    pres.append((species, precondition))
+                postcondition = behaviour.get_population_modifier()
+                if postcondition:
+                    posts.append((species, postcondition))
+
+        def pre_condition(state):
+            for (species, value) in pres:
+                if state[species] < value:
+                    return False
+            return True
+
+        def post_condition(state):
+            for (species, value) in posts:
+                state[species] += value
+
+        return SimulationAction(name, kinetic_law.rhs,
+                                pre_condition, post_condition)
+
+    def calculate_all_actions(self):
+        return [self.action_of_kinetic_law(kinetic_law)
+                for kinetic_law in self.model.kinetic_laws]
 
 
 def exponential_delay(mean):
@@ -1767,9 +1817,9 @@ def exponential_delay(mean):
 
 
 class StochasticSimulator(object):
-    def __init__(self, configuration):
+    def __init__(self, model, configuration):
         self.configuration = configuration
-        self.simulation = FakeSimulation()
+        self.model = model
 
     def choose_action(self, actions):
         total_rate = sum([a.rate for a in actions])
@@ -1787,19 +1837,19 @@ class StochasticSimulator(object):
         return (delay, chosen_action)
 
     def run_single_simulation(self):
-        self.simulation = FakeSimulation()
+        simulation = BioPepaSimulation(self.model)
         time = 0.0
-        solution = [self.simulation.row_of_state()]
+        solution = [simulation.row_of_state(["A", "B"])]
 
         while time < self.configuration.stop_time:
-            actions = self.simulation.available_actions()
+            actions = simulation.available_actions()
             # Choose an action and a delay for that action
             delay, action = self.choose_action(actions)
             # Update the state based on that action
-            self.simulation.perform_action(action)
+            simulation.perform_action(action)
             time += delay
 
-        solution.append(self.simulation.row_of_state())
+        solution.append(simulation.row_of_state(["A", "B"]))
 
         # Okay this is obvious crap. I think the simulation will have to
         # maintain the time course.
@@ -1824,7 +1874,7 @@ class BioModelSolver(object):
 
     def stochastic_simulation(self, configuration):
         """ Solve the model using stochastic simulation """
-        simulator = StochasticSimulator(configuration)
+        simulator = StochasticSimulator(self.model, configuration)
         return simulator.run_simulation()
 
     def solve_odes(self, configuration):

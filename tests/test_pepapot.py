@@ -1310,7 +1310,9 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         similar results which is not always the case (eg. oscillators).
     """
     def setUp(self):
-        self.model_source = reverse_reaction_biopepa_model
+        self.model_sources = [simple_biopepa_model,
+                              reverse_reaction_biopepa_model,
+                              michaelis_menton_biopepa_model]
         self.configuration = pepapot.Configuration()
         self.configuration.num_independent_runs = 100
         self.tolerance = 1.0
@@ -1328,16 +1330,18 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         return result
 
     def test_agreement(self):
-        # Of course we could just parse the model once and even use the same
-        # ODE solver, but re-starting the entire process seems more defensive
-        ode_result = self.get_ode_result(self.model_source)
-        ssa_result = self.get_ssa_result(self.model_source)
+        for model_source in self.model_sources:
+            # Of course we could just parse the model once and even use the
+            # same ODE solver, but re-starting the entire process seems more
+            # defensive
+            ode_result = self.get_ode_result(model_source)
+            ssa_result = self.get_ssa_result(model_source)
 
-        ode_final_row = list(ode_result.rows[-1])
-        ssa_final_row = list(ssa_result.rows[-1])
-        for left, right in zip(ode_final_row, ssa_final_row):
-            difference = abs(left - right)
-            self.assertLess(difference, self.tolerance)
+            ode_final_row = list(ode_result.rows[-1])
+            ssa_final_row = list(ssa_result.rows[-1])
+            for left, right in zip(ode_final_row, ssa_final_row):
+                difference = abs(left - right)
+                self.assertLess(difference, self.tolerance)
 
 
 class TestCommandLineBioPEPA(CommandLine):

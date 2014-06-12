@@ -1645,6 +1645,10 @@ class Configuration(object):
         self.start_time = 0.0
         self.stop_time = 10.0
         self.output_interval = 1.0
+        # Of course this only makes sense for simulations where we might wish
+        # to take the average of a number of runs, not for ODEs in which each
+        # run should produce the same answer.
+        self.num_independent_runs = 1.0
 
     def get_time_grid(self):
         """ From a solver configuration return the time points which should
@@ -1664,6 +1668,10 @@ class TimeCourse(object):
         self.column_names = names
         self.time_grid = time_grid
         self.rows = rows
+        # A time course may represent many time courses averaged together.
+        # If that is the case in order to incorporate further time courses
+        # we must know how many have so far been incorporated.
+        self.num_averaged = 1.0
 
     def output(self, output_file):
         output_file.write("# Time, ")
@@ -1674,6 +1682,28 @@ class TimeCourse(object):
             value_strings = [str(v) for v in row]
             output_file.write(", ".join(value_strings))
             output_file.write("\n")
+
+    def update_average(self, other):
+        """ Incorporate the given time course into this time course as an
+            average of the two. Note that either or both of the time courses,
+            may already represent an averaged time course. This is a
+            destructive update.
+        """
+        # Not sure I want this to be an assert, but we certainly want
+        # something to check this.
+        assert(self.column_names == other.column_names)
+        assert(self.time_grid == other.time_grid)
+        total_runs = self.num_averaged + other.num_averaged
+
+        def average_pair(left_value, right_value):
+            left_prod = left_value * self.num_averaged
+            right_prod = right_value * other.num_averaged
+            return (left_prod + right_prod) / total_runs
+
+        def combine_rows(left_row, right_row):
+            return [average_pair(l, r) for l, r in zip(left_row, right_row)]
+        self.rows = [combine_rows(l, r) for l, r in zip(self.rows, other.rows)]
+        self.num_averaged = total_runs
 
 
 reverse_reaction_biopepa_model = """
@@ -1694,6 +1724,7 @@ class SimulationAction(object):
     def __init__(self, name, rate):
         self.name = name
         self.rate = rate
+
 
 class FakeSimulation(object):
     def __init__(self):
@@ -1724,6 +1755,7 @@ class FakeSimulation(object):
     def row_of_state(self):
         return [self.state["A"], self.state["B"]]
 
+
 def exponential_delay(mean):
     """From the given average length samples randomly to give an
        exponentially distributed delay. Remember, the argument here is the
@@ -1733,14 +1765,11 @@ def exponential_delay(mean):
     """
     return -mean * math.log(random.random())
 
-def average(values):
-    return sum(values) / len(values)
 
 class StochasticSimulator(object):
     def __init__(self, configuration):
         self.configuration = configuration
         self.simulation = FakeSimulation()
-
 
     def choose_action(self, actions):
         total_rate = sum([a.rate for a in actions])
@@ -1757,7 +1786,6 @@ class StochasticSimulator(object):
         delay = exponential_delay(mean_delay)
         return (delay, chosen_action)
 
-
     def run_single_simulation(self):
         self.simulation = FakeSimulation()
         time = 0.0
@@ -1772,27 +1800,22 @@ class StochasticSimulator(object):
             time += delay
 
         solution.append(self.simulation.row_of_state())
-        return solution
-
-    def run_simulation(self):
-        solutions = [self.run_single_simulation() for i in range(100)]
-        solution = [[average([s[0][0] for s in solutions]),
-                     average([s[0][1] for s in solutions])],
-                    [average([s[1][0] for s in solutions]),
-                     average([s[1][1] for s in solutions])]
-                    ]
-
-        time_grid = [0.0, self.configuration.stop_time]
-        # self.configuration.get_time_grid()
 
         # Okay this is obvious crap. I think the simulation will have to
         # maintain the time course.
+        time_grid = [0.0, self.configuration.stop_time]
         timecourse = TimeCourse(["A", "B"], time_grid, solution)
 
         return timecourse
 
-     
-
+    def run_simulation(self):
+        timecourse = self.run_single_simulation()
+        runs = self.configuration.num_independent_runs - 1
+        while runs:
+            runs -= 1
+            additional_timecourse = self.run_single_simulation()
+            timecourse.update_average(additional_timecourse)
+        return timecourse
 
 
 class BioModelSolver(object):

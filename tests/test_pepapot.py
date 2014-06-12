@@ -1312,6 +1312,7 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
     def setUp(self):
         self.model_source = reverse_reaction_biopepa_model
         self.configuration = pepapot.Configuration()
+        self.configuration.num_independent_runs = 100
         self.tolerance = 1.0
 
     def get_ode_result(self, model_source):

@@ -1838,8 +1838,9 @@ class StochasticSimulator(object):
 
     def run_single_simulation(self):
         simulation = BioPepaSimulation(self.model)
+        species_names = [spec_def.lhs for spec_def in self.model.species_defs]
         time = 0.0
-        solution = [simulation.row_of_state(["A", "B"])]
+        solution = [simulation.row_of_state(species_names)]
 
         while time < self.configuration.stop_time:
             actions = simulation.available_actions()
@@ -1849,12 +1850,12 @@ class StochasticSimulator(object):
             simulation.perform_action(action)
             time += delay
 
-        solution.append(simulation.row_of_state(["A", "B"]))
+        solution.append(simulation.row_of_state(species_names))
 
         # Okay this is obvious crap. I think the simulation will have to
         # maintain the time course.
         time_grid = [0.0, self.configuration.stop_time]
-        timecourse = TimeCourse(["A", "B"], time_grid, solution)
+        timecourse = TimeCourse(species_names, time_grid, solution)
 
         return timecourse
 

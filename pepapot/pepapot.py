@@ -1822,6 +1822,13 @@ class StochasticSimulator(object):
         self.model = model
 
     def choose_action(self, actions):
+        # TODO: We should probably do something better when there are no
+        # actions left to perform. That means we have hit a deadlock, for some
+        # models we will simply wish to report that, other we will simply wish
+        # for the populations to remain constant to the end of the simulation
+        # time (because you are averaging and perhaps deadlock is reasonable).
+        if not actions:
+            raise ValueError("No actions are enabled: deadlock reached")
         total_rate = sum([a.rate for a in actions])
         dice = random.random() * total_rate
         counter = 0.0

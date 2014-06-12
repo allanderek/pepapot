@@ -1667,6 +1667,7 @@ class Configuration(object):
         # to take the average of a number of runs, not for ODEs in which each
         # run should produce the same answer.
         self.num_independent_runs = 1.0
+        self.ignore_deadlock = False
 
     def get_time_grid(self):
         """ From a solver configuration return the time points which should
@@ -1851,6 +1852,11 @@ class StochasticSimulator(object):
 
         while time < self.configuration.stop_time:
             actions = simulation.available_actions()
+            if not actions and self.configuration.ignore_deadlock:
+                # TODO: we will instead need to fill in the remaining
+                # time points, but we are not really filling in time points
+                # yet anyway.
+                break
             # Choose an action and a delay for that action
             delay, action = self.choose_action(actions)
             # Update the state based on that action
@@ -1882,6 +1888,12 @@ class BioModelSolver(object):
 
     def stochastic_simulation(self, configuration):
         """ Solve the model using stochastic simulation """
+        # TODO: Both stochastic simulation and ODE solver does some common
+        # pre-computation over the model, including this removal of the rate
+        # laws, but also the reduction of rate constants. We should factor
+        # this common code out. Easy enough for expanding rate laws, but not
+        # quite sure about reducing the rate constants.
+        self.model.expand_rate_laws()
         simulator = StochasticSimulator(self.model, configuration)
         return simulator.run_simulation()
 

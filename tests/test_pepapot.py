@@ -1310,9 +1310,11 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         similar results which is not always the case (eg. oscillators).
     """
     def setUp(self):
-        self.model_sources = [reverse_reaction_biopepa_model,
+        self.model_sources = [simple_biopepa_model,
+                              reverse_reaction_biopepa_model,
                               michaelis_menton_biopepa_model]
         self.configuration = pepapot.Configuration()
+        self.configuration.ignore_deadlock = True
         self.configuration.num_independent_runs = 100
         self.tolerance = 1.0
 

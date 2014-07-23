@@ -1,4 +1,5 @@
 from bottle import route, default_app
+import bottle
 
 @route('/name/<name>')
 def nameindex(name='Stranger'):
@@ -8,10 +9,8 @@ def nameindex(name='Stranger'):
 def index():
     return '<strong>Hello World!</strong>'
 
-# This must be added in order to do correct path lookups for the views
-import os
-from bottle import TEMPLATE_PATH
-TEMPLATE_PATH.append(os.path.join(os.environ['OPENSHIFT_HOMEDIR'], 
-    'runtime/repo/wsgi/views/')) 
-
 application=default_app()
+
+if __name__ == '__main__':
+    bottle.debug()
+    bottle.run()

@@ -64,6 +64,16 @@ def index():
 
     return '<strong>Hello World!</strong>' + persons_string
 
+@route('/add/<name>')
+def add_person(name='Stranger'):
+    DBSession = sessionmaker()
+    DBSession.bind = engine
+    session = DBSession()
+    new_person = Person(name=name)
+    session.add(new_person)
+    session.commit()
+    return """To see the new database <a href="/">click here</a>"""
+
 application=default_app()
 
 if __name__ == '__main__':

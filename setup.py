@@ -6,5 +6,5 @@ setup(name='YourAppName',
       author='Your Name',
       author_email='example@example.com',
       url='http://www.python.org/sigs/distutils-sig/',
-      install_requires=['bottle', 'SQLAlchemy', 'mysql-python'],
+      install_requires=['bottle', 'SQLAlchemy', 'mysql-connector-python'],
      )

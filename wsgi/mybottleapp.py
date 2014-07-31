@@ -38,7 +38,7 @@ class Address(Base):
 # engine = create_engine('mysql://scott:tiger@localhost/foo')
 db_host = os.environ['OPENSHIFT_MYSQL_DB_HOST']
 db_port = os.environ['OPENSHIFT_MYSQL_DB_PORT']
-engine = create_engine('mysql://' + db_host + ":" + db_port)
+engine = create_engine('mysql+mysqlconnector://' + db_host + ":" + db_port)
 
 Base.metadata.bind = engine
 

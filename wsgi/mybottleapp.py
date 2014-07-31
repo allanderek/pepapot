@@ -1,5 +1,46 @@
+import os
+
 from bottle import route, default_app
 import bottle
+
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+Base = declarative_base()
+ 
+class Person(Base):
+    __tablename__ = 'person'
+    # Here we define columns for the table person
+    # Notice that each column is also a normal Python instance attribute.
+    id = Column(Integer, primary_key=True)
+    name = Column(String(250), nullable=False)
+
+    def format(self):
+        return str(self.id) + " " + self.name
+
+class Address(Base):
+    __tablename__ = 'address'
+    # Here we define columns for the table address.
+    # Notice that each column is also a normal Python instance attribute.
+    id = Column(Integer, primary_key=True)
+    street_name = Column(String(250))
+    street_number = Column(String(250))
+    post_code = Column(String(250), nullable=False)
+    person_id = Column(Integer, ForeignKey('person.id'))
+    person = relationship(Person)
+ 
+# Create an engine that stores data in the local directory's
+# sqlalchemy_example.db file.
+# engine = create_engine('sqlite:///sqlalchemy_example.db')
+# engine = create_engine('mysql://scott:tiger@localhost/foo')
+db_host = os.environ['OPENSHIFT_MYSQL_DB_HOST']
+db_port = os.environ['OPENSHIFT_MYSQL_DB_PORT']
+engine = create_engine('mysql://' + db_host + ":" + db_port)
+
+Base.metadata.bind = engine
 
 @route('/name/<name>')
 def nameindex(name='Stranger'):
@@ -7,7 +48,14 @@ def nameindex(name='Stranger'):
  
 @route('/')
 def index():
-    return '<strong>Hello World!</strong>'
+    DBSession = sessionmaker()
+    DBSession.bind = engine
+    session = DBSession()
+    # Make a query to find all Persons in the database
+    persons = session.query(Person).all()
+    persons_string = ", ".join([p.format() for p in persons])
+
+    return '<strong>Hello World!</strong>' + persons_string
 
 application=default_app()
 

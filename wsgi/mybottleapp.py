@@ -60,5 +60,9 @@ def index():
 application=default_app()
 
 if __name__ == '__main__':
-    bottle.debug()
-    bottle.run()
+    import sys
+    if "init-db" in sys.argv:
+        Base.metadata.create_all(engine)
+    else:
+        bottle.debug()
+        bottle.run()

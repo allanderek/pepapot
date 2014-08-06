@@ -1,0 +1,49 @@
+//16/12/13: SIR Model post Stephen McMahon comments
+
+//Tracking cell colonies in an experimental setting
+//Healthy, damaged and transmitting, recovered (not transmitting) or dead
+//Signal produced by transmitting colonies only.
+
+//initial conditions
+N=1000; //number of colonies
+Gy=1; //Gray
+s=1; //conversion from Gy to hits
+dose=s*Gy; //conversion gray to number of hits FIXED
+
+initH=floor(N*exp(0-dose));
+initI=floor((N*(dose+((dose**2)/2)+((dose**3)/6)+((dose**4)/24)))*exp(0-dose));
+initD=N-initH-initI; 
+
+// 6 parameters
+beta=0.0027; //transmission of signal to cells
+gamma=0.007143/Gy; //recovery of damaged colonies
+eps=0.00011; // shedding of signal into matrix
+delta=0.019; // decay of signal
+p=0.5;
+q=0.5;
+thresh=21;
+fW=H(W-thresh);
+
+//Surviving Fraction
+SF = (N-D)/N; 
+
+//damaged cells
+TD= I+R;
+
+//rates
+kineticLawOf damageH: p*beta*H*fW; //healthy to damaged (bystander)
+kineticLawOf killingH: (1-p)*beta*H*fW; //healthy to dead (bystander)
+kineticLawOf damageI: q*beta*I*fW; //damaged to further damaged (bystander)
+kineticLawOf killingI: (1-q)*beta*I*fW; //damaged to dead (bystander)
+kineticLawOf recover: gamma*I; // recovery
+kineticLawOf emit: eps*I*(100-W); // release of signal
+kineticLawOf decay: delta*W;
+
+//system
+H = damageH << + killingH <<;
+I = killingI << + damageI << + recover << + emit (.);
+R = damageH >> + damageI >> + recover >>;
+D = killingH >> + killingI >>;
+W = emit >> + decay << + damageH (.) + damageI (.) + killingH (.) +killingI (.);
+
+H[initH]<*>I[initI]<*>R[0]<*>D[initD]<*>W[0]

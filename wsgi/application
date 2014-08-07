@@ -2,4 +2,4 @@
 
 import os
 
-from mybottleapp import application
+from pepapot import application

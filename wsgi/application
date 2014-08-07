@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
 import os
+import sys
+
+homedir = os.environ['OPENSHIFT_HOMEDIR']
+pepapotdir = os.path.join(homedir, "pepapot/")
+sys.path.append(pepapotdir)
 
 from pepapot import application

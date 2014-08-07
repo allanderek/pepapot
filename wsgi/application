@@ -4,7 +4,7 @@ import os
 import sys
 
 homedir = os.environ['OPENSHIFT_HOMEDIR']
-pepapotdir = os.path.join(homedir, "pepapot/")
+pepapotdir = os.path.join(homedir, "app-root/pepapot/")
 sys.path.append(pepapotdir)
 
 from pepapot import application

@@ -2065,17 +2065,21 @@ root_template = jinja2.Template(root_template_string)
 
 welcome_template_string = """
 {% extends root_template %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
 <h1>PEPA-Pot</h1>
 This is a very simple website attempting to produce a web-service for
 evaluating PEPA models.
+<!-- 
 You can start by <a href="models">viewing existing models</a>
+-->
+{% endblock %}
 """
 welcome_template = jinja2.Template(welcome_template_string)
 
 @route('/')
 def welcome():
-  return welcome_template.render(title="Welcome",
-                                 root_template=root_template)
+  return welcome_template.render(root_template=root_template)
 
 
 application=default_app()

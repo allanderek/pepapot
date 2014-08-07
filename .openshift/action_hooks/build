@@ -5,3 +5,10 @@
 # could be python, php, ruby, etc.
 
 export
+echo "ls-ing homedir"
+ls $OPENSHIFT_HOMEDIR
+echo "ls-ing homedir/app-root"
+ls $OPENSHIFT_HOMEDIR/app-root
+echo "ls-ing repodir"
+ls $OPENSHIFT_REPO_DIR
+

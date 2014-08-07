@@ -1,6 +1,7 @@
 """pepapot.
 
 Usage:
+  pepapot.py webserver
   pepapot.py steady util <name>...
   pepapot.py timeseries <name> [--start-time=<t>][--stop-time=<t>]
                                [--output-interval=<t>]
@@ -2009,6 +2010,10 @@ def run_command_line(output_conf, argv=None):
        (io.StringIO) which can then be inspected.
     """
     arguments = docopt(__doc__, argv=argv, version='pepapot 0.1')
+    if arguments['webserver']:
+        # Hmm, probably should not have bottle.debug() for the actual server
+        bottle.debug()
+        bottle.run()
     for filename in arguments['<name>']:
             rootname, extension = os.path.splitext(filename)
             if extension == ".biopepa":
@@ -2017,6 +2022,63 @@ def run_command_line(output_conf, argv=None):
                 # Assume it's a .pepa file
                 analyse_pepa_file(filename, output_conf, arguments)
 
+
+from bottle import route, default_app
+import bottle
+import jinja2
+
+root_template_string = """
+<!DOCTYPE>
+<html>
+<head>
+  <title>{% block title %}{% endblock %} - PEPA-Pot</title>
+</head>
+<body>
+
+<div class="container" style="display:table">
+
+<div class="navigation" style="display:table-cell; vertical-align:top; padding-right:10px">
+<ul>
+  <li><a href="/">Welcome</a></li>
+  <!--
+  <li><a href="/models">View existing models</a></li>
+  <li><a href="/new">Create a new model</a></li>
+  -->
+</ul>
+</div>
+
+<div class="main-content" style="display:table-cell; vertical-align:top;">
+  {% if message is defined %}
+  <p><font color="red">Message: {{ message }}</font></p>
+  {% endif %}
+
+  <div id="content">{% block content %}{% endblock %}</div>
+</div>
+
+</div>
+
+</body>
+</html>
+"""
+root_template = jinja2.Template(root_template_string)
+
+
+welcome_template_string = """
+{% extends root_template %}
+<h1>PEPA-Pot</h1>
+This is a very simple website attempting to produce a web-service for
+evaluating PEPA models.
+You can start by <a href="models">viewing existing models</a>
+"""
+welcome_template = jinja2.Template(welcome_template_string)
+
+@route('/')
+def welcome():
+  return welcome_template.render(title="Welcome",
+                                 root_template=root_template)
+
+
+application=default_app()
 
 if __name__ == "__main__":  # pragma: no cover
     import sys

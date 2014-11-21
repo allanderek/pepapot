@@ -34,7 +34,7 @@ setup(
     ],
     package_dir={'pepapot': 'pepapot'},
     include_package_data=True,
-    install_requires=["pyparsing", "numpy==1.8.0", "lazy", "scipy",
+    install_requires=["pyparsing", "numpy", "lazy", "scipy",
                       "docopt", "bottle", "jinja2", "SQLAlchemy",
                       "mysql-connector-python"],
     license="BSD",

@@ -3,6 +3,9 @@
 # gedit backup files
 *~
 
+# Virtual Environment
+venv/
+
 # C extensions
 *.so
 

@@ -1265,6 +1265,26 @@ class TestBioFMASyntax(TestBioSyntaxSugar):
         """
 
 
+class TestBioHeaviside(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = """ kineticLawOf a: H(A > B) + 1.0;
+                                kineticLawOf b: heaviside(A > B) + 1.0;
+
+                                A = a << + b << ;
+                                B = a >> + b >> ;
+
+                                A[100] <*> B[0]
+                            """
+        self.expected_number_species = 2
+        self.expected_populations = {'A': hundred_expr, 'B': zero_expr}
+        # Obviously these should be correctly put, but I'm not sure what
+        # the correct values are.
+        self.expected_result = {'A': None,
+                                'B': None,
+                                }
+        self.configuration = pepapot.Configuration()
+
+
 class TestBioActiviator(TestSimpleBioModel):
     def setUp(self):
         self.model_source = """ kineticLawOf a: fMA(1.0);

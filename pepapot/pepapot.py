@@ -94,7 +94,7 @@ def evaluate_function_app(name, arg_values):
         if len(arg_values) != 1:
             raise ValueError("'floor' must have exactly one argument")
         return math.floor(arg_values[0])
-    elif name == "H" or name == "heavyside":
+    elif name == "H" or name == "heaviside":
         if len(arg_values) != 1:
             raise ValueError("'" + name + "' must have exactly one argument")
         # H is typically not actually defined for 0, here we have defined

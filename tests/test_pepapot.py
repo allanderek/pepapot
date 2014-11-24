@@ -1264,6 +1264,22 @@ class TestBioFMASyntax(TestBioSyntaxSugar):
         A[100] <*> B[100]
         """
 
+class TestBioOffSwitch(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = """ kineticLawOf go : H(3 - A);
+
+                                A = go >> ;
+
+                                A[0]
+                            """
+        self.expected_number_species = 1
+        self.expected_populations = {'A': zero_expr}
+        # Obviously these should be correctly put, but I'm not sure what
+        # the correct values are.
+        self.expected_result = {'A': 3.0000001168181671}
+        self.configuration = pepapot.Configuration()
+        self.configuration.stop_time = 100.0
+
 
 class TestBioHeaviside(TestSimpleBioModel):
     def setUp(self):

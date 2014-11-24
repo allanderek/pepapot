@@ -1852,6 +1852,7 @@ class StochasticSimulator(object):
         solution = [simulation.row_of_state(species_names)]
 
         while time < self.configuration.stop_time:
+            simulation.environment["time"] = Expression.num_expression(time)
             actions = simulation.available_actions()
             if not actions and self.configuration.ignore_deadlock:
                 # TODO: we will instead need to fill in the remaining

@@ -1299,11 +1299,12 @@ class TestBioHeaviside(TestSimpleBioModel):
 
 
 class TestBioTimeVariable(TestSimpleBioModel):
-    def setUp(self):
-        self.model_source = """ kineticLawOf a: 10.0 - time ;
-                                A = a >> ;
-                                A[0]
+    time_model_source = """ kineticLawOf a: 10.0 - time ;
+                            A = a >> ;
+                            A[0]
                             """
+    def setUp(self):
+        self.model_source = self.time_model_source
         self.expected_number_species = 1
         self.expected_populations = {'A': zero_expr}
         self.expected_result = {'A': 50.0}
@@ -1357,10 +1358,12 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
     def setUp(self):
         self.model_sources = [simple_biopepa_model,
                               reverse_reaction_biopepa_model,
-                              michaelis_menton_biopepa_model]
+                              michaelis_menton_biopepa_model,
+                              ]
         self.configuration = pepapot.Configuration()
         self.configuration.ignore_deadlock = True
         self.configuration.num_independent_runs = 100
+        self.configuration.stop_time = 10.0
         self.tolerance = 1.0
 
     def get_ode_result(self, model_source):
@@ -1388,6 +1391,19 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
             for left, right in zip(ode_final_row, ssa_final_row):
                 difference = abs(left - right)
                 self.assertLess(difference, self.tolerance)
+
+
+class TestSSABioPEPAHighTolerance(TestStochasticSimulationBioPEPA):
+    """ The same as the previous one, but this is for models we expect to
+        have a higher difference between the SSA and ODE solver. Perhaps
+        this is simply because of the population being low.
+    """
+    def setUp(self):
+        super(TestSSABioPEPAHighTolerance, self).setUp()
+        self.model_sources = [TestBioTimeVariable.time_model_source]
+        self.configuration.num_independent_runs = 10
+        self.configuration.stop_time = 10.0
+        self.tolerance = 8.0
 
 
 class TestCommandLineBioPEPA(CommandLine):

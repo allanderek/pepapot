@@ -1274,8 +1274,6 @@ class TestBioOffSwitch(TestSimpleBioModel):
                             """
         self.expected_number_species = 1
         self.expected_populations = {'A': zero_expr}
-        # Obviously these should be correctly put, but I'm not sure what
-        # the correct values are.
         self.expected_result = {'A': 3.0}
         self.configuration = pepapot.Configuration()
         self.configuration.output_interval = 0.3
@@ -1293,14 +1291,24 @@ class TestBioHeaviside(TestSimpleBioModel):
                             """
         self.expected_number_species = 2
         self.expected_populations = {'A': hundred_expr, 'B': zero_expr}
-        # Obviously these should be correctly put, but I'm not sure what
-        # the correct values are.
         self.expected_result = {'A': 34.545454525351765,
                                 'B': 65.454545474648228,
                                 }
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 100.0
 
+
+class TestBioTimeVariable(TestSimpleBioModel):
+    def setUp(self):
+        self.model_source = """ kineticLawOf a: 10.0 - time ;
+                                A = a >> ;
+                                A[0]
+                            """
+        self.expected_number_species = 1
+        self.expected_populations = {'A': zero_expr}
+        self.expected_result = {'A': 10.0}
+        self.configuration = pepapot.Configuration()
+        self.configuration.stop_time = 10.0
 
 class TestBioActiviator(TestSimpleBioModel):
     def setUp(self):

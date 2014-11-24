@@ -1276,9 +1276,9 @@ class TestBioOffSwitch(TestSimpleBioModel):
         self.expected_populations = {'A': zero_expr}
         # Obviously these should be correctly put, but I'm not sure what
         # the correct values are.
-        self.expected_result = {'A': 3.0000001168181671}
+        self.expected_result = {'A': 3.0}
         self.configuration = pepapot.Configuration()
-        self.configuration.stop_time = 100.0
+        self.configuration.output_interval = 0.3
 
 
 class TestBioHeaviside(TestSimpleBioModel):

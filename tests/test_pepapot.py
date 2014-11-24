@@ -1306,7 +1306,7 @@ class TestBioTimeVariable(TestSimpleBioModel):
                             """
         self.expected_number_species = 1
         self.expected_populations = {'A': zero_expr}
-        self.expected_result = {'A': 10.0}
+        self.expected_result = {'A': 50.0}
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 10.0
 

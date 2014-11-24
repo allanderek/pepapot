@@ -1948,7 +1948,7 @@ class BioModelSolver(object):
                 equations Essentially then, solves for each ODE the right hand
                 side of the ode at the given populations and time.
             """
-            environment["time"] = time
+            environment["time"] = Expression.num_expression(time)
             for species, population in zip(species_names, current_pops):
                 environment[species] = Expression.num_expression(population)
 

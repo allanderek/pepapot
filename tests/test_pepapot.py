@@ -1364,7 +1364,7 @@ class TestStochasticSimulationBioPEPA(unittest.TestCase):
         self.configuration.ignore_deadlock = True
         self.configuration.num_independent_runs = 100
         self.configuration.stop_time = 10.0
-        self.tolerance = 1.0
+        self.tolerance = 1.2
 
     def get_ode_result(self, model_source):
         model = pepapot.parse_biomodel(model_source)

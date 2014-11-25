@@ -1712,7 +1712,7 @@ class TimeCourse(object):
         # Not sure I want this to be an assert, but we certainly want
         # something to check this.
         assert(self.column_names == other.column_names)
-        assert(self.time_grid == other.time_grid)
+        assert(numpy.array_equal(self.time_grid, other.time_grid))
         total_runs = self.num_averaged + other.num_averaged
 
         def average_pair(left_value, right_value):
@@ -1849,34 +1849,32 @@ class StochasticSimulator(object):
         simulation = BioPepaSimulation(self.model)
         species_names = [spec_def.lhs for spec_def in self.model.species_defs]
         time = 0.0
-        solution = [simulation.row_of_state(species_names)]
+        solution = []
 
-        while time < self.configuration.stop_time:
-            simulation.environment["time"] = Expression.num_expression(time)
-            actions = simulation.available_actions()
-            if not actions:
-                if self.configuration.ignore_deadlock:
-                    # TODO: we will instead need to fill in the remaining
-                    # time points, but we are not really filling in time
-                    # points yet anyway.
-                    break
-                else:
-                    msg = ["No available actions, simulation deadlocked.",
-                           "You might try ignoring deadlock."]
-                    raise RuntimeError("\n".join(msg))
-            # Choose an action and a delay for that action
-            delay, action = self.choose_action(actions)
-            # Update the state based on that action
-            simulation.perform_action(action)
-            time += delay
+        time_grid = self.configuration.get_time_grid()
+        for time_point in time_grid:
+            while time < time_point:
+                time_expression = Expression.num_expression(time)
+                simulation.environment["time"] = time_expression
+                actions = simulation.available_actions()
+                if not actions:
+                    if self.configuration.ignore_deadlock:
+                        # This should mean that when deadlock is reached,
+                        # we simply append the current state of the system
+                        # for each remaining time-point.
+                        break
+                    else:
+                        msg = ["No available actions, simulation deadlocked.",
+                               "You might try ignoring deadlock."]
+                        raise RuntimeError("\n".join(msg))
+                # Choose an action and a delay for that action
+                delay, action = self.choose_action(actions)
+                # Update the state based on that action
+                simulation.perform_action(action)
+                time += delay
+            solution.append(simulation.row_of_state(species_names))
 
-        solution.append(simulation.row_of_state(species_names))
-
-        # Okay this is obvious crap. I think the simulation will have to
-        # maintain the time course.
-        time_grid = [0.0, self.configuration.stop_time]
         timecourse = TimeCourse(species_names, time_grid, solution)
-
         return timecourse
 
     def run_simulation(self):

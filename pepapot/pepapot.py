@@ -1854,11 +1854,16 @@ class StochasticSimulator(object):
         while time < self.configuration.stop_time:
             simulation.environment["time"] = Expression.num_expression(time)
             actions = simulation.available_actions()
-            if not actions and self.configuration.ignore_deadlock:
-                # TODO: we will instead need to fill in the remaining
-                # time points, but we are not really filling in time points
-                # yet anyway.
-                break
+            if not actions:
+                if self.configuration.ignore_deadlock:
+                    # TODO: we will instead need to fill in the remaining
+                    # time points, but we are not really filling in time
+                    # points yet anyway.
+                    break
+                else:
+                    msg = ["No available actions, simulation deadlocked.",
+                           "You might try ignoring deadlock."]
+                    raise RuntimeError("\n".join(msg))
             # Choose an action and a delay for that action
             delay, action = self.choose_action(actions)
             # Update the state based on that action

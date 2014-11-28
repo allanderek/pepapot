@@ -36,8 +36,8 @@ class Address(Base):
 # sqlalchemy_example.db file.
 # engine = create_engine('sqlite:///sqlalchemy_example.db')
 # engine = create_engine('mysql://scott:tiger@localhost/foo')
-db_user = "admin2QqWtt4"
-db_pass = "9a4i_5X1H6wG"
+db_user = os.environ['OPENSHIFT_MYSQL_DB_USERNAME']
+db_pass = os.environ['OPENSHIFT_MYSQL_DB_PASSWORD']
 db_credentials = db_user + ":" + db_pass
 db_host = os.environ['OPENSHIFT_MYSQL_DB_HOST']
 db_port = os.environ['OPENSHIFT_MYSQL_DB_PORT']

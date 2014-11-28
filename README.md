@@ -1,30 +1,32 @@
-Bottle on OpenShift
-===================
+===============================
+pepapot
+===============================
 
-This git repository helps you get up and running quickly w/ a Bottle installation
-on the Red Hat OpenShift PaaS.
+An attempt at writing a very simple PEPA tool in Python. It is intended to be
+a compliment to pyPEPA. Here though the focus is on being as simple as
+possible and hence can be used in, for example, student projects.
 
+* Free software: BSD license
 
-Running on OpenShift
-----------------------------
+Features
+--------
 
-Create an account at https://www.openshift.com/
+So far we can solve a PEPA model and produce a list of utilisation
+dictionaries. There is a dictionary for each process in the system equation
+which maps each local state of the process into the steady-state probability
+of the process being in that local state. For aggregated processes it is
+essentially a population mapping.
 
-Create a python application
+Getting Started
+---------------
 
-    rhc app create bottle python-2.6
+The easiest way to get started is to use virtual env. So you can do the
+following:
 
-Add this upstream bottle repo
+    $ pyvenv-3.4 venv
+    $ pip install -r requirements.txt
+    $ make test
 
-    cd bottle
-    git remote add upstream -m master git://github.com/openshift-quickstart/bottle-openshift-quickstart.git
-    git pull -s recursive -X theirs upstream master
-    
-Then push the repo upstream
+I have not yet made up an executable but one can evaluate a PEPA file with:
 
-    git push
-
-That's it, you can now checkout your application at:
-
-    http://bottle-$yournamespace.rhcloud.com
-
+    $ python pepapot/pepapot.py steady util <path to PEPA file>

@@ -277,7 +277,7 @@ class TestSimpleNoCoop(unittest.TestCase):
             lets us check that the highlighting code is running and
             producing something, rather than raising an exception.
         """
-        highlighted = pepapot.highlight_pepa(model_source, 
+        highlighted = pepapot.highlight_pepa(self.model_source, 
                                              include_styledefs=True)
         model = pepapot.parse_model(self.model_source)
         for name in model.used_process_names():

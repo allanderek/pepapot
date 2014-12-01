@@ -2027,6 +2027,10 @@ def run_command_line(output_conf, argv=None):
                 analyse_pepa_file(filename, output_conf, arguments)
 
 
+def highlight_pepa(source, include_styledefs=True):
+    return source
+
+
 from bottle import route, default_app
 import bottle
 import jinja2

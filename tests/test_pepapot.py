@@ -17,8 +17,6 @@ import functools
 from pepapot import pepapot
 Action = pepapot.Action
 
-
-## We begin with testing for the expression parser and evaluator
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.expression_source = "1 + 2"
@@ -266,6 +264,26 @@ class TestSimpleNoCoop(unittest.TestCase):
                                             ("P1", 0.5)]),
                                       dict([("Q", 0.5),
                                             ("Q1", 0.5)])]
+
+
+    def test_highlighting(self):
+        """ Tests that the highlighting does at least something
+            sensible. We could expand on this greatly, for example,
+            we could check if the source of the model contains each
+            of the possible operators and if it does then we check
+            if the highlighted string contains the expected
+            <span class="o">&lt</span>
+            We could also check actions etc. This however at least
+            lets us check that the highlighting code is running and
+            producing something, rather than raising an exception.
+        """
+        highlighted = pepapot.highlight_pepa(model_source, 
+                                             include_styledefs=True)
+        model = pepapot.parse_model(self.model_source)
+        for name in model.used_process_names():
+            expected_string = '<span class="nc">' + name + '</span>'
+            self.assertTrue(expected_string in highlighted)
+        
 
     # I had separate methods for testing each of these things, but I found
     # that unittest re-created this class for each test, hence I was not

@@ -2027,8 +2027,49 @@ def run_command_line(output_conf, argv=None):
                 analyse_pepa_file(filename, output_conf, arguments)
 
 
+import pygments
+import pygments.lexer
+import pygments.token
+import pygments.formatters
+
+
+def highlight_model_source(source, lexer, include_styledefs=True):
+    formatter = pygments.formatters.HtmlFormatter(style='colorful')
+    style_def = "<style>" + formatter.get_style_defs() + "</style>"
+    code_html = pygments.highlight(source, lexer, formatter)
+    if include_styledefs:
+        html = "\n".join([style_def, code_html])
+        return html
+    else:
+        return code_html
+
+class PepaLexer(pygments.lexer.RegexLexer):
+    Comment = pygments.token.Comment
+    Name = pygments.token.Name
+    Number = pygments.token.Number
+    tokens = {
+        'root': [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r' |\r\n', pygments.token.Whitespace),
+            (r'//.*?$', Comment),
+            (r'[A-Z][a-zA-Z_0-9]*', Name.Class),
+            (r'[a-zA-Z][a-zA-Z_0-9]*', Name.Variable),
+            (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number.Float),
+            (r'[<>]', pygments.token.Operator),
+            (r'[,\.();=]', pygments.token.Punctuation),
+            (r'/', pygments.token.Text)
+        ],
+        'comment': [
+            (r'[^*/]', Comment.Multiline),
+            (r'/\*', Comment.Multiline, '#push'),
+            (r'\*/', Comment.Multiline, '#pop'),
+            (r'[*/]', Comment.Multiline)
+        ]
+    }
+
+
 def highlight_pepa(source, include_styledefs=True):
-    return source
+    return highlight_model_source(source, PepaLexer())
 
 
 from bottle import route, default_app

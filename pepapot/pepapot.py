@@ -2071,8 +2071,40 @@ class PepaLexer(pygments.lexer.RegexLexer):
 def highlight_pepa(source, include_styledefs=True):
     return highlight_model_source(source, PepaLexer())
 
+class BioPepaLexer(pygments.lexer.RegexLexer):
+    Comment = pygments.token.Comment
+    Name = pygments.token.Name
+    Number = pygments.token.Number
+    Keyword = pygments.token.Keyword
+    tokens = {
+        'root': [
+            (r'/\*', Comment.Multiline, 'comment'),
+            (r' |\r\n', pygments.token.Whitespace),
+            (r'//.*?$', Comment),
+            (r'\bkineticLawOf\b', Keyword.Reserved),
+            (r'\bfMA\b', Keyword.Reserved),
+            (r'\bfMM\b', Keyword.Reserved),
+            (r'\bheaviside\b', Keyword.Reserved),
+            (r'\b<*>\b', Keyword.Reserved),
+            (r'[A-Z][a-zA-Z_0-9]*', Name.Class),
+            (r'[a-zA-Z][a-zA-Z_0-9]*', Name.Variable),
+            (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number.Float),
+            (r'(\d+)([eEf][+-]?[0-9]+)?', Number.Integer),
+            (r'(<|\+|>|-|\*|/|=)', pygments.token.Operator.Word),
+            (r'[,\.():;=\[\]]', pygments.token.Punctuation),
+            (r'/', pygments.token.Text)
+        ],
+        'comment': [
+            (r'[^*/]', Comment.Multiline),
+            (r'/\*', Comment.Multiline, '#push'),
+            (r'\*/', Comment.Multiline, '#pop'),
+            (r'[*/]', Comment.Multiline)
+        ]
+    }
+
+
 def highlight_biopepa(source, include_styledefs=True):
-    return source
+    return highlight_model_source(source, BioPepaLexer())
 
 from bottle import route, default_app
 import bottle

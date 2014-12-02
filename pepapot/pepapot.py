@@ -2043,6 +2043,7 @@ def highlight_model_source(source, lexer, include_styledefs=True):
     else:
         return code_html
 
+
 class PepaLexer(pygments.lexer.RegexLexer):
     Comment = pygments.token.Comment
     Name = pygments.token.Name
@@ -2070,6 +2071,7 @@ class PepaLexer(pygments.lexer.RegexLexer):
 
 def highlight_pepa(source, **kwargs):
     return highlight_model_source(source, PepaLexer(), **kwargs)
+
 
 class BioPepaLexer(pygments.lexer.RegexLexer):
     Comment = pygments.token.Comment
@@ -2120,7 +2122,8 @@ root_template_string = """
 
 <div class="container" style="display:table">
 
-<div class="navigation" style="display:table-cell; vertical-align:top; padding-right:10px">
+<div class="navigation" style="display:table-cell;
+     vertical-align:top; padding-right:10px">
 <ul>
   <li><a href="/">Welcome</a></li>
   <!--
@@ -2153,19 +2156,20 @@ welcome_template_string = """
 <h1>PEPA-Pot</h1>
 This is a very simple website attempting to produce a web-service for
 evaluating PEPA models.
-<!-- 
+<!--
 You can start by <a href="models">viewing existing models</a>
 -->
 {% endblock %}
 """
 welcome_template = jinja2.Template(welcome_template_string)
 
+
 @route('/')
 def welcome():
-  return welcome_template.render(root_template=root_template)
+    return welcome_template.render(root_template=root_template)
 
 
-application=default_app()
+application = default_app()
 
 if __name__ == "__main__":  # pragma: no cover
     import sys

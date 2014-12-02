@@ -17,6 +17,7 @@ import functools
 from pepapot import pepapot
 Action = pepapot.Action
 
+
 class TestExpression(unittest.TestCase):
     def setUp(self):
         self.expression_source = "1 + 2"
@@ -265,7 +266,6 @@ class TestSimpleNoCoop(unittest.TestCase):
                                       dict([("Q", 0.5),
                                             ("Q1", 0.5)])]
 
-
     def test_highlighting(self):
         """ Tests that the highlighting does at least something
             sensible. We could expand on this greatly, for example,
@@ -277,13 +277,12 @@ class TestSimpleNoCoop(unittest.TestCase):
             lets us check that the highlighting code is running and
             producing something, rather than raising an exception.
         """
-        highlighted = pepapot.highlight_pepa(self.model_source, 
+        highlighted = pepapot.highlight_pepa(self.model_source,
                                              include_styledefs=True)
         model = pepapot.parse_model(self.model_source)
         for name in model.used_process_names():
             expected_string = '<span class="nc">' + name + '</span>'
             self.assertTrue(expected_string in highlighted)
-        
 
     # I had separate methods for testing each of these things, but I found
     # that unittest re-created this class for each test, hence I was not
@@ -297,7 +296,7 @@ class TestSimpleNoCoop(unittest.TestCase):
         shared_actions = pepapot.CompSharedActions.get_result(system_equation)
         self.assertEqual(shared_actions, self.expected_shared_actions)
 
-       # Test the defined names
+        # Test the defined names
         defined_names = model.defined_process_names()
         self.assertEqual(defined_names, self.expected_defined_process_names)
 
@@ -1110,9 +1109,7 @@ class TestPepaCommandLine(CommandLine):
             self.assertIn(line, actual_lines)
         self.assertEqual(actual_error, expected_error)
 
-## Now we test for Bio-PEPA models
-
-## Obviously this is not so far a valid Bio-PEPA model.
+# Now we test for Bio-PEPA models
 simple_biopepa_model = """
 delta = 1.0;
 
@@ -1143,15 +1140,13 @@ class TestSimpleBioModel(unittest.TestCase):
             lets us check that the highlighting code is running and
             producing something, rather than raising an exception.
         """
-        highlighted = pepapot.highlight_biopepa(self.model_source, 
+        highlighted = pepapot.highlight_biopepa(self.model_source,
                                                 include_styledefs=True)
         model = pepapot.parse_biomodel(self.model_source)
         for population in model.populations:
             name = population.species_name
             expected_string = '<span class="nc">' + name + '</span>'
             self.assertTrue(expected_string in highlighted)
-
-
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
@@ -1303,6 +1298,7 @@ class TestBioFMASyntax(TestBioSyntaxSugar):
         A[100] <*> B[100]
         """
 
+
 class TestBioOffSwitch(TestSimpleBioModel):
     def setUp(self):
         self.model_source = """ kineticLawOf go : H(3 - A);
@@ -1342,6 +1338,7 @@ class TestBioTimeVariable(TestSimpleBioModel):
                             A = a >> ;
                             A[0]
                             """
+
     def setUp(self):
         self.model_source = self.time_model_source
         self.expected_number_species = 1
@@ -1349,6 +1346,7 @@ class TestBioTimeVariable(TestSimpleBioModel):
         self.expected_result = {'A': 50.0}
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 10.0
+
 
 class TestBioActiviator(TestSimpleBioModel):
     def setUp(self):

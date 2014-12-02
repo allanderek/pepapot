@@ -1126,6 +1126,7 @@ class TestSimpleBioModel(unittest.TestCase):
         self.model_source = simple_biopepa_model
         self.expected_number_species = 1
         self.expected_populations = {'M': one_expr}
+        self.expected_reactions = { pepapot.BioReaction("d", {("M", 1)}, {}) }
         self.expected_result = {'M': 4.54009266e-05}
         self.configuration = pepapot.Configuration()
 
@@ -1147,6 +1148,14 @@ class TestSimpleBioModel(unittest.TestCase):
             name = population.species_name
             expected_string = '<span class="nc">' + name + '</span>'
             self.assertTrue(expected_string in highlighted)
+
+    def test_reactions(self):
+        """ Tests that from parsing the model we generate the expected
+            set of reactions
+        """
+        model = pepapot.parse_biomodel(self.model_source)
+        self.assertEqual(model.reactions, self.expected_reactions)
+
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)

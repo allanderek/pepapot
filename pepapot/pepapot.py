@@ -1599,6 +1599,18 @@ def remove_rate_laws(expression, multipliers):
         return Expression.apply_expression(expression.name, arguments)
 
 
+class BioReaction(object):
+    """ Represents a reaction in a biological system. This does not necessarily
+        have to be a reaction which is produced by parsing and processing a
+        Bio-PEPA model, but the definition is here because we wish to be able
+        to compute the set of all reactions defined by a Bio-PEPA model.
+    """
+    def __init__(self, name, reactants, products):
+        self.name = name
+        self.reactants = reactants
+        self.products = products
+
+
 class ParsedBioModel(object):
     def __init__(self, constants, kinetic_laws, species, populations):
         self.constants = constants
@@ -1643,6 +1655,10 @@ class ParsedBioModel(object):
             rhs_multipliers = multipliers[kinetic_law.lhs]
             new_expr = remove_rate_laws(kinetic_law.rhs, rhs_multipliers)
             kinetic_law.rhs = new_expr
+
+    @property
+    def reactions(self):
+        return {}
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 

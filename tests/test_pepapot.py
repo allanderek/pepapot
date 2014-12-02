@@ -1132,6 +1132,27 @@ class TestSimpleBioModel(unittest.TestCase):
         self.expected_result = {'M': 4.54009266e-05}
         self.configuration = pepapot.Configuration()
 
+    def test_highlighting(self):
+        """ Tests that the highlighting does at least something
+            sensible. We could expand on this greatly, for example,
+            we could check if the source of the model contains each
+            of the possible operators and if it does then we check
+            if the highlighted string contains the expected
+            <span class="o">&lt&lt</span>
+            We could also check actions etc. This however at least
+            lets us check that the highlighting code is running and
+            producing something, rather than raising an exception.
+        """
+        highlighted = pepapot.highlight_biopepa(self.model_source, 
+                                                include_styledefs=True)
+        model = pepapot.parse_biomodel(self.model_source)
+        for population in model.populations:
+            name = population.species_name
+            expected_string = '<span class="nc">' + name + '</span>'
+            self.assertTrue(expected_string in highlighted)
+
+
+
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)
 

@@ -2071,6 +2071,8 @@ class PepaLexer(pygments.lexer.RegexLexer):
 def highlight_pepa(source, include_styledefs=True):
     return highlight_model_source(source, PepaLexer())
 
+def highlight_biopepa(source, include_styledefs=True):
+    return source
 
 from bottle import route, default_app
 import bottle

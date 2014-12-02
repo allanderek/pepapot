@@ -2068,8 +2068,8 @@ class PepaLexer(pygments.lexer.RegexLexer):
     }
 
 
-def highlight_pepa(source, include_styledefs=True):
-    return highlight_model_source(source, PepaLexer())
+def highlight_pepa(source, **kwargs):
+    return highlight_model_source(source, PepaLexer(), **kwargs)
 
 class BioPepaLexer(pygments.lexer.RegexLexer):
     Comment = pygments.token.Comment
@@ -2103,8 +2103,8 @@ class BioPepaLexer(pygments.lexer.RegexLexer):
     }
 
 
-def highlight_biopepa(source, include_styledefs=True):
-    return highlight_model_source(source, BioPepaLexer())
+def highlight_biopepa(source, **kwargs):
+    return highlight_model_source(source, BioPepaLexer(), **kwargs)
 
 from bottle import route, default_app
 import bottle

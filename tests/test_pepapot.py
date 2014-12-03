@@ -1128,7 +1128,7 @@ class TestSimpleBioModel(unittest.TestCase):
         self.expected_populations = {'M': one_expr}
         self.expected_result = {'M': 4.54009266e-05}
         self.configuration = pepapot.Configuration()
-        self.expected_reactions = {"d: M -->"}
+        self.expected_reactions = {"d: M --> "}
 
 
     def test_highlighting(self):
@@ -1328,7 +1328,7 @@ class TestBioOffSwitch(TestSimpleBioModel):
         self.expected_result = {'A': 3.0}
         self.configuration = pepapot.Configuration()
         self.configuration.output_interval = 0.3
-        self.expected_reactions = {"go: --> A"}
+        self.expected_reactions = {"go:  --> A"}
 
 
 class TestBioHeaviside(TestSimpleBioModel):
@@ -1349,7 +1349,7 @@ class TestBioHeaviside(TestSimpleBioModel):
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 100.0
         self.expected_reactions = {"a: A --> B",
-                                   "b: B --> A"}
+                                   "b: A --> B"}
 
 
 class TestBioTimeVariable(TestSimpleBioModel):
@@ -1365,7 +1365,7 @@ class TestBioTimeVariable(TestSimpleBioModel):
         self.expected_result = {'A': 50.0}
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 10.0
-        self.expected_reactions = {"a: --> A"}
+        self.expected_reactions = {"a:  --> A"}
 
 
 class TestBioActiviator(TestSimpleBioModel):
@@ -1403,7 +1403,7 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
                                 }
         self.configuration = pepapot.Configuration()
         self.expected_reactions = {"a: +B --> A",
-                                   "b: (A,2) -->"}
+                                   "b: (A,2) --> "}
 
 
 class TestStochasticSimulationBioPEPA(unittest.TestCase):

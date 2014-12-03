@@ -20,6 +20,7 @@ import logging
 from collections import namedtuple
 from collections import defaultdict
 import functools
+import itertools
 import math
 import random
 
@@ -1612,22 +1613,34 @@ class BioReaction(object):
     """
     def __init__(self, name):
         self.name = name
-        self.reactants = set()
-        self.activators = set()
-        self.products = set()
-        self.inhibitors = set()
-        self.modifiers = set()
+        self.reactants = []
+        self.activators = []
+        self.products = []
+        self.inhibitors = []
+        self.modifiers = []
 
     def format(self):
         def format_name(behaviour):
             if behaviour.stoichiometry == 1:
-                return behaviour.species
+                species = behaviour.species
             else:
-                return ("(" + behaviour.species + "," +
-                        str(behaviour.stoichiometry) + ")")
-        reactants = ", ".join([format_name(b) for b in self.reactants])
-        return self.name + ": " + reactants + " -->"
+                species = ("(" + behaviour.species + "," +
+                           str(behaviour.stoichiometry) + ")")
+            if behaviour.role == "(+)":
+                prefix = "+"
+            elif behaviour.role == "(-)":
+                prefix = "-"
+            elif behaviour.role == "(.)":
+                prefix = "."
+            else:
+                prefix = ""
+            return prefix + species
+        pre_arrows = itertools.chain(self.reactants, self.activators,
+                                     self.inhibitors, self.modifiers)
+        pre_arrow = ", ".join(format_name(b) for b in pre_arrows)
+        post_arrow = ", ".join(format_name(b) for b in self.products)
 
+        return " ".join([self.name + ":", pre_arrow, "-->", post_arrow])
 
 class DefaultDictKey(dict):
     """ The standard library provides the defaultdict class which
@@ -1693,15 +1706,15 @@ class ParsedBioModel(object):
             for behaviour in behaviours:
                 reaction = reactions[behaviour.reaction_name]
                 if behaviour.role == "<<":
-                    reaction.reactants.add(behaviour)
+                    reaction.reactants.append(behaviour)
                 elif behaviour.role == ">>":
-                    reaction.products.add(behaviour)
+                    reaction.products.append(behaviour)
                 elif behaviour.role == "(+)":
-                    reaction.activators.add(behaviour)
+                    reaction.activators.append(behaviour)
                 elif behaviour.role == "(-)":
-                    reaction.inhibitors.add(behaviour)
+                    reaction.inhibitors.append(behaviour)
                 elif behaviour.role == "(.)":
-                    reaction.modifiers.add(behaviour)
+                    reaction.modifiers.append(behaviour)
         return reactions
 
 

@@ -1881,6 +1881,10 @@ class BioPepaSimulation(object):
 
     def calculate_all_actions(self):
         """ Simply calculates an action for each kinetic law in the model """
+        # TODO: Consider using ParsedBioModel.get_reactions here. Getting the
+        # reactions does a lot of the work that we do above. Admittedly we
+        # would still need to actually get the rate, but perhaps reactions
+        # should include the rate (at least in their object representation)
         return [self.action_of_kinetic_law(kinetic_law)
                 for kinetic_law in self.model.kinetic_laws]
 

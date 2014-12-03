@@ -1087,7 +1087,7 @@ class CommandLine(unittest.TestCase):
 
     def execute_command(self, command):
         output_conf = self.configure_output()
-        pepapot.run_command_line(output_conf, command)
+        pepapot.run_command_line(output_conf=output_conf, argv=command)
         actual_output = output_conf.default_outfile.getvalue()
         actual_error = output_conf.error_file.getvalue()
         return actual_output, actual_error

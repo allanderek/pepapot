@@ -2069,28 +2069,6 @@ def analyse_biopepa_file(filename, output_conf, arguments):
         output_conf.error_file.write(msg + "\n")
 
 
-# Now the command-line stuff
-def run_command_line(output_conf, argv=None):
-    """The default_out argument is used to specify a *default* output file.
-       We should also have a command-line option to specify the output file.
-       The reason this method takes it in as an argument is to allow
-       testing of the command-line interface by output to a memory_file
-       (io.StringIO) which can then be inspected.
-    """
-    arguments = docopt(__doc__, argv=argv, version='pepapot 0.1')
-    if arguments['webserver']:
-        # Hmm, probably should not have bottle.debug() for the actual server
-        bottle.debug()
-        bottle.run()
-    for filename in arguments['<name>']:
-            rootname, extension = os.path.splitext(filename)
-            if extension == ".biopepa":
-                analyse_biopepa_file(filename, output_conf, arguments)
-            else:
-                # Assume it's a .pepa file
-                analyse_pepa_file(filename, output_conf, arguments)
-
-
 import pygments
 import pygments.lexer
 import pygments.token
@@ -2254,7 +2232,31 @@ def welcome():
 
 application = default_app()
 
+
+# Now the command-line stuff
+def run_command_line(output_conf=None, argv=None):
+    """The default_out argument is used to specify a *default* output file.
+       We should also have a command-line option to specify the output file.
+       The reason this method takes it in as an argument is to allow
+       testing of the command-line interface by output to a memory_file
+       (io.StringIO) which can then be inspected.
+    """
+    if output_conf is None:
+        output_conf = OutputConfiguration(sys.stdout, sys.stderr)
+    arguments = docopt(__doc__, argv=argv, version='pepapot 0.1')
+    if arguments['webserver']:
+        # Hmm, probably should not have bottle.debug() for the actual server
+        bottle.debug()
+        bottle.run()
+    for filename in arguments['<name>']:
+            extension = os.path.splitext(filename)[1]
+            if extension == ".biopepa":
+                analyse_biopepa_file(filename, output_conf, arguments)
+            else:
+                # Assume it's a .pepa file
+                analyse_pepa_file(filename, output_conf, arguments)
+
+
 if __name__ == "__main__":  # pragma: no cover
     import sys
-    output_conf = OutputConfiguration(sys.stdout, sys.stderr)
-    run_command_line(output_conf)
+    run_command_line()

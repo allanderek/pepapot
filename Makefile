@@ -24,6 +24,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
+	pylint pepapot
 	flake8 pepapot tests
 
 test:

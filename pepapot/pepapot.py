@@ -1642,6 +1642,7 @@ class BioReaction(object):
 
         return " ".join([self.name + ":", pre_arrow, "-->", post_arrow])
 
+
 class DefaultDictKey(dict):
     """ The standard library provides the defaultdict class which
         is useful, but sometimes the value that we wish to produce
@@ -1649,9 +1650,11 @@ class DefaultDictKey(dict):
     """
     def __init__(self, factory):
         self.factory = factory
+
     def __missing__(self, key):
         self[key] = self.factory(key)
         return self[key]
+
 
 class ParsedBioModel(object):
     def __init__(self, constants, kinetic_laws, species, populations):

@@ -1130,7 +1130,6 @@ class TestSimpleBioModel(unittest.TestCase):
         self.configuration = pepapot.Configuration()
         self.expected_reactions = {"d: M --> "}
 
-
     def test_highlighting(self):
         """ Tests that the highlighting does at least something
             sensible. We could expand on this greatly, for example,
@@ -1155,9 +1154,8 @@ class TestSimpleBioModel(unittest.TestCase):
             set of reactions
         """
         model = pepapot.parse_biomodel(self.model_source)
-        model_reactions = {r.format() for d,r in model.reactions.items()}
+        model_reactions = {r.format() for _, r in model.reactions.items()}
         self.assertEqual(model_reactions, self.expected_reactions)
-
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)

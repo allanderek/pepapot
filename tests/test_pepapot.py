@@ -1154,8 +1154,9 @@ class TestSimpleBioModel(unittest.TestCase):
             set of reactions
         """
         model = pepapot.parse_biomodel(self.model_source)
-        model_reactions = {r.format() for _, r in model.reactions.items()}
-        self.assertEqual(model_reactions, self.expected_reactions)
+        model_reactions = model.get_reactions()
+        reaction_strings = {r.format() for r in model_reactions.values()}
+        self.assertEqual(reaction_strings, self.expected_reactions)
 
     def test_everything(self):
         model = pepapot.parse_biomodel(self.model_source)

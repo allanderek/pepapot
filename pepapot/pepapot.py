@@ -1577,34 +1577,6 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
                                             delim="<*>")
 
 
-def remove_rate_laws(expression, multipliers):
-    if not expression.arguments:
-        return expression
-    arguments = [remove_rate_laws(arg, multipliers)
-                 for arg in expression.arguments]
-    if expression.name and expression.name == "fMA":
-        # TODO: If there are no reactants? I think just the rate expression,
-        # which is what this does.
-        assert(len(arguments) == 1)
-        result_expr = arguments[0]
-        for (species, stoich) in multipliers:
-            species_expr = Expression.name_expression(species)
-            if stoich != 1:
-                # If the stoichiometry is not 1, then we have to raise the
-                # speices to the power of the stoichiometry. So if we have
-                # fMA(1.0), on a reaction X + Y -> ..., where X has
-                # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
-                stoich_expr = Expression.num_expression(stoich)
-                species_expr = Expression.power(species_expr, stoich_expr)
-            result_expr = Expression.multiply(result_expr, species_expr)
-        return result_expr
-    else:
-        # So we return a new expression with the new arguments. If we were
-        # doing this inplace, we could just replace the original expression's
-        # arguments.
-        return Expression.apply_expression(expression.name, arguments)
-
-
 class BioReaction(object):
     """ Represents a reaction in a biological system. This does not necessarily
         have to be a reaction which is produced by parsing and processing a
@@ -1644,11 +1616,13 @@ class BioReaction(object):
 
 
 class DefaultDictKey(dict):
+    # pylint: disable=too-few-public-methods
     """ The standard library provides the defaultdict class which
         is useful, but sometimes the value that we wish to produce
         depends upon the key. This class provides that functionality
     """
     def __init__(self, factory):
+        super(DefaultDictKey, self).__init__()
         self.factory = factory
 
     def __missing__(self, key):
@@ -1677,6 +1651,35 @@ class ParsedBioModel(object):
     def from_tokens(cls, tokens):
         return cls(tokens[0], tokens[1], tokens[2], tokens[3])
 
+    @staticmethod
+    def remove_rate_laws(expression, multipliers):
+        if not expression.arguments:
+            return expression
+        arguments = [ParsedBioModel.remove_rate_laws(arg, multipliers)
+                     for arg in expression.arguments]
+        if expression.name and expression.name == "fMA":
+            # TODO: If there are no reactants? I think just the rate
+            # expression, which is what this does.
+            assert(len(arguments) == 1)
+            result_expr = arguments[0]
+            for (species, stoich) in multipliers:
+                species_expr = Expression.name_expression(species)
+                if stoich != 1:
+                    # If the stoichiometry is not 1, then we have to raise the
+                    # speices to the power of the stoichiometry. So if we have
+                    # fMA(1.0), on a reaction X + Y -> ..., where X has
+                    # stoichiometry 2, then we get fMA(1.0) = X^2 * Y * 1.0
+                    stoich_expr = Expression.num_expression(stoich)
+                    species_expr = Expression.power(species_expr, stoich_expr)
+                result_expr = Expression.multiply(result_expr, species_expr)
+            return result_expr
+        else:
+            # So we return a new expression with the new arguments. If we were
+            # doing this inplace, we could just replace the original
+            # expression's arguments.
+            return Expression.apply_expression(expression.name, arguments)
+
+
     def expand_rate_laws(self):
         """ A method to expand the rate laws which are simple convenience
             functions for the user. So we wish to turn:
@@ -1686,23 +1689,15 @@ class ParsedBioModel(object):
             Assuming that A and B are reactants or activators for the
             reaction r
         """
-        # First build up a dictionary mapping reaction names to reactants
-        # and activators (together with their stoichiometry)
-        multipliers = defaultdict(list)
-        for species_def in self.species_defs:
-            species_name = species_def.lhs
-            behaviours = species_def.rhs
-            for behaviour in behaviours:
-                if behaviour.role in ["<<", "(+)"]:
-                    entry = (species_name, behaviour.stoichiometry)
-                    multipliers[behaviour.reaction_name].append(entry)
+        reaction_dict = self.get_reactions()
         for kinetic_law in self.kinetic_laws:
-            rhs_multipliers = multipliers[kinetic_law.lhs]
-            new_expr = remove_rate_laws(kinetic_law.rhs, rhs_multipliers)
+            reaction = reaction_dict[kinetic_law.lhs]
+            multipliers = [(b.species, b.stoichiometry)
+                            for b in reaction.reactants + reaction.activators]
+            new_expr = self.remove_rate_laws(kinetic_law.rhs, multipliers)
             kinetic_law.rhs = new_expr
 
-    @property
-    def reactions(self):
+    def get_reactions(self):
         reactions = DefaultDictKey(BioReaction)
         for species_def in self.species_defs:
             behaviours = species_def.rhs
@@ -1817,6 +1812,9 @@ class BioPepaSimulation(object):
         self.environment = reduce_definitions(self.model.constants)
 
     def available_actions(self):
+        """ Returns the list of actions which could be performed in the current
+            state of the simulation.
+        """
         # TODO: This might be a bit inefficient, but it is not clear
         # how else we can do this. Firstly we should be able to have a
         # model reduction which takes the original model and reduces it as
@@ -1833,12 +1831,26 @@ class BioPepaSimulation(object):
                 for a in self.all_actions if a.pre_condition(self.state)]
 
     def perform_action(self, action):
+        """ Once the action is chosen then we update the state based on the
+            action that was chosen.
+        """
         action.post_condition(self.state)
 
     def row_of_state(self, names):
+        """ Returns the state of the simulation as a row of numbers of
+            populations. This is usually used to output a time series of the
+            simulation.
+        """
         return [self.state[name] for name in names]
 
+    # TODO: We now have the model being able to produce a bunch of 'reactions'
+    # we could use that to calculate the list of 'actions'?
     def action_of_kinetic_law(self, kinetic_law):
+        """ Given a kinetic law calculates an action, which is in the form
+            required for the simulation to process. Essentially we are
+            packaging up the rates as specified by the kinetic laws, with the
+            pre-conditions and post-conditions of firing a particular reaction.
+        """
         name = kinetic_law.lhs
         pres = []
         posts = []
@@ -1868,6 +1880,7 @@ class BioPepaSimulation(object):
                                 pre_condition, post_condition)
 
     def calculate_all_actions(self):
+        """ Simply calculates an action for each kinetic law in the model """
         return [self.action_of_kinetic_law(kinetic_law)
                 for kinetic_law in self.model.kinetic_laws]
 

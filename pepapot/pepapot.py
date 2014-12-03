@@ -1548,7 +1548,12 @@ class BioSpeciesDefinition(object):
 
     @classmethod
     def from_tokens(cls, tokens):
-        return cls(tokens[0], tokens[2])
+        species_name = tokens[0]
+        behaviours = tokens[2]
+        for behaviour in behaviours:
+            if behaviour.species is None:
+                behaviour.species = species_name
+        return cls(species_name, behaviours)
 
 
 BioSpeciesDefinition.grammar.setParseAction(BioSpeciesDefinition.from_tokens)
@@ -1605,11 +1610,35 @@ class BioReaction(object):
         Bio-PEPA model, but the definition is here because we wish to be able
         to compute the set of all reactions defined by a Bio-PEPA model.
     """
-    def __init__(self, name, reactants, products):
+    def __init__(self, name):
         self.name = name
-        self.reactants = reactants
-        self.products = products
+        self.reactants = set()
+        self.activators = set()
+        self.products = set()
+        self.inhibitors = set()
+        self.modifiers = set()
 
+    def format(self):
+        def format_name(behaviour):
+            if behaviour.stoichiometry == 1:
+                return behaviour.species
+            else:
+                return ("(" + behaviour.species + "," +
+                        str(behaviour.stoichiometry) + ")")
+        reactants = ", ".join([format_name(b) for b in self.reactants])
+        return self.name + ": " + reactants + " -->"
+
+
+class DefaultDictKey(dict):
+    """ The standard library provides the defaultdict class which
+        is useful, but sometimes the value that we wish to produce
+        depends upon the key. This class provides that functionality
+    """
+    def __init__(self, factory):
+        self.factory = factory
+    def __missing__(self, key):
+        self[key] = self.factory(key)
+        return self[key]
 
 class ParsedBioModel(object):
     def __init__(self, constants, kinetic_laws, species, populations):
@@ -1658,7 +1687,23 @@ class ParsedBioModel(object):
 
     @property
     def reactions(self):
-        return {}
+        reactions = DefaultDictKey(BioReaction)
+        for species_def in self.species_defs:
+            behaviours = species_def.rhs
+            for behaviour in behaviours:
+                reaction = reactions[behaviour.reaction_name]
+                if behaviour.role == "<<":
+                    reaction.reactants.add(behaviour)
+                elif behaviour.role == ">>":
+                    reaction.products.add(behaviour)
+                elif behaviour.role == "(+)":
+                    reaction.activators.add(behaviour)
+                elif behaviour.role == "(-)":
+                    reaction.inhibitors.add(behaviour)
+                elif behaviour.role == "(.)":
+                    reaction.modifiers.add(behaviour)
+        return reactions
+
 
 ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 

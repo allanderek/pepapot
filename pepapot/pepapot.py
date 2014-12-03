@@ -1872,22 +1872,32 @@ class BioPepaSimulation(object):
                 for kinetic_law in self.model.kinetic_laws]
 
 
-def exponential_delay(mean):
-    """From the given average length samples randomly to give an
-       exponentially distributed delay. Remember, the argument here is the
-       average *delay* so if you have a *rate* then take the recipriocal
-       to get the average delay, eg:
-       delay = exponential_delay(1.0 / rate)
-    """
-    return -mean * math.log(random.random())
-
-
 class StochasticSimulator(object):
+    """ Runs one or many stochastic simulations. For the time being you are
+        confined to running a stochastic simulation of a Bio-PEPA model using
+        `BioPepaSimulation` but in theory this could be more general, for
+        example to allow the simulation of PEPA models.
+    """
     def __init__(self, model, configuration):
         self.configuration = configuration
         self.model = model
 
-    def choose_action(self, actions):
+    @staticmethod
+    def exponential_delay(mean):
+        """From the given average length samples randomly to give an
+           exponentially distributed delay. Remember, the argument here is the
+           average *delay* so if you have a *rate* then take the recipriocal
+           to get the average delay, eg:
+           delay = exponential_delay(1.0 / rate)
+        """
+        return -mean * math.log(random.random())
+
+
+    @staticmethod
+    def choose_action(actions):
+        """ Choose an action from a list of actions based on their relative
+            rates.
+        """
         # TODO: We should probably do something better when there are no
         # actions left to perform. That means we have hit a deadlock, for some
         # models we will simply wish to report that, other we will simply wish
@@ -1906,10 +1916,13 @@ class StochasticSimulator(object):
         else:
             raise ValueError("Dice greater than total rate")
         mean_delay = 1.0 / total_rate
-        delay = exponential_delay(mean_delay)
+        delay = StochasticSimulator.exponential_delay(mean_delay)
         return (delay, chosen_action)
 
     def run_single_simulation(self):
+        """ Run a single simulation, the times are given in the configuration
+            provided to the constructor of this class.
+        """
         simulation = BioPepaSimulation(self.model)
         species_names = [spec_def.lhs for spec_def in self.model.species_defs]
         time = 0.0
@@ -1942,6 +1955,9 @@ class StochasticSimulator(object):
         return timecourse
 
     def run_simulation(self):
+        """ Run the stochastic simulation for the number of runs specified
+            in the configuration given to the constructor of this class.
+        """
         timecourse = self.run_single_simulation()
         runs = self.configuration.num_independent_runs - 1
         while runs:
@@ -1952,6 +1968,10 @@ class StochasticSimulator(object):
 
 
 class BioModelSolver(object):
+    """ A class which performs the evaluation of a Bio-PEPA model. It includes
+        both solving ODEs and performing one (or many) stochastic
+        simulation(s).
+    """
     def __init__(self, model):
         self.model = model
 

@@ -2098,7 +2098,12 @@ import pygments.formatters
 
 
 def highlight_model_source(source, lexer, include_styledefs=True):
-    formatter = pygments.formatters.HtmlFormatter(style='colorful')
+    """ Basically a wrapper around `pygments.highlight`. The crucial difference
+        we add here is that we are always using the html formatter. In addition
+        we offer the `include_styledefs` option which will include the CSS
+        style definitions if set to True.
+    """
+    formatter = pygments.formatters.get_formatter_by_name("html")
     style_def = "<style>" + formatter.get_style_defs() + "</style>"
     code_html = pygments.highlight(source, lexer, formatter)
     if include_styledefs:
@@ -2109,6 +2114,9 @@ def highlight_model_source(source, lexer, include_styledefs=True):
 
 
 class PepaLexer(pygments.lexer.RegexLexer):
+    """ The definition of a pygments lexer for PEPA source code, quite simple.
+    """
+    # pylint: disable=too-few-public-methods
     Comment = pygments.token.Comment
     Name = pygments.token.Name
     Number = pygments.token.Number
@@ -2134,10 +2142,17 @@ class PepaLexer(pygments.lexer.RegexLexer):
 
 
 def highlight_pepa(source, **kwargs):
+    """ Highlights text according to the PEPA lexer and is hence normally used
+        to highlight (into HTML) PEPA model source.
+    """
     return highlight_model_source(source, PepaLexer(), **kwargs)
 
 
 class BioPepaLexer(pygments.lexer.RegexLexer):
+    """ The definition of a pygments lexer for Bio-PEPA source code.
+        Rather simple.
+    """
+    # pylint: disable=too-few-public-methods
     Comment = pygments.token.Comment
     Name = pygments.token.Name
     Number = pygments.token.Number
@@ -2170,6 +2185,9 @@ class BioPepaLexer(pygments.lexer.RegexLexer):
 
 
 def highlight_biopepa(source, **kwargs):
+    """ Highlights text using the Bio-PEPA lexer, hence normally used to
+        highlight Bio-PEPA model source.
+    """
     return highlight_model_source(source, BioPepaLexer(), **kwargs)
 
 from bottle import route, default_app
@@ -2230,6 +2248,7 @@ welcome_template = jinja2.Template(welcome_template_string)
 
 @route('/')
 def welcome():
+    """ Returns the welcome page."""
     return welcome_template.render(root_template=root_template)
 
 

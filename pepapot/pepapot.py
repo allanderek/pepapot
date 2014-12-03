@@ -1800,19 +1800,6 @@ class TimeCourse(object):
         self.num_averaged = total_runs
 
 
-reverse_reaction_biopepa_model = """
-delta = 1.0;
-gamma = 0.5;
-
-kineticLawOf r : delta * A;
-kineticLawOf rm : gamma * B;
-
-A = (r, 1) << A + (rm, 1) >> A;
-B = (r, 1) >> B + (rm, 1) << B;
-
-A[100] <*> B[100]
-"""
-
 SimulationAction = namedtuple("SimulationAction", ["name", "rate",
                                                    "pre_condition",
                                                    "post_condition"])

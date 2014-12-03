@@ -2036,13 +2036,12 @@ class BioModelSolver(object):
         return timecourse
 
 
-class OutputConfiguration(object):
-    def __init__(self, default_outfile, error_file):
-        self.default_outfile = default_outfile
-        self.error_file = error_file
+OutputConfiguration = namedtuple("OutputConfiguration", ["default_outfile",
+                                                         "error_file"])
 
 
 def analyse_pepa_file(filename, output_conf, arguments):
+    """ The main interface method for the analysing of PEPA files. """
     if arguments['steady'] and arguments['util']:
         with open(filename, "r") as modelfile:
             model = parse_model(modelfile.read())
@@ -2054,6 +2053,7 @@ def analyse_pepa_file(filename, output_conf, arguments):
 
 
 def analyse_biopepa_file(filename, output_conf, arguments):
+    """ The main interface method for the analysing of Bio-PEPA files. """
     if arguments['timeseries']:
         with open(filename, "r") as modelfile:
             model = parse_biomodel(modelfile.read())

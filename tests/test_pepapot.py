@@ -1199,6 +1199,8 @@ class TestReverseBioModel(TestSimpleBioModel):
         self.expected_populations = {'A': hundred_expr, 'B': hundred_expr}
         self.expected_result = {'A': 66.66667694, 'B': 133.33332306}
         self.configuration = pepapot.Configuration()
+        self.expected_reactions = {"r: A --> B",
+                                   "rm: B --> A"}
 
 michaelis_menton_biopepa_model = """
 delta = 1.0;
@@ -1231,6 +1233,9 @@ class TestMMBioModel(TestSimpleBioModel):
                                 'P': 99.995269476248424
                                 }
         self.configuration = pepapot.Configuration()
+        self.expected_reactions = {"r: E, S --> ES",
+                                   "rm: ES --> E, S",
+                                   "s: ES --> E, P"}
 
 
 class TestBioSyntaxSugar(unittest.TestCase):
@@ -1323,6 +1328,7 @@ class TestBioOffSwitch(TestSimpleBioModel):
         self.expected_result = {'A': 3.0}
         self.configuration = pepapot.Configuration()
         self.configuration.output_interval = 0.3
+        self.expected_reactions = {"go: --> A"}
 
 
 class TestBioHeaviside(TestSimpleBioModel):
@@ -1342,6 +1348,8 @@ class TestBioHeaviside(TestSimpleBioModel):
                                 }
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 100.0
+        self.expected_reactions = {"a: A --> B",
+                                   "b: B --> A"}
 
 
 class TestBioTimeVariable(TestSimpleBioModel):
@@ -1357,6 +1365,7 @@ class TestBioTimeVariable(TestSimpleBioModel):
         self.expected_result = {'A': 50.0}
         self.configuration = pepapot.Configuration()
         self.configuration.stop_time = 10.0
+        self.expected_reactions = {"a: --> A"}
 
 
 class TestBioActiviator(TestSimpleBioModel):
@@ -1374,6 +1383,7 @@ class TestBioActiviator(TestSimpleBioModel):
                                 'B': 100,
                                 }
         self.configuration = pepapot.Configuration()
+        self.expected_reactions = {"a: +B --> A"}
 
 
 class TestBioStoichiometryTwo(TestSimpleBioModel):
@@ -1392,6 +1402,8 @@ class TestBioStoichiometryTwo(TestSimpleBioModel):
                                 'B': 100,
                                 }
         self.configuration = pepapot.Configuration()
+        self.expected_reactions = {"a: +B --> A",
+                                   "b: (A,2) -->"}
 
 
 class TestStochasticSimulationBioPEPA(unittest.TestCase):

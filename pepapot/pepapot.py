@@ -28,7 +28,7 @@ from docopt import docopt
 import pyparsing
 from pyparsing import Combine, Or, Optional, Literal, Suppress
 import numpy
-from scipy.integrate import odeint
+import scipy.integrate
 from lazy import lazy
 
 
@@ -1982,8 +1982,7 @@ class BioModelSolver(object):
             behaviours = species_def.rhs
             behaviour_exprs = [b.get_expression(kinetic_laws)
                                for b in behaviours]
-            add_exprs = lambda l, r: Expression.addition(l, r)
-            expr = functools.reduce(add_exprs, behaviour_exprs)
+            expr = functools.reduce(Expression.addition, behaviour_exprs)
             species_gradients.append(expr)
 
         # We need an environment in which to evaluate each expression, this
@@ -2030,14 +2029,10 @@ class BioModelSolver(object):
 
         time_grid = configuration.get_time_grid()
         # Solve the ODEs
-        solution = odeint(get_rhs, initials, time_grid)
+        solution = scipy.integrate.odeint(get_rhs, initials, time_grid)
 
         timecourse = TimeCourse(species_names, time_grid, solution)
         return timecourse
-
-
-OutputConfiguration = namedtuple("OutputConfiguration", ["default_outfile",
-                                                         "error_file"])
 
 
 def analyse_pepa_file(filename, output_conf, arguments):
@@ -2231,6 +2226,10 @@ def welcome():
 
 
 application = default_app()
+
+
+OutputConfiguration = namedtuple("OutputConfiguration", ["default_outfile",
+                                                         "error_file"])
 
 
 # Now the command-line stuff

@@ -1966,25 +1966,33 @@ class BioModelSolver(object):
         simulator = StochasticSimulator(self.model, configuration)
         return simulator.run_simulation()
 
+    def get_gradients_exprs(self):
+        """ Returns a list of pairs, the first element of each pair is the
+            species name, the second is the gradient expression. That is an
+            expression which, when evaluated, gives the gradient of change in
+            the population of that species (this usually depends on the
+            populations of some of the species)
+        """
+        kinetic_laws = def_list_as_dictionary(self.model.kinetic_laws)
+        # For each species we build an expression to calculate its rate of
+        # change based on the current population
+        gradients = []
+        for species_def in self.model.species_defs:
+            behaviours = species_def.rhs
+            behaviour_exprs = [b.get_expression(kinetic_laws)
+                               for b in behaviours]
+            expr = functools.reduce(Expression.addition, behaviour_exprs)
+            gradient = (species_def.lhs, expr)
+            gradients.append(gradient)
+
+        return gradients
+
     def solve_odes(self, configuration):
         """ Solves the model, to give a timeseries, by converting the model
             to a series of ODEs.
         """
         self.model.expand_rate_laws()
-        kinetic_laws = def_list_as_dictionary(self.model.kinetic_laws)
-        # For each species we build an expression to calculate its rate of
-        # change based on the current population
-        species_names = []
-        species_gradients = []
-        for species_def in self.model.species_defs:
-            species = species_def.lhs
-            species_names.append(species)
-            behaviours = species_def.rhs
-            behaviour_exprs = [b.get_expression(kinetic_laws)
-                               for b in behaviours]
-            expr = functools.reduce(Expression.addition, behaviour_exprs)
-            species_gradients.append(expr)
-
+        gradients = self.get_gradients_exprs()
         # We need an environment in which to evaluate each expression, this
         # will consist of the populations (which will be overridden at each
         # time point, and any constants that are used. Theoretically we could
@@ -2016,21 +2024,23 @@ class BioModelSolver(object):
                 side of the ode at the given populations and time.
             """
             environment["time"] = Expression.num_expression(time)
-            for species, population in zip(species_names, current_pops):
+            for (species,_), population in zip(gradients, current_pops):
                 environment[species] = Expression.num_expression(population)
 
             result = [expr.get_value(environment=environment)
-                      for expr in species_gradients]
+                      for _, expr in gradients]
             return result
 
         # The difficulty here is that initials must be the same order as
-        # 'results'
-        initials = [environment[name].get_value() for name in species_names]
+        # 'results', we ensure that because the names are kept in a tuple
+        # alongside the gradient expressions.
+        initials = [environment[g[0]].get_value() for g in gradients]
 
         time_grid = configuration.get_time_grid()
         # Solve the ODEs
         solution = scipy.integrate.odeint(get_rhs, initials, time_grid)
 
+        species_names = [g[0] for g in gradients]
         timecourse = TimeCourse(species_names, time_grid, solution)
         return timecourse
 

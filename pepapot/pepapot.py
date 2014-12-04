@@ -1136,7 +1136,7 @@ class AggregationBuilder(MemoisationBuilder):
         new_transitions = []
         # An aggregation, or array state is a tuple mapping
         # lhs states to numbers
-        for index, (local_state, num) in enumerate(state):
+        for local_state, num in state:
             if num > 0:
                 local_transitions = self.lhs.get_transitions(local_state)
                 for transition in local_transitions:

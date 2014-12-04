@@ -1352,9 +1352,9 @@ class ModelSolver(object):
     def initial_state(self):
         components = self.model.get_components()
         system_equation = self.model.system_equation
-        self._initial_state = InitialStateVisitor.get_result(system_equation,
+        initial_state = InitialStateVisitor.get_result(system_equation,
                                                              components)
-        return self._initial_state
+        return initial_state
 
     @lazy
     def state_space(self):

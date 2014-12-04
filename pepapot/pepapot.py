@@ -1445,7 +1445,7 @@ class ModelSolver(object):
         """
         sys_eqn = self.model.system_equation
         utilisation_builder = UtilisationsBuilderHelper.get_result(sys_eqn)
-        for (state, (state_number, transitions)) in self.state_space.items():
+        for (state, (state_number, _)) in self.state_space.items():
             probability = self.steady_solution[state_number]
             utilisation_builder.utilise_state(state, probability)
         return utilisation_builder.get_utilisations()

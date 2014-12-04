@@ -19,6 +19,7 @@ import os.path
 import logging
 from collections import namedtuple
 from collections import defaultdict
+import abc
 import functools
 import itertools
 import math
@@ -1079,7 +1080,7 @@ class InitialStateVisitor(ComponentVisitor):
         self.result = (lhs, rhs)
 
 
-class MemoisationBuilder(object):
+class MemoisationBuilder(metaclass=abc.ABCMeta):
     """ A somewhat abstract builder class which memorises the states which
         it has already seen and explored, thus remembering the transitions it
         has already computed for sub-states of the global state space.
@@ -1087,13 +1088,23 @@ class MemoisationBuilder(object):
     def __init__(self):
         self.state_dictionary = dict()
 
-    def _compute_transitions(self, state):  # pragma: no cover
-        # Just using a pragma at the moment to exclude this from coverage
-        # Could otherwise use a '.coveragerc' file as described at:
-        # http://nedbatchelder.com/code/coverage/config.html#config
-        raise Exception("Unimplemented abstract method: _compute_transitions")
+    @abc.abstractmethod
+    def _compute_transitions(self, _):
+        """ A virtual method with no reasonable definition here, but all
+            (non-abstract) sub-classes should of course define it, it is the
+            method which is called to first compute the transitions for the
+            given state, later if 'get_transitions' is called again for the
+            same state the transitions will have been saved in the
+            `state_dictionary` and hence will not need to be recalculated.
+        """
+        pass # pragma: no cover
 
     def get_transitions(self, state):
+        """ First looks up the state in the state dictionary to see if the
+            transitions for the given state have already been computed. If so
+            they are returned and if not they are freshly computed, using
+            the _compute_transitions method of whatever subclass.
+        """
         state_information = self.state_dictionary.get(state, None)
         if state_information:
             return state_information.transitions
@@ -1206,14 +1217,16 @@ class CoopBuilder(MemoisationBuilder):
         return transitions
 
 
-# So the StateBuilderHelper builds up an object of Leaf, Aggregation and
-# CoopBuilders which has the same structure as the PEPA model. Hence the
-# structure of the PEPA model is captured in this object and remains static
-# whilst the state space is built. Each kind of builder knows how to
-# build the statespace for its portion of the tree of the PEPA model structure
-# whether that requires recursively building the state-space of the subtrees
-# or not. To build up that
+
 class StateBuilderHelper(ComponentVisitor):
+    """ So the StateBuilderHelper builds up an object of LeafBuilder,
+        AggregationBuilder and CoopBuilders which has the same structure as the
+        PEPA model. Hence the structure of the PEPA model is captured in this
+        object and remains static whilst the state space is built. Each kind of
+        builder knows how to build the statespace for its portion of the tree
+        of the PEPA model structure whether that requires recursively building
+        the state-space of the subtrees or not.
+    """
     def __init__(self, actions_dictionary):
         super(StateBuilderHelper, self).__init__()
         self.actions_dictionary = actions_dictionary
@@ -1350,6 +1363,7 @@ class ModelSolver(object):
 
     @lazy
     def initial_state(self):
+        """ Generate and return the initial state of the model. """
         components = self.model.get_components()
         system_equation = self.model.system_equation
         initial_state = InitialStateVisitor.get_result(system_equation,
@@ -1358,6 +1372,7 @@ class ModelSolver(object):
 
     @lazy
     def state_space(self):
+        """ Generate and return the state space of the model. """
         system_equation = self.model.system_equation
         process_actions = self.model.get_process_actions()
         state_builder = StateBuilderHelper.get_result(system_equation,
@@ -1381,6 +1396,9 @@ class ModelSolver(object):
         return state_space
 
     def log_state_space(self, state_space=None):
+        """ Log information about the state space for later perusal, probably
+            by a developer hunting a bug.
+        """
         if state_space is None:
             state_space = self.state_space
         logging.info("State space:")
@@ -1404,6 +1422,7 @@ class ModelSolver(object):
         # to each state as it is discovered, which in turn would require that
         # it still stores some set/lookup of the state representation to the
         # state number.
+        # pylint: disable=no-member
         size = len(self.state_space)
         gen_matrix = numpy.zeros((size, size), dtype=numpy.float64)
         for state_number, transitions in self.state_space.values():
@@ -1426,6 +1445,7 @@ class ModelSolver(object):
     @lazy
     def steady_solution(self):
         """Solve the generator matrix to obtain a steady solution"""
+        # pylint: disable=no-member
         size = len(self.gen_matrix)
         solution_vector = numpy.zeros(size, dtype=numpy.float64)
         solution_vector[0] = 1

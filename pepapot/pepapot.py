@@ -313,6 +313,7 @@ def create_expression_grammar(identifier_grammar):
                    (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
                    (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
                    ]
+    # pylint: disable=expression-not-assigned
     expr_grammar << pyparsing.operatorPrecedence(atom_expr, precedences)
     return expr_grammar
 
@@ -504,8 +505,9 @@ class PrefixNode(object):
                         ").", self.successor.format()])
 
 PrefixNode.grammar.setParseAction(PrefixNode.from_tokens)
+# pylint: disable=expression-not-assigned
 process_leaf << Or([PrefixNode.grammar, ProcessIdentifier.grammar])
-
+# pylint: enable=expression-not-assigned
 
 class ChoiceNode(object):
     def __init__(self, lhs, rhs):
@@ -600,10 +602,8 @@ class ProcessDefinition(object):
         self.lhs = lhs
         self.rhs = rhs
 
-    def process_grammar_action(tokens):
-        return functools.reduce(lambda l, r: ChoiceNode(l, r), tokens)
     process_grammar = pyparsing.delimitedList(process_leaf, delim="+")
-    process_grammar.setParseAction(process_grammar_action)
+    process_grammar.setParseAction(lambda t: functools.reduce(ChoiceNode, t))
 
     grammar = identifier + "=" + process_grammar + ";"
     list_grammar = pyparsing.Group(pyparsing.OneOrMore(grammar))
@@ -717,8 +717,9 @@ class ParsedSystemCooperation(object):
         coop_string = "<" + ", ".join(self.cooperation_set) + ">"
         return " ".join([self.lhs.format(), coop_string, self.rhs.format()])
 
-
+# pylint: disable=pointless-statement
 system_equation_grammar << ParsedSystemCooperation.grammar
+# pylint: enable=pointless-statement
 system_equation_grammar.setParseAction(ParsedSystemCooperation.from_tokens)
 
 

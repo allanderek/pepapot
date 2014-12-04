@@ -471,7 +471,7 @@ class TopRate(Expression):
         else:
             return self
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, _):
         # You might think we should check 'other' for equality with self, as
         # we do in '__truediv__' above. However if other == TopRate, then that
         # is when '__truediv__' would have been called on 'other' anyway.

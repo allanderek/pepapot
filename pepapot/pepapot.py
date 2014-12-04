@@ -1211,6 +1211,10 @@ class CoopBuilder(MemoisationBuilder):
         left_transitions = self.lhs.get_transitions(left_state)
         right_transitions = self.rhs.get_transitions(right_state)
         transitions = []
+        # These two for-loops are almost identical, but the successor states
+        # replace the left and right hand sides of the current state
+        # respectively. I could do these more succinctly using a list
+        # comprehension, but feel this is more readable.
         for transition in left_transitions:
             if transition.action not in self.coop_set:
                 new_state = (transition.successor, right_state)

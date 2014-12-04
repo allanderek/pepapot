@@ -31,6 +31,18 @@ import numpy
 import scipy.integrate
 from lazy import lazy
 
+# TODO: Because of the way numpy exports some of its member methods it
+# confuses the current version of pylint such that you get quite a few warnings
+# of the form: Module 'numpy' has no 'array_equal' member (no-member)
+# Hence we disable it with a comment pylint pragma comment
+# search for (no-member).
+# It appears that the problem might be fixed in the source of pylint which may
+# not have made it to pypi yet. Here is the bug:
+# https://bitbucket.org/logilab/pylint/issue/58/false-positive-no-member-on-numpy-imports
+# and the fix
+# https://bitbucket.org/logilab/astroid/commits/83d78af4866be5818f193360c78185e1008fd29e
+
+
 
 # This speeds up the parser *considerably*. For some models containing nested
 # parentheses in arithmetic expressions the parsing goes from around 1 minute
@@ -1720,10 +1732,11 @@ ParsedBioModel.grammar.setParseAction(ParsedBioModel.from_tokens)
 
 
 def def_list_as_dictionary(definitions):
-    dictionary = dict()
-    for definition in definitions:
-        dictionary[definition.lhs] = definition.rhs
-    return dictionary
+    """ Several times we have a list of definitions. It is often useful to
+        turn these into a dictionary with the left hand side of the definition
+        as the key and the right hand side as the value.
+    """
+    return {definition.lhs : definition.rhs for definition in definitions}
 
 
 def parse_biomodel(model_string):
@@ -1732,6 +1745,10 @@ def parse_biomodel(model_string):
 
 
 class Configuration(object):
+    """ Stores the configuration of a time-series analysis of a model. Hence
+        storing information about a the start/stop times as well as the
+        output interval for creating a timecourse.
+    """
     def __init__(self):
         self.start_time = 0.0
         self.stop_time = 10.0
@@ -1750,12 +1767,17 @@ class Configuration(object):
         # will actually include the stop time. Note that in some cases this
         # may result in stop_time + out_interval actually appearing in the
         # output as well, see numpy.arange documentation.
+        # pylint: disable=no-member
         return numpy.arange(start=self.start_time,
                             stop=self.stop_time + self.output_interval,
                             step=self.output_interval)
 
 
 class TimeCourse(object):
+    """ Represents a time course, or time series. This is the result of a
+        transient analysis over, for example, a Bio-PEPA model, and
+        represents the change in population of each species over time.
+    """
     def __init__(self, names, time_grid, rows):
         self.column_names = names
         self.time_grid = time_grid
@@ -1766,6 +1788,7 @@ class TimeCourse(object):
         self.num_averaged = 1.0
 
     def output(self, output_file):
+        """ Writes the time course to the given output file. """
         output_file.write("# Time, ")
         output_file.write(", ".join(self.column_names))
         output_file.write("\n")
@@ -1784,15 +1807,22 @@ class TimeCourse(object):
         # Not sure I want this to be an assert, but we certainly want
         # something to check this.
         assert(self.column_names == other.column_names)
+        # pylint: disable=no-member
         assert(numpy.array_equal(self.time_grid, other.time_grid))
         total_runs = self.num_averaged + other.num_averaged
 
         def average_pair(left_value, right_value):
+            """ Take the average of a pair of values, but note, each value in
+                the pair is not necessarily equally weighted. We could be
+                combining two time courses which represent multiple runs
+                themselves.
+            """
             left_prod = left_value * self.num_averaged
             right_prod = right_value * other.num_averaged
             return (left_prod + right_prod) / total_runs
 
         def combine_rows(left_row, right_row):
+            """ Simply combine two time course rows """
             return [average_pair(l, r) for l, r in zip(left_row, right_row)]
         self.rows = [combine_rows(l, r) for l, r in zip(self.rows, other.rows)]
         self.num_averaged = total_runs
@@ -1804,6 +1834,9 @@ SimulationAction = namedtuple("SimulationAction", ["name", "rate",
 
 
 class BioPepaSimulation(object):
+    """ A class to implement the parts of a stochastic simulator which are
+        specific to a Bio-PEPA model.
+    """
     def __init__(self, model):
         self.model = model
         self.state = {population.species_name: population.amount.get_value()
@@ -1867,12 +1900,14 @@ class BioPepaSimulation(object):
                     posts.append((species, postcondition))
 
         def pre_condition(state):
+            """ Tests if the action is deployable in this state. """
             for (species, value) in pres:
                 if state[species] < value:
                     return False
             return True
 
         def post_condition(state):
+            """ The function to modify the state if the action is executed """
             for (species, value) in posts:
                 state[species] += value
 

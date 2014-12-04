@@ -1174,8 +1174,39 @@ class CoopBuilder(MemoisationBuilder):
         self.coop_set = coop_set
         self.rhs = rhs
 
+
+    @staticmethod
+    def shared_action_transitions(action, left_transitions, right_transitions):
+        """ This then implements the so-called "apparent rate" for this
+            shared activity. This is calculated as:
+            (r1/ra(lhs)) * (r2/ra(rhs)) * min(ra(lhs), ra(rhs))
+            Where r1 is the rate of the left transition, and r2 is the
+            rate of the right transition, ra(lhs) is the total rate at which
+            the left-hand process can perform the given action and similarly
+            for ra(rhs).
+        """
+        left_shared = [t for t in left_transitions if t.action == action]
+        right_shared = [t for t in right_transitions if t.action == action]
+        left_rate = sum([t.rate for t in left_shared])
+        right_rate = sum([t.rate for t in right_shared])
+        governing_rate = min(left_rate, right_rate)
+        transition_pairs = [(l, r) for l in left_shared for r in right_shared]
+        transitions = []
+        for (left, right) in transition_pairs:
+            rate = ((left.rate / left_rate) *
+                    (right.rate / right_rate) *
+                    governing_rate)
+            new_state = (left.successor, right.successor)
+            new_transition = Transition(action, rate, new_state)
+            transitions.append(new_transition)
+        return transitions
+
     def _compute_transitions(self, state):
-        # A cooperation state is simply a pair of the left and right states
+        """ A cooperation state is simply a pair of the left and right states.
+            Therefore we compute the successors of the left and right states.
+            The interesting part is computing the successors of shared
+            activities.
+        """
         left_state, right_state = state
         left_transitions = self.lhs.get_transitions(left_state)
         right_transitions = self.rhs.get_transitions(right_state)
@@ -1191,28 +1222,10 @@ class CoopBuilder(MemoisationBuilder):
                 new_transition = transition._replace(successor=new_state)
                 transitions.append(new_transition)
         for action in self.coop_set:
-            # This then implements the so-called "apparent rate" for this
-            # shared activity. This is calculated as:
-            # (r1/ra(lhs)) * (r2/ra(rhs)) * min(ra(lhs), ra(rhs))
-            # Where r1 is the rate of the left transition, and r2 is the
-            # rate of the right transition, ra(lhs) is the total rate at which
-            # the left-hand process can perform the given action and similarly
-            # for ra(rhs).
-            left_shared = [t for t in left_transitions if t.action == action]
-            right_shared = [t for t in right_transitions if t.action == action]
-            left_rate = sum([t.rate for t in left_shared])
-            right_rate = sum([t.rate for t in right_shared])
-            governing_rate = min(left_rate, right_rate)
-            transition_pairs = [(l, r)
-                                for l in left_shared
-                                for r in right_shared]
-            for (left, right) in transition_pairs:
-                rate = ((left.rate / left_rate) *
-                        (right.rate / right_rate) *
-                        governing_rate)
-                new_state = (left.successor, right.successor)
-                new_transition = Transition(action, rate, new_state)
-                transitions.append(new_transition)
+            new_transitions = self.shared_action_transitions(action,
+                                                             left_transitions,
+                                                             right_transitions)
+            transitions.extend(new_transitions)
 
         return transitions
 

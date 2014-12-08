@@ -2270,10 +2270,11 @@ class PepaLexer(pygments.lexer.RegexLexer):
             (r'/\*', Comment.Multiline, 'comment'),
             (r' |\r\n', pygments.token.Whitespace),
             (r'//.*?$', Comment),
+            (r'\b<*>\b', pygments.token.Keyword.Reserved),
             (r'[A-Z][a-zA-Z_0-9]*', Name.Class),
             (r'[a-zA-Z][a-zA-Z_0-9]*', Name.Variable),
             (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?', Number.Float),
-            (r'[<>]', pygments.token.Operator),
+            (r'(<|\+|>|-|\*|/|=)', pygments.token.Operator.Word),
             (r'[,\.();=]', pygments.token.Punctuation),
             (r'/', pygments.token.Text)
         ],

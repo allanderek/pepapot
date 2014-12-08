@@ -70,6 +70,10 @@ def list_product(factors):
 
 
 def evaluate_function_app(name, arg_values):
+    """ Used in the evaluation of expressions. This evaluates the application
+        of a function.
+    """
+    # pylint: disable=too-many-return-statements
     if name == "plus" or name == "+":
         return sum(arg_values)
     elif name == "times" or name == "*":
@@ -191,7 +195,7 @@ class Expression:
             to a value.
         """
         reduced_expression = self.reduce_expr(environment=environment)
-        assert (reduced_expression.number is not None)
+        assert reduced_expression.number is not None
         return reduced_expression.number
 
     def reduce_expr(self, environment=None):
@@ -312,7 +316,7 @@ def create_expression_grammar(identifier_grammar):
     precedences = [("**", 2, pyparsing.opAssoc.RIGHT, binop_parse_action),
                    (multop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
                    (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
-                   ]
+                  ]
     # pylint: disable=expression-not-assigned
     expr_grammar << pyparsing.operatorPrecedence(atom_expr, precedences)
     return expr_grammar
@@ -1385,7 +1389,7 @@ class ModelSolver(object):
         components = self.model.get_components()
         system_equation = self.model.system_equation
         initial_state = InitialStateVisitor.get_result(system_equation,
-                                                             components)
+                                                       components)
         return initial_state
 
     @lazy
@@ -1397,7 +1401,7 @@ class ModelSolver(object):
                                                       process_actions)
         explore_queue = set([self.initial_state])
         explored = set()
-        while (explore_queue):
+        while explore_queue:
             current_state = explore_queue.pop()
             transitions = state_builder.get_transitions(current_state)
             successor_states = [t.successor for t in transitions]
@@ -1489,6 +1493,9 @@ class ModelSolver(object):
         return utilisation_builder.get_utilisations()
 
     def output_steady_utilisations(self, writer):
+        """ Write the utilisations of component states to the given writer.
+            The steady utilisations are written in plain text.
+        """
         for dictionary in self.steady_utilisations:
             writer.write("----------------\n")
             for component, probability in dictionary.items():
@@ -1501,6 +1508,12 @@ class ModelSolver(object):
 
 
 class BioRateDefinition(object):
+    # pylint: disable=too-few-public-methods
+    """ A class representing a rate definition in a Bio-PEPA model. It will
+        look like: "kineticLawOf r : expr;"
+        Where 'r' is the rate being definined and "expr" is an arbitrary
+        expression, usually involving the reactants of the reaction 'r'.
+    """
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
@@ -1510,12 +1523,18 @@ class BioRateDefinition(object):
 
     @classmethod
     def from_tokens(cls, tokens):
+        """ The parser method for Bio-PEPA rate definitions."""
         return cls(tokens[1], tokens[3])
 
 BioRateDefinition.grammar.setParseAction(BioRateDefinition.from_tokens)
 
 
 class BioBehaviour(object):
+    """ A class representing a behaviour. Species definitions consist of a list
+        of behaviours that the species are involved in. This class represents
+        one element of such a list. So for example "(a, 1) >> E" or a shorthand
+        version of that "a >>"
+    """
     def __init__(self, reaction, stoich, role, species):
         self.reaction_name = reaction
         self.stoichiometry = stoich
@@ -1547,6 +1566,7 @@ class BioBehaviour(object):
 
     @classmethod
     def from_tokens(cls, tokens):
+        """ The parser action method for a species behaviour. """
         return cls(tokens[0][0], tokens[0][1], tokens[1], tokens[2])
 
     def get_population_precondition(self):
@@ -1574,6 +1594,11 @@ class BioBehaviour(object):
             return 0
 
     def get_expression(self, kinetic_laws):
+        """ Return the expression that would be used in an ordinary
+            differential equation for the associated species. In other words
+            the rate of change in the given species population due to this
+            behaviour.
+        """
         modifier = self.get_population_modifier()
         expr = kinetic_laws[self.reaction_name]
         if modifier == 0:
@@ -1589,6 +1614,11 @@ BioBehaviour.grammar.setParseAction(BioBehaviour.from_tokens)
 
 
 class BioSpeciesDefinition(object):
+    # pylint: disable=too-few-public-methods
+    """ Class that represents a Bio-PEPA species definition. We store the name
+        and the right hand side of the definition which is a list of behaviours
+        the species is involved in.
+    """
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
@@ -1599,6 +1629,7 @@ class BioSpeciesDefinition(object):
 
     @classmethod
     def from_tokens(cls, tokens):
+        """ The parser action method for Bio-PEPA species definition."""
         species_name = tokens[0]
         behaviours = tokens[2]
         for behaviour in behaviours:
@@ -1611,6 +1642,10 @@ BioSpeciesDefinition.grammar.setParseAction(BioSpeciesDefinition.from_tokens)
 
 
 class BioPopulation(object):
+    # pylint: disable=too-few-public-methods
+    """ Represents a Bio-PEPA population. This is a process in the main
+        system equation, such as "E[100]"
+    """
     def __init__(self, species, amount):
         self.species_name = species
         self.amount = amount
@@ -1619,6 +1654,7 @@ class BioPopulation(object):
 
     @classmethod
     def from_tokens(cls, tokens):
+        """ The parser action method for a Bio-PEPA population. """
         return cls(tokens[0], tokens[2])
 
 BioPopulation.grammar.setParseAction(BioPopulation.from_tokens)
@@ -1628,6 +1664,7 @@ biosystem_grammar = pyparsing.delimitedList(BioPopulation.grammar,
 
 
 class BioReaction(object):
+    # pylint: disable=too-few-public-methods
     """ Represents a reaction in a biological system. This does not necessarily
         have to be a reaction which is produced by parsing and processing a
         Bio-PEPA model, but the definition is here because we wish to be able
@@ -1642,7 +1679,9 @@ class BioReaction(object):
         self.modifiers = []
 
     def format(self):
+        """ Format the reaction as a string """
         def format_name(behaviour):
+            """ format a name within the reaction as a string."""
             if behaviour.stoichiometry == 1:
                 species = behaviour.species
             else:
@@ -1681,6 +1720,9 @@ class DefaultDictKey(dict):
 
 
 class ParsedBioModel(object):
+    """ Class representing a parsed Bio-PEPA model. It contains the grammar
+        description for a model.
+    """
     def __init__(self, constants, kinetic_laws, species, populations):
         self.constants = constants
         self.kinetic_laws = kinetic_laws
@@ -1699,10 +1741,18 @@ class ParsedBioModel(object):
 
     @classmethod
     def from_tokens(cls, tokens):
+        """ The parser action method for a Bio-PEPA model. """
         return cls(tokens[0], tokens[1], tokens[2], tokens[3])
 
     @staticmethod
     def remove_rate_laws(expression, multipliers):
+        """ Given an expression we remove calls to the rate laws methods.
+            Currently this only includes the fMA method, or law of mass action.
+            This means that within a given expression whenever the
+            sub-expression fMA(e) appears it is replaced by (e * R1 .. * Rn)
+            where R1 to Rn are the reactants and activators of the given
+            reaction.
+        """
         if not expression.arguments:
             return expression
         arguments = [ParsedBioModel.remove_rate_laws(arg, multipliers)
@@ -1710,7 +1760,7 @@ class ParsedBioModel(object):
         if expression.name and expression.name == "fMA":
             # TODO: If there are no reactants? I think just the rate
             # expression, which is what this does.
-            assert(len(arguments) == 1)
+            assert len(arguments) == 1
             result_expr = arguments[0]
             for (species, stoich) in multipliers:
                 species_expr = Expression.name_expression(species)
@@ -1743,11 +1793,12 @@ class ParsedBioModel(object):
         for kinetic_law in self.kinetic_laws:
             reaction = reaction_dict[kinetic_law.lhs]
             multipliers = [(b.species, b.stoichiometry)
-                            for b in reaction.reactants + reaction.activators]
+                           for b in reaction.reactants + reaction.activators]
             new_expr = self.remove_rate_laws(kinetic_law.rhs, multipliers)
             kinetic_law.rhs = new_expr
 
     def get_reactions(self):
+        """ Returns a list of reactions from the parsed bio model. """
         reactions = DefaultDictKey(BioReaction)
         for species_def in self.species_defs:
             behaviours = species_def.rhs
@@ -1783,6 +1834,7 @@ def parse_biomodel(model_string):
 
 
 class Configuration(object):
+    # pylint: disable=too-few-public-methods
     """ Stores the configuration of a time-series analysis of a model. Hence
         storing information about a the start/stop times as well as the
         output interval for creating a timecourse.
@@ -1844,9 +1896,9 @@ class TimeCourse(object):
         """
         # Not sure I want this to be an assert, but we certainly want
         # something to check this.
-        assert(self.column_names == other.column_names)
+        assert self.column_names == other.column_names
         # pylint: disable=no-member
-        assert(numpy.array_equal(self.time_grid, other.time_grid))
+        assert numpy.array_equal(self.time_grid, other.time_grid)
         total_runs = self.num_averaged + other.num_averaged
 
         def average_pair(left_value, right_value):
@@ -2134,7 +2186,7 @@ class BioModelSolver(object):
                 side of the ode at the given populations and time.
             """
             environment["time"] = Expression.num_expression(time)
-            for (species,_), population in zip(gradients, current_pops):
+            for (species, _), population in zip(gradients, current_pops):
                 environment[species] = Expression.num_expression(population)
 
             result = [expr.get_value(environment=environment)
@@ -2368,12 +2420,12 @@ def run_command_line(output_conf=None, argv=None):
         bottle.debug()
         bottle.run()
     for filename in arguments['<name>']:
-            extension = os.path.splitext(filename)[1]
-            if extension == ".biopepa":
-                analyse_biopepa_file(filename, output_conf, arguments)
-            else:
-                # Assume it's a .pepa file
-                analyse_pepa_file(filename, output_conf, arguments)
+        extension = os.path.splitext(filename)[1]
+        if extension == ".biopepa":
+            analyse_biopepa_file(filename, output_conf, arguments)
+        else:
+            # Assume it's a .pepa file
+            analyse_pepa_file(filename, output_conf, arguments)
 
 
 if __name__ == "__main__":  # pragma: no cover

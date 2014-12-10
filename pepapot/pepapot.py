@@ -839,6 +839,9 @@ class StaticAnalysis(object):
 
 
 class ParsedModel(object):
+    """ Stores a parsed PEPA model. This class contains the grammar and parser
+        methods used to parse an entire PEPA model source.
+    """
     def __init__(self, constant_defs, proc_defs, sys_equation):
         self.constant_defs = constant_defs
         self.process_definitions = proc_defs
@@ -925,6 +928,16 @@ class ParsedModel(object):
         return components
 
     def used_process_names(self):
+        """ Returns the list of process names which are used in the model. This
+            aids in writing a static check to make sure no processes are used
+            when they have not been defined. It is also helps warn the user if
+            there are processes which are defined but not used. Note, that a
+            process is only considered 'used' if it can be reached from the
+            system equation. So for example if we have the two mutually
+            referential definitions, `P = (a, r).Q; Q = (b, s).P;` then `P` and
+            `Q` will both be in the set of names returned here if only if
+            *either* `P` or `Q` (or both) is used in the system equation.
+        """
         # I think that it is just possible for a name to be in two separate
         # components. If it does not link back to other names, for example
         # P = (a, r).Stop; Here it is possible that P is in two separate
@@ -937,6 +950,9 @@ class ParsedModel(object):
         return used_names
 
     def get_process_actions(self):
+        """ Returns a dictionary mapping process names to the list of `actions`
+            that that process can perform.
+        """
         actions_dictionary = dict()
         for definition in self.process_definitions:
             actions = ProcessPossibleActionsVisitor.get_result(definition.rhs)
@@ -973,6 +989,17 @@ class ParsedModel(object):
         return {definition.lhs for definition in self.constant_defs}
 
     def get_used_rate_names(self):
+        """ Returns the list of rate names which are used in the model. This
+            allows us to warn the user if a rate name is defined but then not
+            used in the model, or report an error when a rate name is used but
+            has not been defined. Unlike `get_used_process_names` a rate name
+            is included in this set if it is used in the definition of a
+            process, whether the process is then reachable from the system
+            equation or not. It would of course be possible to do the latter.
+            However, in the case that a rate name is used in a process
+            definition which is not reachable from the system equation, the
+            user will be warned about the unused process definition anyway.
+        """
         used_names = set()
         for definition in self.constant_defs:
             names = definition.rhs.used_names()

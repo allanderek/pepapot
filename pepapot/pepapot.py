@@ -21,6 +21,7 @@ from collections import namedtuple
 from collections import defaultdict
 import abc
 import functools
+import operator
 import itertools
 import math
 import random
@@ -63,36 +64,43 @@ def list_product(factors):
         Note: returns 1 for the empty list, which seems reasonable, given that
         sum([]) = 0.
     """
-    result = 1
-    for factor in factors:
-        result *= factor
-    return result
+    return functools.reduce(operator.mul, factors, 1)
 
 
 def evaluate_function_app(name, arg_values):
     """ Used in the evaluation of expressions. This evaluates the application
         of a function.
     """
+    def check_num_arguments(expected_number):
+        if len(arg_values) != expected_number:
+            if expected_number == 1:
+                message = "'" + name + "' must have exactly one argument."
+            else:
+                message = ("'" + name + "' must have exactly " +
+                           str(expected_number) + " arguments.")
+            raise ValueError(message)
     # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches
     if name == "plus" or name == "+":
         return sum(arg_values)
     elif name == "times" or name == "*":
-        return list_product(arg_values)
+        return functools.reduce(operator.mul, arg_values, 1)
     elif name == "minus" or name == "-":
         # What should we do if there is only one argument, I think we
         # should treat '(-) x' the same as '0 - x'.
-        answer = arg_values[0]
-        for arg in arg_values[1:]:
-            answer -= arg
-        return answer
+        if not arg_values:
+            return 0
+        elif len(arg_values) == 1:
+            return 0 - arg_values[0]
+        else:
+            return functools.reduce(operator.sub, arg_values)
     elif name == "divide" or name == "/":
-        answer = arg_values[0]
-        for arg in arg_values[1:]:
-            answer /= arg
-        return answer
+        if arg_values:
+            return functools.reduce(operator.truediv, arg_values)
+        else:
+            return 1
     elif name == "power" or name == "**":
         # power is interesting because it associates to the right
-        exponent = 1
         # counts downwards from the last index to the 0.
         # As an example, consider power(3,2,3), the answer should be
         # 3 ** (2 ** 3) = 3 ** 8 = 6561, not (3 ** 2) ** 3 = 9 ** 3 = 81
@@ -101,20 +109,18 @@ def evaluate_function_app(name, arg_values):
         # exp = 3 ** exp = 3
         # exp = 2 ** exp = 2 ** 3 = 8
         # exp = 3 ** exp = 3 ** 8 = 6561
+        exponent = 1
         for i in range(len(arg_values) - 1, -1, -1):
             exponent = arg_values[i] ** exponent
         return exponent
     elif name == "exp":
-        if len(arg_values) != 1:
-            raise ValueError("'exp' must have exactly one argument")
+        check_num_arguments(1)
         return math.exp(arg_values[0])
     elif name == "floor":
-        if len(arg_values) != 1:
-            raise ValueError("'floor' must have exactly one argument")
+        check_num_arguments(1)
         return math.floor(arg_values[0])
     elif name == "H" or name == "heaviside":
-        if len(arg_values) != 1:
-            raise ValueError("'" + name + "' must have exactly one argument")
+        check_num_arguments(1)
         # H is typically not actually defined for 0, here we have defined
         # H(0) to be 0. Generally it won't matter much.
         return 1 if arg_values[0] > 0 else 0

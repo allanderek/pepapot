@@ -1031,10 +1031,10 @@ class ParsedModel(object):
                 else:
                     defined_names.append(definition.lhs)
             return redefined
-        for r in calculate_redefinitions(self.constant_defs):
-            results.errors.append(PepaRedefinedRateNameError(r))
-        for p in calculate_redefinitions(self.process_definitions):
-            results.errors.append(PepaRedefinedProcessNameError(p))
+        for rate_name in calculate_redefinitions(self.constant_defs):
+            results.errors.append(PepaRedefinedRateNameError(rate_name))
+        for process_name in calculate_redefinitions(self.process_definitions):
+            results.errors.append(PepaRedefinedProcessNameError(process_name))
 
         defined_rate_names = set(self.get_defined_rate_names())
         used_rate_names = set(self.get_used_rate_names())

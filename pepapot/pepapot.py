@@ -71,7 +71,13 @@ def evaluate_function_app(name, arg_values):
     """ Used in the evaluation of expressions. This evaluates the application
         of a function.
     """
+    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches
     def check_num_arguments(expected_number):
+        """ For some of the functions we evaluate below they have a fixed
+            number of arguments, here we check that they have been supplied
+            the correct number.
+        """
         if len(arg_values) != expected_number:
             if expected_number == 1:
                 message = "'" + name + "' must have exactly one argument."
@@ -79,8 +85,6 @@ def evaluate_function_app(name, arg_values):
                 message = ("'" + name + "' must have exactly " +
                            str(expected_number) + " arguments.")
             raise ValueError(message)
-    # pylint: disable=too-many-return-statements
-    # pylint: disable=too-many-branches
     if name == "plus" or name == "+":
         return sum(arg_values)
     elif name == "times" or name == "*":

@@ -256,11 +256,11 @@ upper_identifier = make_identifier_grammar("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 identifier = make_identifier_grammar(pyparsing.alphas)
 
 plusorminus = Literal('+') | Literal('-')
-number = pyparsing.Word(pyparsing.nums)
-integer = Combine(Optional(plusorminus) + number)
-decimal_fraction = Literal('.') + number
-scientific_enotation = pyparsing.CaselessLiteral('E') + integer
-floatnumber = Combine(integer + Optional(decimal_fraction) +
+number_grammar = pyparsing.Word(pyparsing.nums)
+integer_grammar = Combine(Optional(plusorminus) + number_grammar)
+decimal_fraction = Literal('.') + number_grammar
+scientific_enotation = pyparsing.CaselessLiteral('E') + integer_grammar
+floatnumber = Combine(integer_grammar + Optional(decimal_fraction) +
                       Optional(scientific_enotation))
 
 
@@ -649,7 +649,7 @@ class ParsedAggregation(object):
     # Forces this to be a non-negative integer, though could be zero. Arguably
     # we may want to allow decimals here, obviously only appropriate for
     # translation to ODEs.
-    array_suffix = "[" + number + "]"
+    array_suffix = "[" + number_grammar + "]"
     array_suffix.setParseAction(lambda x: int(x[1]))
     # This way means that aggregation can only be applied to a single
     # identifier such as "P[10]". We could also allow for example
@@ -1575,7 +1575,7 @@ class BioBehaviour(object):
     prefix_identifier = identifier.copy()
     prefix_identifier.setParseAction(lambda tokens: (tokens[0], 1))
 
-    full_prefix_grammar = "(" + identifier + "," + integer + ")"
+    full_prefix_grammar = "(" + identifier + "," + integer_grammar + ")"
     full_prefix_parse_action = lambda tokens: (tokens[1], int(tokens[3]))
     full_prefix_grammar.setParseAction(full_prefix_parse_action)
 

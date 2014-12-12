@@ -271,7 +271,7 @@ def parenthetical_grammar(element_grammar):
 
 
 def create_expression_grammar(identifier_grammar):
-    expr_grammar = pyparsing.Forward()
+    this_expr_grammar = pyparsing.Forward()
 
     def num_expr_parse_action(tokens):
         return Expression.num_expression(float(tokens[0]))
@@ -284,7 +284,7 @@ def create_expression_grammar(identifier_grammar):
             return Expression.name_expression(tokens[0])
         else:
             return Expression.apply_expression(tokens[0], tokens[1:])
-    arg_expr_list = pyparsing.delimitedList(expr_grammar)
+    arg_expr_list = pyparsing.delimitedList(this_expr_grammar)
     opt_arg_list = Optional(parenthetical_grammar(arg_expr_list))
     apply_expr = identifier_grammar + opt_arg_list
     apply_expr.setParseAction(apply_expr_parse_action)
@@ -318,8 +318,8 @@ def create_expression_grammar(identifier_grammar):
                    (plusop, 2, pyparsing.opAssoc.LEFT, binop_parse_action),
                   ]
     # pylint: disable=expression-not-assigned
-    expr_grammar << pyparsing.operatorPrecedence(atom_expr, precedences)
-    return expr_grammar
+    this_expr_grammar << pyparsing.operatorPrecedence(atom_expr, precedences)
+    return this_expr_grammar
 
 lower_expr_grammar = create_expression_grammar(lower_identifier)
 expr_grammar = create_expression_grammar(identifier)
